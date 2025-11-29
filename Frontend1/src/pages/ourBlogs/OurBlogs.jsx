@@ -179,8 +179,9 @@ const OurBlogs = () => {
                 <LazyImage
                   src={blog.featureImage}
                   alt={blog.title}
+                  className="blog-card-image"
                   onClick={() => goToBlog(blog.slug)}
-                  style={{cursor: 'pointer'}}
+                  style={{cursor: 'pointer', width: '100%', height: '220px', objectFit: 'cover', display: 'block'}}
                 />
                 <div className="card-footer">
                   <span className="date">
