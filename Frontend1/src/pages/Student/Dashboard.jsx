@@ -481,34 +481,65 @@ const loadMyCourses = async () => {
   };
 
   const loadLiveSessions = async () => {
-    if (!myCourses.length) return;
-    
     setLiveSessionsLoading(true);
     try {
       const token = localStorage.getItem('authToken');
       const allUpcoming = [];
       const allPast = [];
+      const now = new Date();
 
-      await Promise.all(
-        myCourses.map(async (enr) => {
-          const courseId = (enr.courseId && typeof enr.courseId === 'object') ? enr.courseId._id : (enr.courseId || enr._id);
-          const courseName = enr.courseId?.name || enr.name || 'Course';
-          if (!courseId) return;
-          
-          try {
-            const resp = await fetch(`/api/live-batches/student/schedule?courseId=${courseId}`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (resp.ok) {
-              const data = await resp.json();
-              if (data.success && data.data) {
-                (data.data.upcoming || []).forEach(s => allUpcoming.push({ ...s, courseName }));
-                (data.data.past || []).forEach(s => allPast.push({ ...s, courseName }));
-              }
+      const fetchPromises = myCourses.map(async (enr) => {
+        const courseId = (enr.courseId && typeof enr.courseId === 'object') ? enr.courseId._id : (enr.courseId || enr._id);
+        const courseName = enr.courseId?.name || enr.name || 'Course';
+        if (!courseId) return;
+        
+        try {
+          const resp = await fetch(`/api/live-batches/student/schedule?courseId=${courseId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.success && data.data) {
+              (data.data.upcoming || []).forEach(s => allUpcoming.push({ ...s, courseName }));
+              (data.data.past || []).forEach(s => allPast.push({ ...s, courseName }));
             }
-          } catch (_) {}
-        })
-      );
+          }
+        } catch (_) {}
+      });
+
+      const liveClassPromise = fetch('/api/live-classes', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(async (resp) => {
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.success && data.items) {
+            data.items.forEach(lc => {
+              const session = {
+                _id: lc._id,
+                topic: lc.title,
+                date: lc.startTime,
+                startTime: new Date(lc.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                endTime: new Date(lc.endTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                platform: lc.platform,
+                meetingLink: lc.joinLink,
+                courseName: lc.courseId?.name || 'Live Class',
+                liveBatchId: { name: lc.title, subjectId: { name: lc.courseId?.name || 'Live Class' } },
+                description: lc.description,
+                status: lc.status,
+                isLiveClass: true
+              };
+              const sessionEnd = new Date(lc.endTime);
+              if (sessionEnd > now) {
+                allUpcoming.push(session);
+              } else {
+                allPast.push(session);
+              }
+            });
+          }
+        }
+      }).catch(() => {});
+
+      await Promise.all([...fetchPromises, liveClassPromise]);
 
       allUpcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
       allPast.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -522,9 +553,7 @@ const loadMyCourses = async () => {
   };
 
   useEffect(() => {
-    if (myCourses.length > 0) {
-      loadLiveSessions();
-    }
+    loadLiveSessions();
   }, [myCourses]);
 
   const loadNotifications = async () => {

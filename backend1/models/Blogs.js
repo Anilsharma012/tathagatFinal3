@@ -13,8 +13,16 @@ const blogSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ["CAT", "CUET", "IIT", "Non-IIT", "Study Abroad"],
+    enum: ["CAT", "IPMAT", "CUET", "MBA", "B-Schools", "Info Exam", "Topper's Journey", "Other"],
     required: true
+  },
+  isTopBlog: {
+    type: Boolean,
+    default: false
+  },
+  excerpt: {
+    type: String,
+    maxlength: 300
   },
   content: {
     type: String,
@@ -26,8 +34,19 @@ const blogSchema = new mongoose.Schema({
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
+    ref: "User"
+  },
+  authorName: {
+    type: String,
+    default: "TathaGat Faculty"
+  },
+  isPublished: {
+    type: Boolean,
+    default: true
+  },
+  views: {
+    type: Number,
+    default: 0
   },
   createdAt: {
     type: Date,
@@ -39,10 +58,13 @@ const blogSchema = new mongoose.Schema({
   }
 });
 
-// ✅ Automatically Generate Slug from Title
 blogSchema.pre("save", function (next) {
   if (this.title) {
-    this.slug = slugify(this.title, { lower: true, strict: true });
+    this.slug = slugify(this.title, { lower: true, strict: true }) + '-' + Date.now().toString(36);
+  }
+  if (!this.excerpt && this.content) {
+    const plainText = this.content.replace(/<[^>]*>/g, '');
+    this.excerpt = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
   }
   next();
 });

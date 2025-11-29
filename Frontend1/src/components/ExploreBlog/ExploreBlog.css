@@ -158,6 +158,16 @@
 }
 .tm-view-all-buttonnn button:hover { background:#d8583f; color:#fff; }
 
+.tm-blog-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 40px;
+  color: #666;
+  font-size: 16px;
+}
+
 /* responsive */
 @media (max-width: 1200px) {
   .tme-blog-header h2 { font-size: 48px; width: 100%; }

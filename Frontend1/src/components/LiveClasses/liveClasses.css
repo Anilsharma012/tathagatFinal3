@@ -68,10 +68,49 @@
 .lc-margin-8{margin:8px 0}
 .lc-mb-8{margin-bottom:8px}
 
+/* Empty state */
+.lc-empty{text-align:center;padding:60px 20px;background:#fff;border:1px solid #e5e7eb;border-radius:12px}
+.lc-empty-icon{font-size:48px;margin-bottom:16px;opacity:0.6}
+.lc-empty h3{margin:0 0 8px;color:#4b5563;font-size:18px}
+.lc-empty p{color:#6b7280;margin:0}
+
+/* Loading state */
+.lc-loading{text-align:center;padding:60px 20px}
+.lc-spinner{width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#1e40af;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Live class card improvements */
+.lc-card.live-now{border-color:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.2)}
+.lc-course-name{color:#6b7280;font-size:13px;margin-bottom:8px}
+.lc-schedule{display:flex;gap:12px;color:#374151;font-size:14px;margin-bottom:6px}
+.lc-date{font-weight:600}
+.lc-countdown{display:flex;align-items:center;gap:6px;margin-top:8px}
+.lc-countdown-icon{font-size:14px}
+.lc-btn.disabled{opacity:.5;cursor:not-allowed;background:#f3f4f6;color:#9ca3af}
+.lc-btn.active{background:#eef2ff;border-color:#6366f1;color:#4f46e5}
+.lc-no-recording{color:#9ca3af;font-size:13px;font-style:italic}
+.lc-badge.live{background:#22c55e;color:#fff;border-color:#22c55e;animation:pulse 2s infinite}
+.lc-badge.completed{background:#f3f4f6;color:#6b7280;border-color:#d1d5db}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* Modal */
+.lc-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.lc-modal{background:#fff;border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow:auto;box-shadow:0 25px 50px rgba(0,0,0,.25)}
+.lc-modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #e5e7eb}
+.lc-modal-header h2{margin:0;font-size:18px}
+.lc-modal-body{padding:20px}
+.lc-modal-footer{display:flex;gap:8px;flex-wrap:wrap;padding:16px 20px;border-top:1px solid #e5e7eb;background:#f9fafb}
+.lc-detail-row{margin-bottom:12px;font-size:14px}
+.lc-detail-row strong{display:block;color:#6b7280;font-size:12px;margin-bottom:4px}
+.lc-detail-row p{margin:4px 0 0;color:#374151}
+
 @media (max-width: 768px){
   .lc-filters{flex-direction:column}
   .lc-calendar{grid-template-columns:1fr 1fr}
   .lc-grid{grid-template-columns:1fr}
   .lc-form{grid-template-columns:1fr}
   .lc-table th:last-child,.lc-table td:last-child{min-width:240px}
+  .lc-card-actions{grid-template-columns:1fr}
+  .lc-modal-footer{flex-direction:column}
+  .lc-modal-footer .lc-btn{width:100%}
 }

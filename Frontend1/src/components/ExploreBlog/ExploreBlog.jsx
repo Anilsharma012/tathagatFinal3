@@ -1,56 +1,78 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./ExploreBlog.css";
 import { FaCalendarAlt, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { LazyLoadImage } from "react-lazy-load-image-component";
+import "react-lazy-load-image-component/src/effects/blur.css";
+import { useNavigate } from "react-router-dom";
+import http from "../../utils/http";
 
 import footerOne from "../../images/footer1.png";
 import footerTwo from "../../images/footer2.png";
 import footerThree from "../../images/footer3.png";
 import footerfour from "../../images/footer4.png";
-import footerfive from "../../images/AboutFour.png";
-import footersix from "../../images/AboutThree.png";
-import footereight from "../../images/AboutOne.png";
-import footerseven from "../../images/AboutTwo.png";
 
-import { LazyLoadImage } from "react-lazy-load-image-component";
-import "react-lazy-load-image-component/src/effects/blur.css";
-import { useNavigate } from "react-router-dom";
-const allData = [
+const fallbackData = [
   { id: 1, image: footerOne, date: "Feb 24, 2025", title: "CUET Prep Guide" },
   { id: 2, image: footerTwo, date: "Feb 25, 2025", title: "CAT Success Story" },
   { id: 3, image: footerThree, date: "Feb 26, 2025", title: "Toppers' Journey" },
   { id: 4, image: footerfour, date: "Feb 27, 2025", title: "MBA Prep Tips" },
-  { id: 5, image: footerfive, date: "Feb 24, 2025", title: "CUET Strategy Insights" },
-  { id: 6, image: footersix, date: "Feb 25, 2025", title: "CAT Study Plan" },
-  { id: 7, image: footerseven, date: "Feb 26, 2025", title: "Toppers' Preparation Secrets" },
-  { id: 8, image: footereight, date: "Feb 27, 2025", title: "Advanced MBA Tips" },
-  { id: 9, image: footerseven, date: "Feb 24, 2025", title: "CUET Exam Hacks" },
-  { id: 10, image: footereight, date: "Feb 25, 2025", title: "CAT Motivation Story" }
 ];
 
-const dataMap = {
-  All: allData,
-  "Top Blogs": [
-    { id: 1, image: footerOne, date: "Feb 24, 2025", title: "CUET Prep Guide" },
-    { id: 2, image: footerTwo, date: "Feb 25, 2025", title: "CAT Success Story" }
-  ],
-  "CAT Preparation": [
-    { id: 3, image: footerThree, date: "Feb 26, 2025", title: "CAT Prep Tips" },
-    { id: 9, image: footerfour, date: "Feb 27, 2025", title: "CAT Shortcut Methods" }
-  ],
-  "IPMAT Preparation": [{ id: 4, image: footerfive, date: "Feb 27, 2025", title: "IPMAT Strategy Guide" }],
-  "XAT Preparation": [{ id: 5, image: footersix, date: "Feb 28, 2025", title: "XAT Exam Strategy" }],
-  MBA: [{ id: 6, image: footerseven, date: "Mar 01, 2025", title: "MBA Success Tips" }],
-  "Exam Updates": [{ id: 7, image: footereight, date: "Mar 02, 2025", title: "Latest Exam Guide" }],
-  GMAT: [{ id: 8, image: footersix, date: "Mar 03, 2025", title: "GMAT Prep Essentials" }],
-  "After 12th": [{ id: 8, image: footerfive, date: "Mar 03, 2025", title: "Career Options After 12th" }]
+const categories = ["All", "Top Blogs", "CAT", "IPMAT", "CUET", "MBA", "B-Schools", "Info Exam", "Topper's Journey"];
+
+const categoryMapping = {
+  "All": null,
+  "Top Blogs": "topOnly",
+  "CAT": "CAT",
+  "IPMAT": "IPMAT",
+  "CUET": "CUET",
+  "MBA": "MBA",
+  "B-Schools": "B-Schools",
+  "Info Exam": "Info Exam",
+  "Topper's Journey": "Topper's Journey"
 };
 
 const ExploreBlog = () => {
   const [activeTag, setActiveTag] = useState("All");
-
-  // refs for scrolling + progress
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const scrollRef = useRef(null);
   const progressRef = useRef(null);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  useEffect(() => {
+    fetchBlogs(activeTag);
+  }, [activeTag]);
+
+  const fetchBlogs = async (tag = "All") => {
+    try {
+      setLoading(true);
+      let url = "/v5/all?limit=10";
+      
+      const mapping = categoryMapping[tag];
+      if (mapping === "topOnly") {
+        url += "&topOnly=true";
+      } else if (mapping) {
+        url += `&category=${encodeURIComponent(mapping)}`;
+      }
+      
+      const res = await http.get(url);
+      if (res.data?.success && res.data.blogs?.length > 0) {
+        setBlogs(res.data.blogs);
+      } else {
+        setBlogs([]);
+      }
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+      setBlogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleScroll = (dir) => {
     const el = scrollRef.current;
@@ -59,7 +81,6 @@ const ExploreBlog = () => {
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   };
 
-  // update progress bar width according to scroll
   const updateProgress = () => {
     const el = scrollRef.current;
     const fill = progressRef.current;
@@ -79,9 +100,21 @@ const ExploreBlog = () => {
       el.removeEventListener("scroll", updateProgress);
       window.removeEventListener("resize", updateProgress);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTag]);
-  const navigate = useNavigate();
+  }, [activeTag, blogs]);
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const goToBlog = (slug) => {
+    navigate(`/blog/${slug}`);
+  };
+
+  const displayBlogs = blogs.length > 0 ? blogs : fallbackData;
 
   return (
     <section className="tm-blog-slider-wrapper">
@@ -103,7 +136,7 @@ const ExploreBlog = () => {
       </div>
 
       <div className="tme-blog-filter-buttons">
-        {Object.keys(dataMap).map((tag) => (
+        {categories.map((tag) => (
           <button
             key={tag}
             className={activeTag === tag ? "active-filter" : ""}
@@ -115,12 +148,24 @@ const ExploreBlog = () => {
       </div>
 
       <div className="tm-blog-cards-container" id="blog-scroll-container" ref={scrollRef}>
-        {dataMap[activeTag].map((blog) => (
-          <div key={blog.id} className="tmc-blog-card">
-            <LazyLoadImage src={blog.image} alt="tm-blog thumbnail" className="tm-blog-image" effect="blur" />
+        {loading ? (
+          <div className="tm-blog-loading">Loading...</div>
+        ) : displayBlogs.map((blog) => (
+          <div 
+            key={blog._id || blog.id} 
+            className="tmc-blog-card"
+            onClick={() => blog.slug ? goToBlog(blog.slug) : null}
+            style={{ cursor: blog.slug ? 'pointer' : 'default' }}
+          >
+            <LazyLoadImage 
+              src={blog.featureImage || blog.image} 
+              alt={blog.title} 
+              className="tm-blog-image" 
+              effect="blur" 
+            />
             <div className="tm-blog-info">
               <span className="tm-blog-date">
-                <FaCalendarAlt /> {blog.date}
+                <FaCalendarAlt /> {blog.createdAt ? formatDate(blog.createdAt) : blog.date}
               </span>
               <h4>{blog.title}</h4>
             </div>
@@ -128,7 +173,6 @@ const ExploreBlog = () => {
         ))}
       </div>
 
-      {/* Footer controls like screenshot */}
       <div className="tm-blog-footer">
         <button
           className="tm-arrow-button"
@@ -151,7 +195,7 @@ const ExploreBlog = () => {
         </button>
       </div>
 
-     <div className="tm-view-all-buttonnn">
+      <div className="tm-view-all-buttonnn">
         <button onClick={() => navigate('/ourBlog')}>View all</button>
       </div>
     </section>

@@ -39,8 +39,9 @@ exports.list = async (req, res) => {
         .filter(c => c.status === 'unlocked' && c.courseId)
         .map(c => c.courseId);
       filters.courseId = filters.courseId ? filters.courseId : { $in: courseIds };
-      // default to upcoming
-      if (!req.query.from && !req.query.to) {
+      // Show all classes (upcoming and past) so students can see their schedule
+      // Only filter by date if explicitly requested
+      if (req.query.upcoming === 'true') {
         filters.startTime = { $gte: new Date() };
       }
     }
@@ -166,7 +167,9 @@ async function notifyStudentsSafe(lc){
 }
 
 exports.notifyCore = async (lc) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) throw new Error('SMTP not configured');
+  const emailUser = process.env.EMAIL || process.env.SMTP_USER;
+  const emailPass = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
+  if (!emailUser || !emailPass) throw new Error('Email not configured');
   const students = await User.find({
     'enrolledCourses.courseId': lc.courseId,
     'enrolledCourses.status': 'unlocked'
@@ -175,7 +178,7 @@ exports.notifyCore = async (lc) => {
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    auth: { user: emailUser, pass: emailPass }
   });
 
   const course = await Course.findById(lc.courseId).select('name');

@@ -40,6 +40,7 @@ import ResultPage from "./subpages/ResultPage/ResultPage";
 import StudentDashboard from "./pages/Student/Dashboard";
 import AboutUs from "./pages/AboutUs/AboutUs";
 import OurBlogs from "./pages/ourBlogs/OurBlogs";
+import BlogView from "./pages/ourBlogs/BlogView";
 import Tips from "./pages/Tips/Tips";
 import GetInTouch from "./pages/GetInTouch/GetInTouch";
 
@@ -114,6 +115,7 @@ import AdminReports from "./pages/mainAdmin/Reports/AdminReports";
 import AdminLiveClasses from "./pages/mainAdmin/LiveClasses/AdminLiveClasses";
 import LiveBatchManagement from "./pages/mainAdmin/LiveClasses/LiveBatchManagement";
 import BatchManagement from "./pages/mainAdmin/BatchManagement/BatchManagement";
+import BlogManagement from "./pages/mainAdmin/BlogManagement/BlogManagement";
 import TeacherLiveClasses from "./pages/MainSubAdmin/LiveClasses/TeacherLiveClasses";
 import StudentLiveClasses from "./pages/Student/LiveClasses/StudentLiveClasses";
 import ContinueLearning from "./pages/Student/ContinueLearning/ContinueLearning";
@@ -316,6 +318,15 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <DiscussionManagement />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/blogs"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <BlogManagement />
             </PrivateRoute>
           }
         />
@@ -554,6 +565,7 @@ const AppContent = () => {
         <Route path="/mock-test" element={<MockTest />} />
         <Route path="/resource" element={<FinalResource />} />
         <Route path="/ourBlog" element={<OurBlogs />} />
+        <Route path="/blog/:slug" element={<BlogView />} />
         <Route path="/myteam" element={<Myteam/>}/>
         <Route path="/why" element={<WhySection />} />
         <Route path="/cat" element={<Cat />} />
