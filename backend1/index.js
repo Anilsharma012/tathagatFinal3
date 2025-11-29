@@ -681,6 +681,8 @@ safeUse("/api/v3", "./routes/ResponseSheet");
 
 safeUse("/api/v5", "./routes/blogRoutes");
 safeUse("/api/demo-videos", "./routes/demoVideoRoutes");
+safeUse("/api/scorecards", "./routes/scoreCardRoutes");
+safeUse("/api/topper-feedback", "./routes/topperFeedbackRoutes");
 
 safeUse("/api/admin", "./routes/AdminRoute");
 safeUse("/api/admin/bulk-upload", "./routes/bulkUpload");
