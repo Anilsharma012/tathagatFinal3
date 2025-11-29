@@ -1,6 +1,7 @@
-import React, { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ for navigation
+import React, { useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./CourseDetails.css";
+import http from "../../utils/http";
 
 import rajat from "../../images/Team/Rajat12.jpg";
 import kumar from "../../images/Team/KumarSir.png";
@@ -45,12 +46,30 @@ import CourseComprasion from "../../components/CourseComprasion/CourseComprasion
 const CourseDetails = () => {
   const [showAll, setShowAll] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [showComingSoon, setShowComingSoon] = useState(false); // ⬅️ modal state
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [videos, setVideos] = useState([]);
+  const [videosLoading, setVideosLoading] = useState(true);
   const rajatRef = useRef(null);
 
   const navigate = useNavigate();
 
-  // ✅ Hero buttons -> internal routes (edit as per your app)
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        const res = await http.get("/demo-videos/public");
+        if (res.data?.success) {
+          setVideos(res.data.videos || []);
+        }
+      } catch (error) {
+        console.error("Error fetching demo videos:", error);
+        setVideos([]);
+      } finally {
+        setVideosLoading(false);
+      }
+    };
+    fetchVideos();
+  }, []);
+
   const heroActions = [
     { label: "Free Mocks", to: "/mock-test" },
     { label: "IIM Predictor", to: null, comingSoon: true }, // ⬅️ modal open
@@ -85,16 +104,6 @@ const CourseDetails = () => {
       im.src = src;
     });
   }, [testimonials]);
-
-  const videos = [
-    { link: "https://www.youtube.com/live/y90UZ1IfpKc?si=cJN7pu1RzohAN7fT", category: "QUANT", title: "Time & Work in 5 Minutes" },
-    { link: "https://youtu.be/EHBhttps://www.youtube.com/live/5KiVnNfsHa0?si=X8Gs9Rh5sa-L3Z77Q3AJ-uEo", category: "VARC", title: "RC Strategies" },
-    { link: "https://youtu.be/Ihttps://www.youtube.com/live/aDXkJwqAiP4?si=gtkt5zJpNyAy7LBSVnBi5uPHW0", category: "LRDI", title: "Puzzle Solving" },
-    { link: "https://youtu.be/https://www.youtube.com/live/Y2DEkcUnDpA?si=SZGB8mhrbUcBOVmK", category: "QUANT", title: "Number System Basics" },
-    { link: "https://youtu.be/Ctb2https://www.youtube.com/live/p82_gKGvNow?si=3U_F4Hwb3LIIfPzk3J-46cM", category: "VARC", title: "Para Jumbles Tricks" },
-    { link: "https://youtu.be/6ODXAKkhttps://www.youtube.com/live/nh4jxJeOnlk?si=x6wDWKiMwgTgoYCQhttps://youtu.be/T0tAwghwKcE?si=jQUE-8OcYvrGLeUzACS4", category: "LRDI", title: "Seating Arrangement" },
-    { link: "https://youtu.be/JHgNohttps://www.youtube.com/live/Q3NZEj5EpJw?si=m0CBoszsB7TGZ2PmNlucTg", category: "QUANT", title: "Geometry Quick Revision" },
-  ];
 
   const visibleVideos =
     activeCategory === "All" ? videos : videos.filter((v) => v.category === activeCategory);
@@ -663,26 +672,42 @@ const CourseDetails = () => {
         </div>
 
         <div className="video-scroll">
-          {visibleVideos.map((video, index) => {
-            const id = video.link.split("v=")[1] || video.link.split("/").pop();
-            return (
-              <div className="video-card" key={index}>
-                <iframe
-                  src={`https://www.youtube.com/embed/${id}`}
-                  title={`Video ${index + 1}`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-                <div className="video-info">
-                  <span className="video-label">Watch Video</span>
-                  <h3 className="video-title">{video.title}</h3>
-                  <p className="video-author">{video.author}</p>
-                  <p className="video-cta">Watch Now →</p>
+          {videosLoading ? (
+            <div className="video-loading">Loading videos...</div>
+          ) : visibleVideos.length === 0 ? (
+            <div className="video-empty">No videos available</div>
+          ) : (
+            visibleVideos.map((video, index) => {
+              const extractId = (url) => {
+                if (!url) return null;
+                const patterns = [
+                  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([^&\n?#]+)/,
+                ];
+                for (const pattern of patterns) {
+                  const match = url.match(pattern);
+                  if (match) return match[1];
+                }
+                return url.split("/").pop().split("?")[0];
+              };
+              const videoId = extractId(video.youtubeUrl);
+              return (
+                <div className="video-card" key={video._id || index}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title={video.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                  <div className="video-info">
+                    <span className="video-label">Watch Video</span>
+                    <h3 className="video-title">{video.title}</h3>
+                    <p className="video-cta">Watch Now →</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
