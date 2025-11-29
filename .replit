@@ -1,0 +1,79 @@
+modules = ["nodejs-20", "web", "bash", "postgresql-16"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend"
+
+[[workflows.workflow]]
+name = "Frontend"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash start.sh"
+waitForPort = 5000
+
+[[ports]]
+localPort = 3001
+externalPort = 3003
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
+
+[[ports]]
+localPort = 36869
+externalPort = 3002
+
+[[ports]]
+localPort = 37771
+externalPort = 4200
+
+[[ports]]
+localPort = 40607
+externalPort = 5173
+
+[[ports]]
+localPort = 43407
+externalPort = 3001
+
+[[ports]]
+localPort = 44819
+externalPort = 6000
+
+[[ports]]
+localPort = 45743
+externalPort = 5000
+
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "-c", "cd Frontend1 && npm run dev:full"]
+
+[userenv]
+
+[userenv.shared]
+PORT = "3001"
+REACT_APP_BACKEND_URL = "http://localhost:5000/api/v1"
+EMAIL = "ethan2233har@gmail.com"
+KARIX_SENDER_ID = "TATHGT"
+RAZORPAY_KEY_ID = "rzp_test_RZC3Oil77mBlmt"

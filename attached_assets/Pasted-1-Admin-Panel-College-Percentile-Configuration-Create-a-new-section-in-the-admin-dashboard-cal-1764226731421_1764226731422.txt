@@ -1,0 +1,296 @@
+1. Admin Panel – College & Percentile Configuration
+
+Create a new section in the admin dashboard called “IIM Predictor – College Manager” with a primary button: “Add College (Percentile Based)”.
+
+When the admin clicks this button, open a modal or separate page with a clean form to create/edit a college entry.
+
+Each college record should have at least these fields (aligned with the sample table from iQuanta):
+
+College Group / Bucket (dropdown)
+
+“Top IIMs and FMS”
+
+“IITs and IIFT”
+
+“Newer IIMs”
+
+“Other Top B-Schools” (fallback option)
+
+College Name (text) – e.g. “IIM Ahmedabad”
+
+Program Name / Tag (optional) – e.g. “PGPBA”, “ABM”, “HRM”
+
+VARC %ile Cutoff (number)
+
+DILR %ile Cutoff (number)
+
+QA %ile Cutoff (number)
+
+Overall Min %ile Cutoff (number)
+
+Target Percentile (number, 0–100)
+
+This is the main value used to decide whether the user is competitive for that college.
+
+Conversion: Calls (in your category) (short text)
+
+Example: 123 : 318, 389 : 910
+
+Shortlisting Criteria URL (optional link)
+
+Clicking an icon in results should open this in a new tab.
+
+Display Order / Sort Order (number)
+
+Status (Active / Inactive) – inactive rows should not show in the predictor.
+
+Store these records in a persistent data source (reuse the project’s existing database or create a new table/collection, for example iim_colleges).
+
+Also implement basic CRUD:
+
+List view with a table of all colleges (columns same as the result table).
+
+Actions per row: Edit, Delete, Toggle Active.
+
+The list should be searchable by college name and filterable by college group.
+
+2. Prediction Logic & Result Page Integration
+
+The user form “LET’S PREDICT YOUR MBA COLLEGE” is already present with fields like:
+
+Category (General/OBC/…)
+
+Gender
+
+10th stream + percentage
+
+12th stream + percentage
+
+Graduation stream + percentage
+
+Work experience (if any)
+
+“Have you taken CAT before?” (Yes/No + Year)
+
+Interest in courses (CAT Full Course, NMAT+SNAP Course, XAT Course, CMAT Course)
+
+Other existing fields in the form
+
+Use this existing form as-is visually, but on Submit:
+
+Calculate profile-based percentiles (or reuse existing logic if it already exists) for at least three buckets:
+
+Top IIMs and FMS percentile
+
+IITs and IIFT percentile
+
+Newer IIMs percentile
+
+Return from the backend a structured response that includes:
+
+Basic profile evaluation:
+
+academicsScore (0–100)
+
+workExScore (0–100)
+
+topIimsAndFmsPercentile (0–100)
+
+iitsAndIiftPercentile (0–100)
+
+newerIimsPercentile (0–100)
+
+A list of eligible colleges and optionally all colleges from the admin database.
+
+Eligibility rule:
+
+For each college:
+
+Pick the relevant bucket based on its “College Group / Bucket”:
+
+Top IIMs & FMS → compare with topIimsAndFmsPercentile
+
+IITs & IIFT → compare with iitsAndIiftPercentile
+
+Newer IIMs → compare with newerIimsPercentile
+
+Others → choose the closest bucket or use overall percentile if implemented
+
+A college is “eligible” if the candidate’s bucket percentile ≥ Target Percentile and, if required, they also meet sectional cut-offs.
+
+Provide a way to:
+
+Show all colleges
+
+Or filter to “Show only likely calls (eligible colleges)”.
+
+3. Result Page UI – Match the Given Design
+
+After form submission, navigate to a Profile Evaluation / Result page with the following layout (closely imitating iQuanta’s style but without copying their code):
+
+Title section
+
+Big heading at the top:
+
+If the user’s first name is available, use:
+"[Name]'s Profile Evaluation"
+
+Otherwise: "Your Profile Evaluation".
+
+Top Summary Bars
+
+Two horizontal bar components:
+
+Academics – a bar segmented into labels: “Weak”, “Adequate”, “Fine”, “Great”, with a circular slider/indicator positioned according to academicsScore.
+
+Work Experience – similar segmented bar with the indicator based on workExScore.
+
+Colors: soft red for Weak, yellow for Adequate, mint for Fine, green/teal for Great.
+
+Smooth, modern styling consistent with existing app typography and spacing.
+
+Three Percentile Cards (in one row on desktop, stacked on mobile):
+
+Card 1:
+
+Big bold number: topIimsAndFmsPercentile with “%ile” label.
+
+Subtext: “Top IIMs and FMS”.
+
+A thin horizontal percentile bar from 90 to 100 similar to the screenshot.
+
+Card 2:
+
+Same style.
+
+Number: iitsAndIiftPercentile.
+
+Subtext: “IITs and IIFT”.
+
+Range typically 85–100.
+
+Card 3:
+
+Number: newerIimsPercentile.
+
+Subtext: “Newer IIMs”.
+
+Range typically 80–100.
+
+College Table (below the cards) – exactly like the sample screenshot
+
+Implement a responsive table with these columns:
+
+Top B-Schools (college + program text)
+
+VARC %ile Cutoff
+
+DILR %ile Cutoff
+
+QA %ile Cutoff
+
+Overall Min %ile Cutoff
+
+Target Percentile
+
+Show this column with a subtle green background to highlight it.
+
+Conversion: Calls (in your category)
+
+Display conversionText as “123 : 318” or similar.
+
+Shortlisting Criteria
+
+Show a small “external link” icon. Clicking it should open the shortlistingUrl in a new tab if present.
+
+Behaviour:
+
+Use data from the admin-managed iim_colleges dataset.
+
+Sort rows primarily by college group, then by target percentile.
+
+Visually indicate eligibility, for example:
+
+Bold text or a green left border for eligible colleges.
+
+Optional tag “Likely Call” / “Stretch” next to college name depending on gap between user percentile and target percentile.
+
+Responsiveness
+
+On desktop, the layout should follow the reference screenshots:
+
+Two bars on top
+
+Three cards in one row
+
+Wide college table below.
+
+On mobile/tablet:
+
+Stack the bars vertically.
+
+Display the three percentile cards in a vertical stack or 2-column grid.
+
+For the college list, use either a horizontally scrollable table or card-based layout that still shows all the same fields.
+
+4. Data Flow & APIs
+
+Implement or update APIs (or controllers) to support this flow:
+
+Admin APIs
+
+GET /admin/iim-colleges – list all colleges.
+
+POST /admin/iim-colleges – create a college.
+
+PUT /admin/iim-colleges/:id – update a college.
+
+DELETE /admin/iim-colleges/:id – delete a college.
+
+These routes must be protected using the existing admin auth mechanism.
+
+Prediction API
+
+POST /iim-predictor/evaluate
+
+Input: all fields from the “LET’S PREDICT YOUR MBA COLLEGE” form.
+
+Output:
+
+academicsScore
+
+workExScore
+
+topIimsAndFmsPercentile
+
+iitsAndIiftPercentile
+
+newerIimsPercentile
+
+list of colleges with an isEligible flag for each.
+
+Frontend:
+
+The existing predictor form should call this endpoint on submit, show a loading state, then render the new result page using the response.
+
+5. General Requirements
+
+Keep all typography, colors, and spacing consistent with the current site.
+
+Use clean, maintainable components for:
+
+Progress/percentile bars
+
+College table
+
+Admin college form
+
+All labels and headings must be in clear, professional English.
+
+Do not remove or break the existing form fields and functionality; only extend them.
+
+Use this full specification to generate and integrate all necessary frontend components, backend endpoints, and database changes so that:
+
+Admin can add/update colleges and their percentile cut-offs from the admin panel.
+
+Users fill the “LET’S PREDICT YOUR MBA COLLEGE” form, get their bucket-wise percentiles, and see a result page that looks like the sample “Profile Evaluation” screenshots, with colleges pulled from admin data and filtered by their percentile.

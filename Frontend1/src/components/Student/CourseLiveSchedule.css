@@ -1,0 +1,276 @@
+.cls-container {
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.cls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.cls-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #1a1a1a;
+}
+
+.cls-refresh-btn {
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.cls-refresh-btn:hover {
+  background: #e8e8e8;
+}
+
+.cls-loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.cls-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.cls-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.cls-empty h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.cls-empty p {
+  margin: 0;
+  color: #666;
+}
+
+.cls-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 12px;
+}
+
+.cls-tab {
+  padding: 10px 20px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.cls-tab:hover {
+  background: #e8e8e8;
+}
+
+.cls-tab.active {
+  background: #2c5282;
+  color: white;
+}
+
+.cls-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cls-no-sessions {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.cls-session-card {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.cls-session-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.cls-session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cls-subject-name {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cls-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cls-badge.live {
+  background: #e74c3c;
+  color: white;
+  animation: pulse 1.5s infinite;
+}
+
+.cls-badge.scheduled {
+  background: #3498db;
+  color: white;
+}
+
+.cls-badge.completed {
+  background: #27ae60;
+  color: white;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.cls-session-topic {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.cls-session-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cls-date-time {
+  display: flex;
+  gap: 16px;
+}
+
+.cls-date {
+  font-weight: 500;
+  color: #333;
+}
+
+.cls-time {
+  color: #666;
+}
+
+.cls-platform {
+  font-size: 13px;
+  color: #888;
+}
+
+.cls-countdown {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.cls-session-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cls-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+}
+
+.cls-btn.primary {
+  background: #2c5282;
+  color: white;
+}
+
+.cls-btn.primary:hover {
+  background: #1e3a5f;
+}
+
+.cls-btn.secondary {
+  background: #e8e8e8;
+  color: #333;
+}
+
+.cls-btn.secondary:hover {
+  background: #d8d8d8;
+}
+
+.cls-btn.disabled {
+  background: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.cls-no-recording {
+  color: #888;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.cls-session-notes {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+  font-size: 14px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .cls-container {
+    padding: 16px;
+  }
+  
+  .cls-session-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .cls-session-actions {
+    flex-direction: column;
+  }
+  
+  .cls-btn {
+    text-align: center;
+  }
+}

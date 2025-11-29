@@ -1,0 +1,194 @@
+Course level:
+
+Example courses: CAT 2030, CAT 2031
+
+Har course ke andar subjects: Quant, LRDI, Verbal etc.
+
+Live classes sirf course ke andar dikhni chahiye
+
+Live classes ka section “Full Course” ke andar hi hoga, separate nahi.
+
+Schedule admin banayega:
+
+Admin bolega: “Is batch (course + subject) ki class in-in dates ko hogi”
+
+Jaise CAT 2030 → Quant start 1 Jan se, dates set.
+
+Dusra course baad me start hota hai (CAT 2031):
+
+Isme pehle LRDI start karni hai.
+
+Admin iske bhi LRDI ki dates set karega.
+
+Batches ko combine karna hai live class level pe:
+
+Jaise LRDI ka jo session hai, usi class me CAT 2030 + CAT 2031 dono ke bachche baith sakte hain.
+
+Matlab ek hi live class, multiple courses attached.
+
+Lekin content visibility control chahiye:
+
+CAT 2030 me jo Quant ki purani live classes ho chuki hain,
+
+CAT 2031 wale bachchon ko wo recorded/live list me nahi dikhni chahiye
+→ unko sirf un classes ka schedule/recording dikhna chahiye jo unke batch ke hisaab se hain.
+
+Same vice-versa.
+
+Student side pe requirement:
+
+Har student ko ek combined timetable dikhe:
+
+“Is date ko LRDI class hai” — chahe woh CAT 2030 ka ho ya 2031 ka,
+
+Lekin purani classes jo unke batch ke liye nahi thi, wo unko na dikhें.
+
+Bilkul simple language me:
+Courses alag-alag rahenge, lekin live classes ko “merge / share” karna hai multiple courses ke beech, bina purane sessions sabko dikha diye.
+
+2. High level solution idea (jo hum banaenge)
+
+Isko sahi tarike se karne ka seedha tareeka:
+
+A. Courses se alag ek “Live Batch / Live Group” banana
+
+New entities soch:
+
+Course
+
+CAT 2030, CAT 2031 … (ye product jaisa hai)
+
+Subject
+
+Quant, LRDI, Verbal (per course ya global, jaisa tumne abhi design kiya)
+
+LiveBatch (ya TeachingGroup)
+
+Example:
+
+Quant_Main_2025
+
+LRDI_Combined_Jan_2025
+
+Isme multiple courses attach ho sakte hain
+→ CAT 2030 + CAT 2031 dono is LRDI_Combined wala group share kar sakte hain.
+
+LiveSession
+
+Har actual class ka record:
+
+liveBatchId
+
+subject
+
+date/time
+
+topic, zoomLink / YouTubeLink
+
+recordingUrl (optional, baad me)
+
+Enrollment
+
+Student kis course + kis liveBatch me hai, ye mapping.
+
+B. Visibility logic
+
+Student ke schedule ke liye:
+
+Student ka courseId + liveBatchIds nikalo.
+
+LiveSession filter karo:
+
+liveBatchId in student.liveBatchIds
+
+session.date >= student.joinDate (taaki purani classes na dikhें)
+
+Ye list uske “Live Classes / Timetable” section me show karo.
+
+Jab tum CAT 2031 ko Quant nahi dikhana chahte:
+
+Simple: Quant ka liveBatch unko assign hi mat karo,
+
+ya assign karo baad me jab tum chaho Quant start karna.
+
+3. Tumhare example pe apply karke samjha du
+Step 1 – Setup
+
+Course 1: CAT 2030
+
+Course 2: CAT 2031
+
+Subjects: Quant, LRDI, Verbal
+
+Live Batches:
+
+LB1 = Quant_Main_2025 → abhi sirf CAT 2030 ke bachche.
+
+LB2 = LRDI_Combined_2025 → CAT 2030 + CAT 2031 dono.
+
+Step 2 – Classes ka flow
+
+1 Jan se Quant start (sirf 2030 ke liye)
+
+Tum LiveSession banao under LB1:
+
+1 Jan – Quant – Number System
+
+3 Jan – Quant – Arithmetic 1
+
+...
+
+Enrolled:
+
+CAT 2030 students → liveBatchIds: [LB1, LRDI_Combined_2025] (maan lo)
+
+CAT 2031 students → abhi system me hi nahi, ya sirf LRDI wala baad me.
+
+2031 course launch hota hai, tum LRDI se start karna chahte ho
+
+CAT 2031 students ko LRDI_Combined_2025 (LB2) me add karo.
+
+LRDI ke sessions create karo under LB2:
+
+10 Feb – LRDI – Basics
+
+12 Feb – LRDI – Games & Tournaments
+
+Ab:
+
+CAT 2030 students → schedule me LRDI ki classes bhi dikhengi
+(kyunki woh bhi LRDI_Combined_2025 batch me hain),
+
+CAT 2031 students → sirf LRDI sessions dikhengi,
+Quant ki purani live sessions kyunki LB1 unko assigned nahi.
+
+Baad me jab tum chaho 2031 ke liye Quant start karna
+
+Option A: Unko new Quant_2031_Batch me daal do (alagg classes).
+
+Option B: Same Quant_Main_2025 use karo lekin:
+
+ya to naye sessions banao aage ki dates se,
+
+ya purane sessions ko recordedContent section me shift karo
+(live schedule se alag).
+
+4. Next practical step kya hoga
+
+Agla kaam jo main tere liye kar sakta hoon:
+
+Mongo/Mongoose schema design:
+
+Course, Subject, LiveBatch, LiveSession, Enrollment
+
+Admin API routes:
+
+POST /admin/live-batches
+
+POST /admin/live-sessions
+
+GET /admin/live-sessions?courseId=...
+
+Student API / UI logic:
+
+GET /student/live-schedule → course + batches based filtering.

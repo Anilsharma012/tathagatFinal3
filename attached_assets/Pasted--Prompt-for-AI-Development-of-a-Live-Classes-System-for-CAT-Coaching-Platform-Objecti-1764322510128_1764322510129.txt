@@ -1,0 +1,61 @@
+**Prompt for AI Development of a Live Classes System for CAT Coaching Platform**
+
+---
+
+**Objective:**
+Design a complete Live Classes system for a CAT coaching platform, ensuring a clear separation of courses and their live batches while allowing for shared sessions across multiple courses. The system should filter live sessions based on course enrollment.
+
+---
+
+**Requirements Overview:**
+
+1. **Entities to Define:**
+   - **Course**
+     - Fields: id, title, startDate, optional metadata (description, price)
+   - **Subject**
+     - Fields: id, name
+   - **LiveBatch**
+     - Fields: id, name, subjectId, isActive
+   - **LiveSession**
+     - Fields: id, liveBatchId, date (ISO date), startTime, endTime, topic, meetingLink, recordingUrl (optional), notes (optional)
+   - **CourseLiveBatch**
+     - Fields: id, courseId, subjectId, liveBatchId, visibleFrom
+   - **Enrollment**
+     - Fields: id, userId, courseId, joinDate
+
+2. **Business Logic:**
+   - Courses must remain distinct (e.g., CAT 2030 vs CAT 2031).
+   - Live classes can be shared across courses but must respect visibility rules based on the enrollment date.
+   - Implement logic to return live schedules based on the visibleFrom date and user enrollment.
+
+3. **API Design:**
+   - **Admin APIs:**
+     - Create, read, update, and delete Live Batches and Live Sessions.
+     - Attach Courses to Live Batches with the visibleFrom date.
+   - **Student API:**
+     - GET /student/live-schedule?courseId=...
+       - Returns relevant live sessions based on the student’s enrollment and the visibleFrom date.
+
+4. **Frontend UI Components:**
+   - **Admin Side:**
+     - Interface for managing Live Batches and Sessions.
+     - Functionality to attach courses to live batches and set visibility dates.
+   - **Student Side:**
+     - Course dashboard displaying relevant live sessions:
+       - Each session should include subject name, date, time, topic, and join button.
+       - Past sessions should provide access to recordings if available.
+
+5. **Implementation Guidelines:**
+   - Use MongoDB with Mongoose or any relational database, ensuring the data structure is equivalent.
+   - Ensure that the backend logic strictly adheres to the defined relationships and visibility rules.
+   - Create example components in React (or a similar framework) to demonstrate the admin and student interfaces.
+
+6. **Considerations:**
+   - Ensure scalability to accommodate multiple courses and subjects.
+   - Maintain clear documentation for API endpoints and component usage.
+   - Incorporate error handling and validation for all user inputs.
+
+---
+
+**Outcome:**
+Deliver a robust, fully functional Live Classes system that integrates seamlessly into an existing Learning Management System (LMS) for CAT coaching, strictly following the defined requirements and ensuring a user-friendly experience for both administrators and students.

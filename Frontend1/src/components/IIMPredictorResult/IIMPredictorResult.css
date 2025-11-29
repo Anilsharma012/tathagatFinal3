@@ -1,0 +1,465 @@
+.iim-result-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+    min-height: 100vh;
+}
+
+.result-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.result-header h1 {
+    font-size: 32px;
+    color: #1a365d;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.result-subtitle {
+    font-size: 16px;
+    color: #4a5568;
+}
+
+.profile-summary-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+}
+
+.profile-summary-card h3 {
+    color: #2c5282;
+    margin-bottom: 20px;
+    font-size: 18px;
+    text-align: center;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.profile-item {
+    text-align: center;
+    padding: 12px;
+    background: #f7fafc;
+    border-radius: 10px;
+}
+
+.profile-item .label {
+    display: block;
+    font-size: 12px;
+    color: #718096;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.profile-item .value {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.score-cards-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.score-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    min-width: 180px;
+}
+
+.score-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 15px;
+}
+
+.score-circle svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.score-circle circle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.score-circle .bg {
+    stroke: #e2e8f0;
+}
+
+.score-card.academics .score-circle .progress {
+    stroke: #38a169;
+}
+
+.score-card.work-ex .score-circle .progress {
+    stroke: #3182ce;
+}
+
+.score-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+.score-label {
+    font-size: 14px;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.percentile-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.percentile-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-left: 5px solid;
+}
+
+.percentile-card.top-iims {
+    border-color: #38a169;
+}
+
+.percentile-card.iits {
+    border-color: #3182ce;
+}
+
+.percentile-card.newer-iims {
+    border-color: #d69e2e;
+}
+
+.percentile-card h4 {
+    font-size: 16px;
+    color: #4a5568;
+    margin-bottom: 10px;
+}
+
+.percentile-value {
+    font-size: 36px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.percentile-card.top-iims .percentile-value {
+    color: #38a169;
+}
+
+.percentile-card.iits .percentile-value {
+    color: #3182ce;
+}
+
+.percentile-card.newer-iims .percentile-value {
+    color: #d69e2e;
+}
+
+.percentile-card p {
+    font-size: 12px;
+    color: #718096;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-box {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+.stat-value {
+    display: block;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #718096;
+}
+
+.stat-box.total .stat-value { color: #2d3748; }
+.stat-box.likely .stat-value { color: #38a169; }
+.stat-box.borderline .stat-value { color: #d69e2e; }
+.stat-box.stretch .stat-value { color: #e53e3e; }
+
+.colleges-section {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+}
+
+.colleges-section h3 {
+    text-align: center;
+    color: #1a365d;
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+.filter-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-tabs button {
+    padding: 10px 20px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4a5568;
+    transition: all 0.3s;
+}
+
+.filter-tabs button:hover {
+    border-color: #2c5282;
+    color: #2c5282;
+}
+
+.filter-tabs button.active {
+    background: #2c5282;
+    border-color: #2c5282;
+    color: white;
+}
+
+.colleges-table-container {
+    overflow-x: auto;
+}
+
+.colleges-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.colleges-table th {
+    background: #2c5282;
+    color: white;
+    padding: 14px 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.colleges-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+
+.colleges-table tr:hover {
+    background: #f7fafc;
+}
+
+.college-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.college-name-cell strong {
+    color: #2d3748;
+}
+
+.college-group-tag {
+    font-size: 11px;
+    color: #718096;
+    background: #edf2f7;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.call-status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-likely {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.status-borderline {
+    background: #fefcbf;
+    color: #744210;
+}
+
+.status-stretch {
+    background: #fed7d7;
+    color: #c53030;
+}
+
+.status-not-eligible {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 14px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+}
+
+.btn-primary {
+    background: #2c5282;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1a365d;
+}
+
+.btn-secondary {
+    background: white;
+    color: #2c5282;
+    border: 2px solid #2c5282;
+}
+
+.btn-secondary:hover {
+    background: #edf2f7;
+}
+
+.result-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+}
+
+.loading-spinner-large {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #2c5282;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.result-loading p {
+    color: #4a5568;
+    font-size: 18px;
+}
+
+.result-error {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.result-error h2 {
+    color: #e53e3e;
+    margin-bottom: 15px;
+}
+
+.result-error p {
+    color: #4a5568;
+    margin-bottom: 25px;
+}
+
+.result-error button {
+    padding: 12px 25px;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+@media print {
+    .action-buttons, .filter-tabs {
+        display: none;
+    }
+    
+    .iim-result-page {
+        background: white;
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .percentile-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .colleges-table th,
+    .colleges-table td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .result-header h1 {
+        font-size: 24px;
+    }
+}
