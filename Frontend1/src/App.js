@@ -117,6 +117,7 @@ import LiveBatchManagement from "./pages/mainAdmin/LiveClasses/LiveBatchManageme
 import BatchManagement from "./pages/mainAdmin/BatchManagement/BatchManagement";
 import BlogManagement from "./pages/mainAdmin/BlogManagement/BlogManagement";
 import DemoVideoManagement from "./pages/mainAdmin/DemoVideoManagement/DemoVideoManagement";
+import ScoreCardManagement from "./pages/mainAdmin/ScoreCardManagement/ScoreCardManagement";
 import TeacherLiveClasses from "./pages/MainSubAdmin/LiveClasses/TeacherLiveClasses";
 import StudentLiveClasses from "./pages/Student/LiveClasses/StudentLiveClasses";
 import ContinueLearning from "./pages/Student/ContinueLearning/ContinueLearning";
@@ -337,6 +338,15 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <DemoVideoManagement />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/scorecard-management"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <ScoreCardManagement />
             </PrivateRoute>
           }
         />

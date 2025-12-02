@@ -758,6 +758,23 @@
   image-rendering: -webkit-optimize-contrast;
 }
 
+.scorecard-loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #666;
+  font-family: "Manrope", sans-serif;
+}
+
+.no-scorecards {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 16px;
+  color: #888;
+  font-family: "Manrope", sans-serif;
+  grid-column: 1 / -1;
+}
+
 
 
 

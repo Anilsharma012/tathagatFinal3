@@ -1,29 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./ScoreCard.css";
-import nameOne from "../../images/1.png";
-import nameTwo from "../../images/2.png";
-import scorcardone from "../../images/scoreCard/99.72.png";
-import scorcardTwo from "../../images/scoreCard/99.57.png";
-import scorcardThree from "../../images/scoreCard/99.54.png";
-import scorecardfour from "../../images/scoree.jpg";
-import scorcardfive from "../../images/scoreCard/99.15.png";
-import scorcardsix from "../../images/scoreCard/99.png";
-import scorcardseven from "../../images/scoreCard/98.55.png";
-import scorcardeight from "../../images/scoreCard/97.98.png";
-import scorcardnine from "../../images/scoreCard/97.85.png";
-import scorcardTen from "../../images/scoreCard/97.77.png";
-import scorcardelewen from "../../images/scoreCard/97.53.png";
-import scorcardtewlen from "../../images/scoreCard/97.39.png";
-import scorcardThirty from "../../images/scoreCard/97.18.png";
-import scorcardfourty from "../../images/scoreCard/97.04.png";
-import scorcardfifty from "../../images/scoreCard/96.72.png";
-import scorcardsixty from "../../images/scoreCard/96.58.png";
-import scorcardseventy from "../../images/scoreCard/96.51.png";
-import scorecardeighty from "../../images/scoreCard/95.85.png"
-import scorecardninty from "../../images/scoreCard/95.32.png"
-import scorecardtwenty from "../../images/scoreCard/95.27.png"
-import scorecardetwentyone from "../../images/scoreCard/95.16.png"
-
+import http from "../../utils/http";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 
@@ -46,32 +23,6 @@ import review11 from "../../images/Review/R1.PNG";
 import review12 from "../../images/Review/R2.PNG";
 import Chatbox from "../../components/Chat/Chatbox";
 
-const scorecardData = [
-  { name: "Abhishek Kumar", percentile: "99.06%", photo: nameOne, scorecard: scorcardone },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorcardTwo },
-  { name: "Mohit Jain", percentile: "99.89%", photo: nameOne, scorecard: scorcardThree },
-  { name: "Abhishek Kumar", percentile: "99.06%", photo: nameOne, scorecard: scorcardfive },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorcardsix },      // index 4 (5th)
-  { name: "Mohit Jain", percentile: "99.89%", photo: nameOne, scorecard: scorcardseven },
-  { name: "Abhishek Kumar", percentile: "99.06%", photo: nameOne, scorecard: scorcardeight },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorcardnine },
-  { name: "Mohit Jain", percentile: "99.89%", photo: nameOne, scorecard: scorcardTen },
-  { name: "Abhishek Kumar", percentile: "99.06%", photo: nameOne, scorecard: scorcardelewen },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorcardtewlen },
-  { name: "Mohit Jain", percentile: "99.89%", photo: nameOne, scorecard: scorcardThirty },
-  { name: "Abhishek Kumar", percentile: "99.06%", photo: nameOne, scorecard: scorcardfourty },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorcardfifty },
-  { name: "Mohit Jain", percentile: "99.89%", photo: nameOne, scorecard: scorcardsixty },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorcardseventy },
-
-
-
-    { name: "Prananjal Singh", percentile: "95.85%", photo: nameOne, scorecard: scorecardeighty },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorecardninty },
-  { name: "Mohit Jain", percentile: "99.89%", photo: nameOne, scorecard: scorecardtwenty },
-  { name: "Riya Sharma", percentile: "98.45%", photo: nameTwo, scorecard: scorecardetwentyone },
-];
-
 const testimonials = [
   { name: "Gourav Sharma", score: "CAT 99.8%ile", image: successtwo, message: "I studied at TathaGat back in 2014. TG exceeded my expectations...", author: "Prabhat Ralhan", stars: 5 },
   { name: "Pranjal Malhotra", score: "CAT 99.6%ile", image: successthree, message: "The study materials were comprehensive and well-structured...", author: "Prabhat Ralhan", stars: 5 },
@@ -86,22 +37,48 @@ const ScoreCard = () => {
   const [showAll, setShowAll] = useState(false);
   const visibleImages = showAll ? feedbackImages : feedbackImages.slice(0, 6);
 
-  const [visibleData, setVisibleData] = useState(scorecardData);
+  const [scorecards, setScorecards] = useState([]);
+  const [filteredScorecards, setFilteredScorecards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState("All");
+
+  useEffect(() => {
+    fetchScorecards();
+  }, []);
+
+  const fetchScorecards = async () => {
+    try {
+      setLoading(true);
+      const res = await http.get("/scorecards/public");
+      if (res.data?.success) {
+        setScorecards(res.data.scorecards || []);
+        setFilteredScorecards(res.data.scorecards || []);
+      }
+    } catch (error) {
+      console.error("Error fetching scorecards:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilter = (type) => {
+    setActiveFilter(type);
     if (type === "All") {
-      setVisibleData(scorecardData);
-    } else if (type === "99") {
-      setVisibleData(scorecardData.slice(0, 5));
-    } else if (type === "98") {
-      setVisibleData(scorecardData.slice(5, 6));
-    } else if (type === "97") {
-      setVisibleData(scorecardData.slice(6, 13));
-    } else if (type === "95") {
-      // ✅ only the 5th item (index 4)
-      setVisibleData(scorecardData.slice(13, 18));
-      // OR: setVisibleData([scorecardData[4]]);
+      setFilteredScorecards(scorecards);
+    } else {
+      const filtered = scorecards.filter(card => card.percentileCategory === type);
+      setFilteredScorecards(filtered);
     }
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    return url;
+  };
+
+  const getScorecardsCount = () => {
+    return scorecards.length > 0 ? `${scorecards.length}+ students` : "3000+ students";
   };
 
   return (
@@ -130,28 +107,65 @@ const ScoreCard = () => {
       <section className="scorecard-wrapper">
         <div className="scorecard-content">
           <div className="scorecard-filters">
-            <button onClick={() => handleFilter("All")}>All</button>
-            <button onClick={() => handleFilter("99")}>99% +</button>
-            <button onClick={() => handleFilter("98")}>98% +</button>
-            <button onClick={() => handleFilter("97")}>97% +</button>
-            <button onClick={() => handleFilter("95")}>95% +</button>
+            <button 
+              className={activeFilter === "All" ? "active" : ""} 
+              onClick={() => handleFilter("All")}
+            >
+              All
+            </button>
+            <button 
+              className={activeFilter === "99" ? "active" : ""} 
+              onClick={() => handleFilter("99")}
+            >
+              99% +
+            </button>
+            <button 
+              className={activeFilter === "98" ? "active" : ""} 
+              onClick={() => handleFilter("98")}
+            >
+              98% +
+            </button>
+            <button 
+              className={activeFilter === "97" ? "active" : ""} 
+              onClick={() => handleFilter("97")}
+            >
+              97% +
+            </button>
+            <button 
+              className={activeFilter === "95" ? "active" : ""} 
+              onClick={() => handleFilter("95")}
+            >
+              95% +
+            </button>
           </div>
           <div>
-            <p style={{ fontSize: "14px", fontWeight: "700" }}>3000 + students</p>
+            <p style={{ fontSize: "14px", fontWeight: "700" }}>{getScorecardsCount()}</p>
           </div>
         </div>
 
-        <div className="scorecard-grid">
-          {visibleData.map((card, index) => (
-            <div className="student-card small" key={index}>
-              <LazyLoadImage effect="blur" src={card.scorecard} alt={`Scorecard ${index + 1}`} className="student-scorecard" />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="scorecard-loading">Loading scorecards...</div>
+        ) : (
+          <div className="scorecard-grid">
+            {filteredScorecards.length === 0 ? (
+              <div className="no-scorecards">No scorecards found for this category</div>
+            ) : (
+              filteredScorecards.map((card, index) => (
+                <div className="student-card small" key={card._id || index}>
+                  <LazyLoadImage 
+                    effect="blur" 
+                    src={getImageUrl(card.imageUrl)} 
+                    alt={card.studentName || `Scorecard ${index + 1}`} 
+                    className="student-scorecard" 
+                  />
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </section>
 
       <div className="tss-demo-wrapper">
-        {/* Left: Testimonials */}
         <div className="tss-demo-left">
           <h2 className="tss-demo-heading">
             Attend A Live Demo Class – <br /> For Free!
@@ -179,7 +193,6 @@ const ScoreCard = () => {
           </div>
         </div>
 
-        {/* Right: Form */}
         <div className="tss-demo-right">
           <h3>Reserve Your Demo Spot</h3>
           <form className="tss-demo-form">
