@@ -118,7 +118,21 @@ const IIMPredictor = () => {
         "❌ Error submitting form:",
         error.response?.data || error.message
       );
-      alert("❌ Submission failed. Please try again.");
+      
+      // Show specific error message from backend
+      const errorMessage = error.response?.data?.message || "Submission failed. Please try again.";
+      
+      // Check if it's an invalid user ID error
+      if (errorMessage.includes("Invalid user ID") || errorMessage.includes("Please login")) {
+        alert("⚠️ Please login with a valid account to submit the form. Your current session may have expired.");
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        localStorage.setItem("redirectAfterLogin", "/iim-results");
+        localStorage.setItem("formData", JSON.stringify(formData));
+        navigate("/login");
+      } else {
+        alert(`❌ ${errorMessage}`);
+      }
     }
   };
 

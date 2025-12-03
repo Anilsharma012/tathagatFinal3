@@ -21,6 +21,15 @@ router.post("/iim-predictor", async (req, res) => {
             });
         }
 
+        // ✅ Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            console.log('❌ Invalid ObjectId format for userId:', userId);
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID. Please login with a valid account to submit the form."
+            });
+        }
+
         // Convert string values to proper types
         const parsedData = {
             userId,
@@ -141,6 +150,15 @@ router.post("/submit-cmat-score", async (req, res) => {
             return res.status(400).json({ message: "❌ User ID is required!" });
         }
 
+        // ✅ Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            console.log('❌ Invalid ObjectId format for userId:', userId);
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID. Please login with a valid account."
+            });
+        }
+
         // ✅ Score Calculation Logic
         const qt = (qtCorrect * 4) - (qtWrong * 1);
         const lr = (lrCorrect * 4) - (lrWrong * 1);
@@ -194,6 +212,14 @@ router.get("/get-cmat-score/:userId", async (req, res) => {
 
         if (!userId) {
             return res.status(400).json({ message: "❌ User ID is required!" });
+        }
+
+        // ✅ Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID format."
+            });
         }
 
         const predictor = await IIMPredictor.findOne({ userId });
