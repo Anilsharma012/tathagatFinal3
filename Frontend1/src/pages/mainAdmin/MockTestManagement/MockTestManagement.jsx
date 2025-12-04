@@ -111,37 +111,6 @@ const MockTestManagement = () => {
     }
   };
 
-  const handleCreateSeries = async () => {
-    if (!selectedCourse) {
-      alert('Please select a course first');
-      return;
-    }
-    
-    const title = prompt('Enter series title:');
-    if (!title) return;
-    
-    try {
-      const data = await fetchWithErrorHandling('/api/admin/mock-tests/series', {
-        method: 'POST',
-        body: JSON.stringify({
-          title,
-          category: 'CAT',
-          description: '',
-          price: 0,
-          validity: 365,
-          courseId: selectedCourse
-        })
-      });
-      
-      if (data && data.success) {
-        alert('Series created successfully!');
-        fetchSeries(selectedCourse);
-      }
-    } catch (error) {
-      alert('Failed to create series: ' + error.message);
-    }
-  };
-
   const handleEditTest = (test) => {
     setEditingTest(test);
     const sections = test.sections && test.sections.length > 0 ? test.sections : getDefaultSections();
@@ -464,9 +433,6 @@ const MockTestManagement = () => {
     <div className="mock-test-management">
       <div className="page-header">
         <h1>Mock Test Management</h1>
-        <button onClick={handleCreateSeries} className="btn-secondary">
-          Create New Series
-        </button>
       </div>
 
       <div className="course-selector">
@@ -479,22 +445,6 @@ const MockTestManagement = () => {
           {courses.map((c) => (
             <option key={c._id} value={c._id}>
               {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="series-selector">
-        <label>Select Series:</label>
-        <select
-          value={selectedSeries || ''}
-          onChange={(e) => setSelectedSeries(e.target.value)}
-          disabled={!selectedCourse}
-        >
-          <option value="">-- Select Series --</option>
-          {series.map((s) => (
-            <option key={s._id} value={s._id}>
-              {s.title} ({s.actualTestCount || 0} tests)
             </option>
           ))}
         </select>
