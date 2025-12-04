@@ -4,6 +4,7 @@ const cheerio = require("cheerio");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const fs = require("fs");
+const ResponseSheetSubmission = require("../models/ResponseSheetSubmission");
 
 const router = express.Router();
 
@@ -73,7 +74,7 @@ router.post("/fetch-html", async (req, res) => {
 
 router.post("/fetch-questions", async (req, res) => {
     try {
-        const { link } = req.body;
+        const { link, userId } = req.body;
         if (!link) {
             return res.status(400).json({ error: "Response sheet link is required!" });
         }
@@ -96,6 +97,61 @@ router.post("/fetch-questions", async (req, res) => {
         
         console.log("✅ Response sheet fetched successfully, parsing HTML...");
         const $ = cheerio.load(data);
+
+        // ✅ Extract student details from HTML
+        let studentDetails = {
+            applicationNo: "",
+            candidateName: "",
+            rollNo: "",
+            testDate: "",
+            testTime: "",
+            subject: ""
+        };
+
+        $("table").each((index, table) => {
+            let text = $(table).text().trim();
+
+            if (text.includes("Application No")) {
+                studentDetails.applicationNo = text.match(/Application No\s+(\d+)/)?.[1] || "";
+                
+                let nameMatch = text.match(/Candidate Name\s+([\w\s]+)/);
+                studentDetails.candidateName = nameMatch ? nameMatch[1].trim().replace(/Roll No.*/, '').trim() : "";
+
+                studentDetails.rollNo = text.match(/Roll No\.\s+(\w+)/)?.[1] || "";
+                studentDetails.testDate = text.match(/Test Date\s+([\d\/]+)/)?.[1] || "";
+                studentDetails.testTime = text.match(/Test Time\s+([\d:APM\s-]+)/)?.[1] || "";
+                studentDetails.subject = text.match(/Subject\s+(\w+)/)?.[1] || "";
+            }
+        });
+
+        // ✅ Save student details to database if we have valid data
+        if (studentDetails.applicationNo && studentDetails.candidateName) {
+            try {
+                const existingSubmission = await ResponseSheetSubmission.findOne({
+                    applicationNo: studentDetails.applicationNo,
+                    rollNo: studentDetails.rollNo
+                });
+
+                if (!existingSubmission) {
+                    const newSubmission = new ResponseSheetSubmission({
+                        applicationNo: studentDetails.applicationNo,
+                        candidateName: studentDetails.candidateName,
+                        rollNo: studentDetails.rollNo,
+                        subject: studentDetails.subject || "Unknown",
+                        testDate: studentDetails.testDate,
+                        testTime: studentDetails.testTime,
+                        link: link,
+                        userId: userId || null
+                    });
+                    await newSubmission.save();
+                    console.log("✅ Student details saved to database:", studentDetails.candidateName);
+                } else {
+                    console.log("ℹ️ Student submission already exists:", studentDetails.applicationNo);
+                }
+            } catch (dbError) {
+                console.error("⚠️ Error saving student details:", dbError.message);
+            }
+        }
 
         // ✅ Fix all image URLs
         $("img").each((index, img) => {
@@ -197,7 +253,8 @@ router.post("/fetch-questions", async (req, res) => {
         return res.json({
             status: "success",
             fullHtmlContent,
-            questions: extractedQuestions, // ✅ Send extracted questions to frontend
+            questions: extractedQuestions,
+            studentDetails: studentDetails
         });
 
     } catch (error) {
@@ -305,5 +362,85 @@ router.post("/predict-percentile", (req, res) => {
 
 
 
+
+// ✅ Admin: Get all response sheet submissions
+router.get("/admin/submissions", async (req, res) => {
+    try {
+        const { page = 1, limit = 20, search = "" } = req.query;
+        
+        let query = {};
+        if (search) {
+            query = {
+                $or: [
+                    { candidateName: { $regex: search, $options: "i" } },
+                    { applicationNo: { $regex: search, $options: "i" } },
+                    { rollNo: { $regex: search, $options: "i" } },
+                    { subject: { $regex: search, $options: "i" } }
+                ]
+            };
+        }
+
+        const total = await ResponseSheetSubmission.countDocuments(query);
+        const submissions = await ResponseSheetSubmission.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate("userId", "name email phoneNumber");
+
+        res.json({
+            success: true,
+            submissions,
+            total,
+            page: parseInt(page),
+            totalPages: Math.ceil(total / limit)
+        });
+    } catch (error) {
+        console.error("❌ Error fetching submissions:", error);
+        res.status(500).json({ success: false, error: "Failed to fetch submissions" });
+    }
+});
+
+// ✅ Admin: Delete a response sheet submission
+router.delete("/admin/submissions/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const deleted = await ResponseSheetSubmission.findByIdAndDelete(id);
+        
+        if (!deleted) {
+            return res.status(404).json({ success: false, error: "Submission not found" });
+        }
+
+        res.json({
+            success: true,
+            message: "Submission deleted successfully"
+        });
+    } catch (error) {
+        console.error("❌ Error deleting submission:", error);
+        res.status(500).json({ success: false, error: "Failed to delete submission" });
+    }
+});
+
+// ✅ Admin: Delete multiple submissions
+router.post("/admin/submissions/bulk-delete", async (req, res) => {
+    try {
+        const { ids } = req.body;
+        
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, error: "No IDs provided" });
+        }
+
+        const result = await ResponseSheetSubmission.deleteMany({ _id: { $in: ids } });
+
+        res.json({
+            success: true,
+            message: `${result.deletedCount} submissions deleted successfully`,
+            deletedCount: result.deletedCount
+        });
+    } catch (error) {
+        console.error("❌ Error bulk deleting submissions:", error);
+        res.status(500).json({ success: false, error: "Failed to delete submissions" });
+    }
+});
 
 module.exports = router;
