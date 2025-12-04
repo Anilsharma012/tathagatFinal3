@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 const createSeries = async (req, res) => {
   try {
     console.log('🆕 Creating new mock test series');
-    const { title, description, category, freeTests, price, validity, tags } = req.body;
+    const { title, description, category, freeTests, price, validity, tags, courseId } = req.body;
 
     const adminId = req.user?.id;
 
@@ -24,7 +24,7 @@ const createSeries = async (req, res) => {
       });
     }
 
-    const series = new MockTestSeries({
+    const seriesData = {
       title,
       description,
       category: category || 'CAT',
@@ -34,7 +34,13 @@ const createSeries = async (req, res) => {
       tags: tags || [],
       isPublished: false,
       createdBy: adminId || null,
-    });
+    };
+
+    if (courseId) {
+      seriesData.courseId = courseId;
+    }
+
+    const series = new MockTestSeries(seriesData);
 
     await series.save();
 
@@ -58,11 +64,16 @@ const createSeries = async (req, res) => {
 const getAllSeries = async (req, res) => {
   try {
     console.log('📚 Admin fetching all mock test series');
-    const { page = 1, limit = 10, category, search } = req.query;
+    const { page = 1, limit = 10, category, search, courseId } = req.query;
 
     const filter = {};
     if (category && category !== 'all') {
       filter.category = category;
+    }
+    if (courseId && courseId !== 'all') {
+      if (mongoose.Types.ObjectId.isValid(courseId)) {
+        filter.courseId = courseId;
+      }
     }
     if (search) {
       filter.$or = [

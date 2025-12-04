@@ -8,6 +8,8 @@ import './MockTestManagement.css';
 const MockTestManagement = () => {
   const [activeTab, setActiveTab] = useState('previousYear');
   const [subTab, setSubTab] = useState('paperWise');
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [series, setSeries] = useState([]);
   const [tests, setTests] = useState([]);
   const [selectedSeries, setSelectedSeries] = useState(null);
@@ -47,17 +49,48 @@ const MockTestManagement = () => {
   });
 
   useEffect(() => {
-    fetchSeries();
+    fetchCourses();
   }, []);
 
-  const fetchSeries = async () => {
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchSeries(selectedCourse);
+    } else {
+      setSeries([]);
+      setSelectedSeries(null);
+    }
+  }, [selectedCourse]);
+
+  const fetchCourses = async () => {
     try {
       setLoading(true);
-      const data = await fetchWithErrorHandling('/api/admin/mock-tests/series');
+      const data = await fetchWithErrorHandling('/api/courses');
+      if (data && data.courses) {
+        setCourses(data.courses);
+        if (data.courses.length > 0) {
+          setSelectedCourse(data.courses[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSeries = async (courseId) => {
+    try {
+      setLoading(true);
+      const url = courseId 
+        ? `/api/admin/mock-tests/series?courseId=${courseId}`
+        : '/api/admin/mock-tests/series';
+      const data = await fetchWithErrorHandling(url);
       if (data && data.series) {
         setSeries(data.series);
         if (data.series.length > 0) {
           setSelectedSeries(data.series[0]._id);
+        } else {
+          setSelectedSeries(null);
         }
       }
     } catch (error) {
@@ -79,6 +112,11 @@ const MockTestManagement = () => {
   };
 
   const handleCreateSeries = async () => {
+    if (!selectedCourse) {
+      alert('Please select a course first');
+      return;
+    }
+    
     const title = prompt('Enter series title:');
     if (!title) return;
     
@@ -90,13 +128,14 @@ const MockTestManagement = () => {
           category: 'CAT',
           description: '',
           price: 0,
-          validity: 365
+          validity: 365,
+          courseId: selectedCourse
         })
       });
       
       if (data && data.success) {
         alert('Series created successfully!');
-        fetchSeries();
+        fetchSeries(selectedCourse);
       }
     } catch (error) {
       alert('Failed to create series: ' + error.message);
@@ -430,11 +469,27 @@ const MockTestManagement = () => {
         </button>
       </div>
 
+      <div className="course-selector">
+        <label>Select Course:</label>
+        <select
+          value={selectedCourse || ''}
+          onChange={(e) => setSelectedCourse(e.target.value)}
+        >
+          <option value="">-- Select Course --</option>
+          {courses.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="series-selector">
         <label>Select Series:</label>
         <select
           value={selectedSeries || ''}
           onChange={(e) => setSelectedSeries(e.target.value)}
+          disabled={!selectedCourse}
         >
           <option value="">-- Select Series --</option>
           {series.map((s) => (
