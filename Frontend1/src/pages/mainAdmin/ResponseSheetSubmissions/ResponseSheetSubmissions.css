@@ -1,0 +1,265 @@
+.rss-container {
+    padding: 20px;
+    max-width: 100%;
+}
+
+.rss-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.rss-title-section h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.rss-count {
+    font-size: 14px;
+    color: #666;
+    margin-left: 10px;
+}
+
+.rss-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.rss-export-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.rss-export-btn:hover:not(:disabled) {
+    background: #218838;
+}
+
+.rss-export-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.rss-bulk-delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.rss-bulk-delete-btn:hover:not(:disabled) {
+    background: #c82333;
+}
+
+.rss-bulk-delete-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.rss-search-bar {
+    margin-bottom: 20px;
+}
+
+.rss-search-input-wrapper {
+    position: relative;
+    max-width: 500px;
+}
+
+.rss-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+}
+
+.rss-search-input-wrapper input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.rss-search-input-wrapper input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.rss-table-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow-x: auto;
+}
+
+.rss-loading,
+.rss-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: #666;
+    font-size: 16px;
+}
+
+.rss-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.rss-table th,
+.rss-table td {
+    padding: 14px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.rss-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+}
+
+.rss-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.rss-checkbox-col {
+    width: 50px;
+    text-align: center !important;
+}
+
+.rss-select-all-btn,
+.rss-select-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: #666;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rss-select-btn .checked,
+.rss-select-all-btn .checked {
+    color: #007bff;
+}
+
+.rss-name-cell {
+    font-weight: 500;
+    color: #333;
+}
+
+.rss-actions-cell {
+    display: flex;
+    gap: 8px;
+}
+
+.rss-view-btn,
+.rss-delete-btn {
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.rss-view-btn {
+    background: #e7f3ff;
+    color: #007bff;
+}
+
+.rss-view-btn:hover {
+    background: #cce5ff;
+}
+
+.rss-delete-btn {
+    background: #ffe7e7;
+    color: #dc3545;
+}
+
+.rss-delete-btn:hover:not(:disabled) {
+    background: #ffcccc;
+}
+
+.rss-delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rss-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.rss-pagination button {
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.rss-pagination button:hover:not(:disabled) {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.rss-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rss-pagination span {
+    font-size: 14px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .rss-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .rss-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .rss-search-input-wrapper {
+        max-width: 100%;
+    }
+}

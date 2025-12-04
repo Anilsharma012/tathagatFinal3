@@ -118,6 +118,7 @@ import BatchManagement from "./pages/mainAdmin/BatchManagement/BatchManagement";
 import BlogManagement from "./pages/mainAdmin/BlogManagement/BlogManagement";
 import DemoVideoManagement from "./pages/mainAdmin/DemoVideoManagement/DemoVideoManagement";
 import ScoreCardManagement from "./pages/mainAdmin/ScoreCardManagement/ScoreCardManagement";
+import ResponseSheetSubmissions from "./pages/mainAdmin/ResponseSheetSubmissions/ResponseSheetSubmissions";
 import TeacherLiveClasses from "./pages/MainSubAdmin/LiveClasses/TeacherLiveClasses";
 import StudentLiveClasses from "./pages/Student/LiveClasses/StudentLiveClasses";
 import ContinueLearning from "./pages/Student/ContinueLearning/ContinueLearning";
@@ -365,6 +366,14 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <IIMCollegeManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/response-sheet-submissions"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <ResponseSheetSubmissions />
             </PrivateRoute>
           }
         />
