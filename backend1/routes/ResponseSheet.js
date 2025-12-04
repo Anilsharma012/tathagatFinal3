@@ -114,13 +114,15 @@ router.post("/fetch-questions", async (req, res) => {
             if (text.includes("Application No")) {
                 studentDetails.applicationNo = text.match(/Application No\s+(\d+)/)?.[1] || "";
                 
-                let nameMatch = text.match(/Candidate Name\s+([\w\s]+)/);
-                studentDetails.candidateName = nameMatch ? nameMatch[1].trim().replace(/Roll No.*/, '').trim() : "";
+                let nameMatch = text.match(/Candidate Name\s+([A-Za-z\s]+?)(?=\s*Roll No)/);
+                studentDetails.candidateName = nameMatch ? nameMatch[1].trim() : "";
 
                 studentDetails.rollNo = text.match(/Roll No\.\s+(\w+)/)?.[1] || "";
                 studentDetails.testDate = text.match(/Test Date\s+([\d\/]+)/)?.[1] || "";
                 studentDetails.testTime = text.match(/Test Time\s+([\d:APM\s-]+)/)?.[1] || "";
-                studentDetails.subject = text.match(/Subject\s+(\w+)/)?.[1] || "";
+                
+                let subjectMatch = text.match(/Subject\s+([A-Za-z\s&]+?)(?=\s*(?:Test|$|\n))/i);
+                studentDetails.subject = subjectMatch ? subjectMatch[1].trim() : "";
             }
         });
 
