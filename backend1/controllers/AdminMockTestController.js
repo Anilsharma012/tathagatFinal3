@@ -217,8 +217,9 @@ const createTest = async (req, res) => {
       title,
       description,
       seriesId,
+      courseId,
       duration,
-      totalQuestions, // frontend se aa raha hai
+      totalQuestions,
       sections = [],
       instructions,
       isFree,
@@ -226,17 +227,13 @@ const createTest = async (req, res) => {
       difficulty,
       positiveMarks = 3,
       negativeMarks = -1,
-      // Test Type and Category
       testType,
       paperType,
-      // Previous Year Papers - Paper Wise Mapping
       previousYearExamCategoryId,
       previousYearExamYearId,
       previousYearExamSlotId,
-      // Topic Wise Mapping
       topicCategoryId,
       topicTestGroupId,
-      // Other fields
       visibility,
       liveFrom,
       liveTill,
@@ -245,31 +242,48 @@ const createTest = async (req, res) => {
 
     const adminId = req.user?.id;
 
-    if (!title || !seriesId || !duration) {
+    if (!title || !duration) {
       return res.status(400).json({
         success: false,
-        message: 'Title, seriesId and duration are required',
+        message: 'Title and duration are required',
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(seriesId)) {
+    if (!courseId && !seriesId) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid seriesId',
+        message: 'Either courseId or seriesId is required',
       });
     }
 
-    const series = await MockTestSeries.findById(seriesId);
-    if (!series) {
-      return res.status(404).json({
-        success: false,
-        message: 'Series not found',
-      });
+    let testNumber = 1;
+    
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid courseId',
+        });
+      }
+      const existingTestsCount = await MockTest.countDocuments({ courseId });
+      testNumber = existingTestsCount + 1;
+    } else if (seriesId) {
+      if (!mongoose.Types.ObjectId.isValid(seriesId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid seriesId',
+        });
+      }
+      const series = await MockTestSeries.findById(seriesId);
+      if (!series) {
+        return res.status(404).json({
+          success: false,
+          message: 'Series not found',
+        });
+      }
+      const existingTestsCount = await MockTest.countDocuments({ seriesId });
+      testNumber = existingTestsCount + 1;
     }
-
-    // Next test number inside this series
-    const existingTestsCount = await MockTest.countDocuments({ seriesId });
-    const testNumber = existingTestsCount + 1;
 
     // Map frontend sections -> schema sections
     // frontend: [{ name, questions, duration }]
@@ -295,7 +309,6 @@ const createTest = async (req, res) => {
     const testData = {
       title,
       description,
-      seriesId,
       testNumber,
       duration,
       totalQuestions: finalTotalQuestions,
@@ -312,20 +325,19 @@ const createTest = async (req, res) => {
       createdBy: adminId || null,
     };
 
-    // Add test type and category information
+    if (courseId) testData.courseId = courseId;
+    if (seriesId) testData.seriesId = seriesId;
+
     if (testType) testData.testType = testType;
     if (paperType) testData.paperType = paperType;
     
-    // Add Previous Year Paper hierarchy
     if (previousYearExamCategoryId) testData.previousYearExamCategoryId = previousYearExamCategoryId;
     if (previousYearExamYearId) testData.previousYearExamYearId = previousYearExamYearId;
     if (previousYearExamSlotId) testData.previousYearExamSlotId = previousYearExamSlotId;
     
-    // Add Topic Wise hierarchy
     if (topicCategoryId) testData.topicCategoryId = topicCategoryId;
     if (topicTestGroupId) testData.topicTestGroupId = topicTestGroupId;
     
-    // Add other optional fields
     if (visibility) testData.visibility = visibility;
     if (liveFrom) testData.liveFrom = liveFrom;
     if (liveTill) testData.liveTill = liveTill;
@@ -335,10 +347,11 @@ const createTest = async (req, res) => {
 
     await test.save();
 
-    // Update series total tests count (optional)
-    await MockTestSeries.findByIdAndUpdate(seriesId, {
-      $inc: { totalTests: 1 },
-    });
+    if (seriesId) {
+      await MockTestSeries.findByIdAndUpdate(seriesId, {
+        $inc: { totalTests: 1 },
+      });
+    }
 
     console.log('✅ Mock test created successfully');
     res.status(201).json({
@@ -363,7 +376,8 @@ const getTests = async (req, res) => {
     const { 
       page = 1, 
       limit = 20, 
-      seriesId, 
+      seriesId,
+      courseId, 
       search, 
       testType,
       examCategoryId, 
@@ -374,6 +388,17 @@ const getTests = async (req, res) => {
     } = req.query;
 
     const filter = {};
+    
+    // Filter by course
+    if (courseId && courseId !== 'all') {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid courseId',
+        });
+      }
+      filter.courseId = courseId;
+    }
     
     // Filter by series
     if (seriesId && seriesId !== 'all') {

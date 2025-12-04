@@ -5,7 +5,7 @@ import './TestPaperCreator.css';
 
 const TestPaperCreator = ({ 
   testType, 
-  selectedSeries,
+  selectedCourse,
   selectedCategory,
   selectedYear,
   selectedSlot,
@@ -48,16 +48,16 @@ const TestPaperCreator = ({
   });
 
   useEffect(() => {
-    if (selectedSeries) {
+    if (selectedCourse) {
       loadTests();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSeries, testType]);
+  }, [selectedCourse, testType]);
 
   const loadTests = async () => {
     try {
       setLoading(true);
-      let filter = `seriesId=${selectedSeries}&testType=${testType}`;
+      let filter = `courseId=${selectedCourse}&testType=${testType}`;
       
       // Add hierarchy filters for Previous Year Papers
       if (testType === 'previousYear') {
@@ -98,8 +98,8 @@ const TestPaperCreator = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!selectedSeries) {
-      alert('Please select a series first');
+    if (!selectedCourse) {
+      alert('Please select a course first');
       return;
     }
 
@@ -108,7 +108,7 @@ const TestPaperCreator = ({
 
       const testData = {
         ...formData,
-        seriesId: selectedSeries,
+        courseId: selectedCourse,
         testType: testType,
         totalMarks: formData.sections.reduce((sum, sec) => sum + sec.totalMarks, 0)
       };

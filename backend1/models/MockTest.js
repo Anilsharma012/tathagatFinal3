@@ -78,8 +78,6 @@ const mockTestSchema = new Schema(
     subject: { type: String },
     topic: { type: String },
     sessionYear: { type: String },
-    
-    courseId: { type: Schema.Types.ObjectId, ref: 'Course', default: null },
 
     // Visibility and Access Control
     visibility: {

@@ -3,7 +3,7 @@ import { fetchWithErrorHandling } from '../../../utils/api';
 import TestPaperCreator from './TestPaperCreator';
 import './MockTestManagement.css';
 
-const TopicWiseManagement = ({ selectedSeries }) => {
+const TopicWiseManagement = ({ selectedCourse }) => {
   // Hierarchy data
   const [topicCategories, setTopicCategories] = useState([]);
   const [topicTestGroups, setTopicTestGroups] = useState([]);
@@ -381,7 +381,7 @@ const TopicWiseManagement = ({ selectedSeries }) => {
       <div className="test-creator-section">
         <TestPaperCreator
           testType="previousYear"
-          selectedSeries={selectedSeries}
+          selectedCourse={selectedCourse}
           selectedTopicCategory={selectedCategory}
           selectedTopicGroup={selectedGroup}
         />

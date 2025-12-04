@@ -10,9 +10,7 @@ const MockTestManagement = () => {
   const [subTab, setSubTab] = useState('paperWise');
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [series, setSeries] = useState([]);
   const [tests, setTests] = useState([]);
-  const [selectedSeries, setSelectedSeries] = useState(null);
   const [loading, setLoading] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const [showQuestionBuilder, setShowQuestionBuilder] = useState(false);
@@ -52,15 +50,6 @@ const MockTestManagement = () => {
     fetchCourses();
   }, []);
 
-  useEffect(() => {
-    if (selectedCourse) {
-      fetchSeries(selectedCourse);
-    } else {
-      setSeries([]);
-      setSelectedSeries(null);
-    }
-  }, [selectedCourse]);
-
   const fetchCourses = async () => {
     try {
       setLoading(true);
@@ -78,31 +67,9 @@ const MockTestManagement = () => {
     }
   };
 
-  const fetchSeries = async (courseId) => {
+  const fetchTests = async (courseId) => {
     try {
-      setLoading(true);
-      const url = courseId 
-        ? `/api/admin/mock-tests/series?courseId=${courseId}`
-        : '/api/admin/mock-tests/series';
-      const data = await fetchWithErrorHandling(url);
-      if (data && data.series) {
-        setSeries(data.series);
-        if (data.series.length > 0) {
-          setSelectedSeries(data.series[0]._id);
-        } else {
-          setSelectedSeries(null);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching series:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTests = async (seriesId) => {
-    try {
-      const data = await fetchWithErrorHandling(`/api/admin/mock-tests/tests?seriesId=${seriesId}`);
+      const data = await fetchWithErrorHandling(`/api/admin/mock-tests/tests?courseId=${courseId}`);
       if (data && data.tests) {
         setTests(data.tests);
       }
@@ -160,8 +127,8 @@ const MockTestManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!selectedSeries && !editingTest) {
-      alert('Please select a series first or create one');
+    if (!selectedCourse && !editingTest) {
+      alert('Please select a course first');
       return;
     }
 
@@ -183,7 +150,7 @@ const MockTestManagement = () => {
       
       const testData = {
         ...formData,
-        seriesId: editingTest ? editingTest.seriesId : selectedSeries,
+        courseId: editingTest ? editingTest.courseId : selectedCourse,
         testType: activeTab,
         paperType: activeTab === 'previousYear' ? subTab : null,
         positiveMarks: 3,
@@ -208,7 +175,7 @@ const MockTestManagement = () => {
       if (data && data.success) {
         alert(`Test ${editingTest ? 'updated' : 'created'} successfully!`);
         handleCancelEdit();
-        fetchTests(selectedSeries);
+        fetchTests(selectedCourse);
       }
     } catch (error) {
       alert(`Failed to ${editingTest ? 'update' : 'create'} test: ` + error.message);
@@ -230,7 +197,7 @@ const MockTestManagement = () => {
         if (editingTest && editingTest._id === testId) {
           handleCancelEdit();
         }
-        fetchTests(selectedSeries);
+        fetchTests(selectedCourse);
       }
     } catch (error) {
       alert('Failed to delete test: ' + error.message);
@@ -238,10 +205,10 @@ const MockTestManagement = () => {
   };
 
   useEffect(() => {
-    if (selectedSeries) {
-      fetchTests(selectedSeries);
+    if (selectedCourse) {
+      fetchTests(selectedCourse);
     }
-  }, [selectedSeries]);
+  }, [selectedCourse]);
 
   const renderForm = () => {
     return (
@@ -509,13 +476,13 @@ const MockTestManagement = () => {
           onClose={() => {
             setShowQuestionBuilder(false);
             setSelectedTest(null);
-            if (selectedSeries) {
-              fetchTests(selectedSeries);
+            if (selectedCourse) {
+              fetchTests(selectedCourse);
             }
           }}
           onQuestionSaved={() => {
-            if (selectedSeries) {
-              fetchTests(selectedSeries);
+            if (selectedCourse) {
+              fetchTests(selectedCourse);
             }
           }}
         />
@@ -523,9 +490,9 @@ const MockTestManagement = () => {
         /* Render hierarchy management for Previous Year Papers */
         <div className="management-content">
           {subTab === 'paperWise' ? (
-            <PaperWiseManagement selectedSeries={selectedSeries} />
+            <PaperWiseManagement selectedCourse={selectedCourse} />
           ) : (
-            <TopicWiseManagement selectedSeries={selectedSeries} />
+            <TopicWiseManagement selectedCourse={selectedCourse} />
           )}
         </div>
       ) : (
@@ -541,7 +508,7 @@ const MockTestManagement = () => {
             {loading ? (
               <p>Loading...</p>
             ) : tests.length === 0 ? (
-              <p>No tests found for this series</p>
+              <p>No tests found for this course</p>
             ) : (
               <div className="tests-grid">
                 {tests.map((test) => (
