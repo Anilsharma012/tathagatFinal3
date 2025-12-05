@@ -1,6 +1,9 @@
 .rss-container {
-    padding: 20px;
+    /* Header ke niche space ke liye top padding/margin */
+    padding: 80px 20px 20px;
+    /* 80px ≈ header height; zarurat ho to adjust karna */
     max-width: 100%;
+    box-sizing: border-box;
 }
 
 .rss-header {
@@ -109,7 +112,7 @@
 .rss-table-container {
     background: white;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     overflow-x: auto;
 }
 
@@ -253,12 +256,12 @@
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .rss-actions {
         width: 100%;
         justify-content: flex-start;
     }
-    
+
     .rss-search-input-wrapper {
         max-width: 100%;
     }

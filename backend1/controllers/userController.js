@@ -7,9 +7,15 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
 
+console.log("🔑 Razorpay Config Debug:");
+console.log("  RAZORPAY_KEY_ID exists:", !!process.env.RAZORPAY_KEY_ID);
+console.log("  RAZORPAY_KEY_ID value:", process.env.RAZORPAY_KEY_ID ? process.env.RAZORPAY_KEY_ID.substring(0, 15) + "..." : "NOT SET");
+console.log("  RAZORPAY_KEY_SECRET exists:", !!process.env.RAZORPAY_KEY_SECRET);
+console.log("  RAZORPAY_KEY_SECRET length:", process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.length : 0);
+
 const razorpayInstance = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_JLdFnx7r5NMiBS", // Replace with your key
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "wlVOAREeWhLHJQrlDUr0iEn7" // Replace with your secret
+  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_JLdFnx7r5NMiBS",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "wlVOAREeWhLHJQrlDUr0iEn7"
 });
 
 

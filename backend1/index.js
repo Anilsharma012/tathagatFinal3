@@ -19,6 +19,10 @@ console.log("🔍 Environment Debug:");
 console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("MONGO_URI exists:", !!process.env.MONGO_URI);
 console.log("MONGO_URI length:", process.env.MONGO_URI ? process.env.MONGO_URI.length : 0);
+console.log("🔑 RAZORPAY_KEY_ID exists:", !!process.env.RAZORPAY_KEY_ID);
+console.log("🔑 RAZORPAY_KEY_ID value:", process.env.RAZORPAY_KEY_ID ? process.env.RAZORPAY_KEY_ID.substring(0, 15) + "..." : "NOT SET");
+console.log("🔑 RAZORPAY_KEY_SECRET exists:", !!process.env.RAZORPAY_KEY_SECRET);
+console.log("🔑 RAZORPAY_KEY_SECRET length:", process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.length : 0);
 
 /* -------------------- DB Connection -------------------- */
 const Connection = require("./dbConnection");
