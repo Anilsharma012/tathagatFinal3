@@ -613,7 +613,7 @@ const AppContent = () => {
           <Route path="mock-test/:testId/terms" element={<MockTestTerms />} />
           <Route path="mock-test/:testId/attempt/:attemptId" element={<MockTestAttempt />} />
           <Route path="mock-test/review/:attemptId" element={<MockTestReview />} />
-          <Route path="my-courses" element={<Mycourse />} />
+          <Route path="my-courses" element={<MyCourses />} />
           <Route path="my-progress" element={<StudentMyProgress />} />
           <Route path="ocr-upload" element={<StudentOCRUpload />} />
           <Route path="omr-upload" element={<StudentOMRUpload />} />

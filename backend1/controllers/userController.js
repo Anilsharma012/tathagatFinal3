@@ -334,13 +334,15 @@ exports.getUnlockedCourses = async (req, res) => {
     const userId = req.user.id;
     console.log('🔍 getUnlockedCourses called for user:', userId);
 
-    // Development bypass - create demo user if it doesn't exist
+    const mongoose = require('mongoose');
+    
+    // Get the actual user - either demo user in dev mode or authenticated user
+    let user;
+    
     if (process.env.NODE_ENV === 'development' || userId === '507f1f77bcf86cd799439011') {
-      console.log('🔧 Development mode - handling demo user');
-
-      // Use atomic upsert to avoid race conditions
+      console.log('🔧 Development mode - using demo user');
       const demoEmail = 'demo@test.com';
-      let demoUser = await User.findOneAndUpdate(
+      user = await User.findOneAndUpdate(
         { email: demoEmail },
         {
           $setOnInsert: {
@@ -359,77 +361,49 @@ exports.getUnlockedCourses = async (req, res) => {
         },
         { upsert: true, new: true }
       ).populate('enrolledCourses.courseId');
-
-      console.log('✅ Demo user ready with ID:', demoUser._id);
-      console.log('📚 Demo user enrolled courses:', demoUser.enrolledCourses);
-      console.log('📊 Total enrolled courses count:', demoUser.enrolledCourses.length);
-
-      const unlockedCourses = demoUser.enrolledCourses
-        .filter(c => {
-          console.log('🔍 Checking course:', c);
-          console.log('   - Status:', c.status);
-          console.log('   - CourseId:', c.courseId);
-          return c.status === "unlocked" && c.courseId;
-        })
-        .map(c => ({
-          _id: c._id,
-          status: c.status,
-          enrolledAt: c.enrolledAt,
-          courseId: c.courseId,
-        }));
-
-      console.log('🎯 Filtered unlocked courses:', unlockedCourses);
-      console.log('📊 Returning courses count:', unlockedCourses.length);
-      return res.status(200).json({ success: true, courses: unlockedCourses });
+      console.log('✅ Demo user ready with ID:', user._id);
+    } else {
+      // Validate userId format
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        console.log(`⚠️ Invalid userId format: ${userId}, returning empty courses array`);
+        return res.status(200).json({ success: true, courses: [] });
+      }
+      user = await User.findById(userId).populate("enrolledCourses.courseId");
     }
-
-    // Special case for admin dev user in development
-    if (process.env.NODE_ENV === 'development' && userId === '507f1f77bcf86cd799439011') {
-      console.log('🔧 Admin dev user detected, granting access to all published courses');
-      const Course = require('../models/course/Course');
-      const publishedCourses = await Course.find({ published: true });
-
-      const adminCourses = publishedCourses.map(course => ({
-        _id: 'admin-enrollment-' + course._id,
-        status: 'unlocked',
-        enrolledAt: new Date(),
-        courseId: course
-      }));
-
-      console.log('📊 Returning admin courses count:', adminCourses.length);
-      return res.status(200).json({ success: true, courses: adminCourses });
-    }
-
-    // Validate userId format - return empty array for invalid IDs instead of 400 error
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      console.log(`⚠️ Invalid userId format: ${userId}, returning empty courses array`);
-      return res.status(200).json({
-        success: true,
-        courses: []
-      });
-    }
-
-    const user = await User.findById(userId).populate("enrolledCourses.courseId");
 
     if (!user) {
-      console.log(`⚠️ User not found: ${userId}, returning empty courses array`);
-      return res.status(200).json({
-        success: true,
-        courses: []
-      });
+      console.log(`⚠️ User not found, returning empty courses array`);
+      return res.status(200).json({ success: true, courses: [] });
     }
 
-    const unlockedCourses = user.enrolledCourses
-      .filter(c => c.status === "unlocked" && c.courseId)
+    // IMPORTANT: Only return courses that have a verified payment with status "paid"
+    // This ensures only purchased courses appear in "My Courses"
+    const paidPayments = await Payment.find({ 
+      userId: user._id, 
+      status: 'paid' 
+    }).select('courseId');
+    
+    const paidCourseIds = paidPayments.map(p => p.courseId.toString());
+    console.log('💰 Paid course IDs for user:', paidCourseIds);
+
+    // Filter enrolled courses to only include those with verified payments
+    const purchasedCourses = user.enrolledCourses
+      .filter(c => {
+        const courseIdStr = c.courseId?._id?.toString() || c.courseId?.toString();
+        const isPaid = paidCourseIds.includes(courseIdStr);
+        const isUnlocked = c.status === "unlocked";
+        console.log(`🔍 Course ${courseIdStr}: isPaid=${isPaid}, isUnlocked=${isUnlocked}`);
+        return isPaid && isUnlocked && c.courseId;
+      })
       .map(c => ({
         _id: c._id,
         status: c.status,
         enrolledAt: c.enrolledAt,
-        courseId: c.courseId, // ✅ Populated course
+        courseId: c.courseId,
       }));
 
-    res.status(200).json({ success: true, courses: unlockedCourses });
+    console.log('📊 Returning purchased courses count:', purchasedCourses.length);
+    res.status(200).json({ success: true, courses: purchasedCourses });
 
   } catch (error) {
     console.error('❌ Error in getUnlockedCourses:', error);
