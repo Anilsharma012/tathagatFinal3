@@ -9,6 +9,7 @@ const StudyMaterials = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [filters, setFilters] = useState({
     subject: 'All Subjects',
+    category: 'All Categories',
     type: 'All Types',
     search: ''
   });
@@ -23,6 +24,7 @@ const StudyMaterials = () => {
     title: '',
     description: '',
     subject: 'Quantitative Aptitude',
+    category: 'Study Materials',
     type: 'PDF',
     tags: '',
     file: null
@@ -31,6 +33,7 @@ const StudyMaterials = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
 
   const subjects = ['All Subjects', 'Quantitative Aptitude', 'Verbal Ability', 'Data Interpretation', 'Logical Reasoning', 'General Knowledge'];
+  const categories = ['All Categories', 'Study Materials', 'Video Lectures', 'Previous Year Papers'];
   const types = ['All Types', 'PDF', 'Video', 'Practice Sets', 'Notes', 'Other'];
 
   // Fetch study materials
@@ -87,6 +90,7 @@ const StudyMaterials = () => {
       formData.append('title', uploadData.title);
       formData.append('description', uploadData.description);
       formData.append('subject', uploadData.subject);
+      formData.append('category', uploadData.category);
       formData.append('type', uploadData.type);
       formData.append('tags', uploadData.tags);
       formData.append('file', uploadData.file);
@@ -108,6 +112,7 @@ const StudyMaterials = () => {
           title: '',
           description: '',
           subject: 'Quantitative Aptitude',
+          category: 'Study Materials',
           type: 'PDF',
           tags: '',
           file: null
@@ -218,6 +223,17 @@ const StudyMaterials = () => {
         
         <div className="filter-group">
           <select 
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="filter-group">
+          <select 
             value={filters.type}
             onChange={(e) => handleFilterChange('type', e.target.value)}
           >
@@ -250,6 +266,7 @@ const StudyMaterials = () => {
             <thead>
               <tr>
                 <th>Material</th>
+                <th>Category</th>
                 <th>Subject</th>
                 <th>Type</th>
                 <th>Size</th>

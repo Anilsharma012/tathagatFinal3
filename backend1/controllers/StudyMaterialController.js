@@ -62,7 +62,7 @@ const uploadStudyMaterial = async (req, res) => {
   try {
     console.log('📚 Upload study material request:', req.body);
     
-    const { title, description, subject, tags, courseId } = req.body;
+    const { title, description, subject, category, tags, courseId } = req.body;
     
     if (!req.file) {
       return res.status(400).json({
@@ -80,6 +80,7 @@ const uploadStudyMaterial = async (req, res) => {
       title,
       description,
       subject,
+      category: category || 'Study Materials',
       type: fileType,
       fileName: req.file.originalname,
       filePath: req.file.path,
@@ -120,7 +121,7 @@ const getAllStudyMaterials = async (req, res) => {
   try {
     console.log('📚 Get all study materials request');
     
-    const { page = 1, limit = 20, subject, type, search } = req.query;
+    const { page = 1, limit = 20, subject, type, category, search } = req.query;
     
     let query = {};
     
@@ -130,6 +131,10 @@ const getAllStudyMaterials = async (req, res) => {
     
     if (type && type !== 'All Types') {
       query.type = type;
+    }
+    
+    if (category && category !== 'All Categories') {
+      query.category = category;
     }
     
     if (search) {
@@ -322,7 +327,7 @@ const downloadStudyMaterial = async (req, res) => {
 const updateStudyMaterial = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, subject, type, tags, isActive } = req.body;
+    const { title, description, subject, category, type, tags, isActive } = req.body;
     
     console.log('📝 Update study material request for ID:', id);
     
@@ -339,6 +344,7 @@ const updateStudyMaterial = async (req, res) => {
     if (title) material.title = title;
     if (description) material.description = description;
     if (subject) material.subject = subject;
+    if (category) material.category = category;
     if (type) material.type = type;
     if (tags) material.tags = tags.split(',').map(tag => tag.trim());
     if (typeof isActive !== 'undefined') material.isActive = isActive;

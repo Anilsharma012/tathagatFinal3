@@ -15,6 +15,12 @@ const studyMaterialSchema = new mongoose.Schema({
     required: true,
     enum: ['Quantitative Aptitude', 'Verbal Ability', 'Data Interpretation', 'Logical Reasoning', 'General Knowledge', 'All Subjects']
   },
+  category: {
+    type: String,
+    required: true,
+    enum: ['Study Materials', 'Video Lectures', 'Previous Year Papers'],
+    default: 'Study Materials'
+  },
   type: {
     type: String,
     required: true,
