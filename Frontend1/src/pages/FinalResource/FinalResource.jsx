@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./FinalResource.css";
 
 import team from "../../images/contactTeams.png";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import ExploreBlog from "../../components/ExploreBlog/ExploreBlog";
 import faqImage from "../../images/faqOne.png";
 import Chatbox from "../../components/Chat/Chatbox";
@@ -28,17 +29,27 @@ const FinalResource = () => {
 
   // For STUDY MATERIALS GRID
   const [smFilter, setSmFilter] = useState("All");
-  const smData = [
-    { id: 1, category: "Study Materials", title: "Arithmetic Essentials (PDF)" },
-    { id: 2, category: "Video Lectures", title: "Geometry Masterclass (Video)" },
-    { id: 3, category: "Previous Year Papers", title: "CAT 2023 Paper (PDF)" },
-    { id: 4, category: "Study Materials", title: "Algebra Core Concepts (PDF)" },
-    { id: 5, category: "Video Lectures", title: "Logical Reasoning Tricks (Video)" },
-    { id: 6, category: "Previous Year Papers", title: "XAT 2023 Paper (PDF)" },
-    { id: 7, category: "Video Lectures", title: "Geometry Masterclass (Video)" },
-    { id: 8, category: "Study Materials", title: "Arithmetic Essentials (PDF)" },
-  ];
-  const smFiltered = smFilter === "All" ? smData : smData.filter((d) => d.category === smFilter);
+  const [materials, setMaterials] = useState([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      setMaterialsLoading(true);
+      try {
+        const response = await axios.get("/api/study-materials/student");
+        if (response.data.success) {
+          setMaterials(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching study materials:", error);
+      } finally {
+        setMaterialsLoading(false);
+      }
+    };
+    fetchMaterials();
+  }, []);
+
+  const smFiltered = smFilter === "All" ? materials : materials.filter((d) => d.category === smFilter);
 
   // 👉 Free YouTube videos (unique titles)
   const VIDEO_LIST = [
@@ -256,21 +267,33 @@ const FinalResource = () => {
           </div>
 
           <div className="tgsm-grid">
-            {smFiltered.map((item) => (
-              <div key={item.id} className="tgsm-card">
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "90px" }}>
-                  <div className="tgsm-icon">📄</div>
-                  <div className="tgsm-doc">{item.category}</div>
+            {materialsLoading ? (
+              <p style={{ textAlign: "center", width: "100%" }}>Loading materials...</p>
+            ) : smFiltered.length === 0 ? (
+              <p style={{ textAlign: "center", width: "100%" }}>No materials available in this category.</p>
+            ) : (
+              smFiltered.map((item) => (
+                <div key={item._id} className="tgsm-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "90px" }}>
+                    <div className="tgsm-icon">📄</div>
+                    <div className="tgsm-doc">{item.category}</div>
+                  </div>
+                  <h3 className="tgsm-doc-title">{item.title}</h3>
+                  <p className="tgsm-doc-desc">
+                    {item.description || "Download this resource to enhance your preparation."}
+                  </p>
+                  <a 
+                    href={item.fileUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="tgsm-btn tgsm-btn-download"
+                    style={{ textDecoration: "none", display: "inline-block" }}
+                  >
+                    Download PDF {item.fileSize || ""} <span className="tgsm-icon-download">⬇</span>
+                  </a>
                 </div>
-                <h3 className="tgsm-doc-title">{item.title}</h3>
-                <p className="tgsm-doc-desc">
-                  Covers Percentages, Profit & Loss, Ratio-Proportion, Averages, and Time-Speed-Distance with examples.
-                </p>
-                <button className="tgsm-btn tgsm-btn-download">
-                  Download PDF 2 MB <span className="tgsm-icon-download">⬇</span>
-                </button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>
