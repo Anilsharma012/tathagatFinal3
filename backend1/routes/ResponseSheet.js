@@ -165,135 +165,145 @@ router.post("/fetch-questions", async (req, res) => {
 
         let fullHtmlContent = $("body").html(); // ✅ Extract full content (questions + images)
 
-        // ✅ Extract Questions from HTML
+        // ✅ Extract Questions from HTML - CAT 2025 uses div.questionPnl for each question
         let extractedQuestions = [];
-        $(".questionRowTbl").each((index, element) => {
-            let questionText = $(element).find("td").first().text().trim();
+        
+        // Try multiple selectors to find questions - CAT 2025 uses questionPnl divs
+        let questionElements = $("div.questionPnl");
+        console.log("🔍 Found", questionElements.length, "questionPnl elements");
+        
+        // Fallback to questionPnlTbl if questionPnl not found
+        if (questionElements.length === 0) {
+            questionElements = $("table.questionPnlTbl");
+            console.log("🔍 Found", questionElements.length, "questionPnlTbl elements");
+        }
+        
+        // Fallback to questionRowTbl for older formats
+        if (questionElements.length === 0) {
+            questionElements = $(".questionRowTbl");
+            console.log("🔍 Found", questionElements.length, "questionRowTbl elements");
+        }
+        
+        questionElements.each((index, element) => {
+            const fullText = $(element).text();
+            
+            // Extract question text - look for Q.X pattern or first meaningful text
+            let questionText = "";
+            const qMatch = fullText.match(/Q\.\s*\d+/);
+            if (qMatch) {
+                questionText = fullText.substring(fullText.indexOf(qMatch[0]), fullText.indexOf(qMatch[0]) + 200).trim();
+            } else {
+                questionText = $(element).find("td").first().text().trim().substring(0, 200);
+            }
+            
             let options = [];
-        
-            $(element).find("td").each((i, el) => {
-                let optionText = $(el).text().trim();
-                if (optionText && i > 0) options.push(optionText);
-            });
-        
             let chosenOption = "";
             let correctAnswer = "";
             let status = "";
             let isCorrect = false;
             
-            // ✅ NEW: Parse from the full element text and options array
-            const fullText = $(element).text();
+            // ✅ CAT 2025 MCQ Format: Look for "Chosen Option" with number and check mark
+            // Format: "Chosen Option : 2" with checkmark indicating correct
+            const chosenOptionMatch = fullText.match(/Chosen\s*Option\s*:?\s*(\d+)/i);
+            if (chosenOptionMatch) {
+                chosenOption = chosenOptionMatch[1].trim();
+                status = "Answered";
+            }
             
-            // Method 1: Look for CAT 2025 format patterns in options array
-            options.forEach(opt => {
-                // For TITA questions: "Possible Answer: 700"
-                const possibleMatch = opt.match(/Possible Answer\s*:\s*(.+)/i);
-                if (possibleMatch) {
-                    correctAnswer = possibleMatch[1].trim();
+            // Look for correct answer indicator - usually has a checkmark or "Right"
+            // In CAT 2025, the correct option has a green checkmark
+            const correctAnswerMatch = fullText.match(/Correct\s*Answer\s*:?\s*(\d+)/i);
+            if (correctAnswerMatch) {
+                correctAnswer = correctAnswerMatch[1].trim();
+            }
+            
+            // ✅ CAT 2025 TITA Format: "Given Answer" and "Possible Answer"
+            const givenAnswerMatch = fullText.match(/Given\s*Answer\s*:?\s*([^\s\n\r]+)/i);
+            if (givenAnswerMatch) {
+                const answer = givenAnswerMatch[1].trim();
+                if (answer && answer !== '--' && answer !== '-' && answer !== '—') {
+                    chosenOption = answer;
+                    status = "Answered";
+                } else {
+                    status = "Not Answered";
                 }
+            }
+            
+            const possibleAnswerMatch = fullText.match(/Possible\s*Answer\s*:?\s*([^\s\n\r]+)/i);
+            if (possibleAnswerMatch) {
+                correctAnswer = possibleAnswerMatch[1].trim();
+            }
+            
+            // ✅ Look for status if not yet determined
+            if (!status) {
+                if (fullText.includes("Not Answered")) {
+                    status = "Not Answered";
+                } else if (fullText.includes("Answered")) {
+                    status = "Answered";
+                } else if (fullText.includes("Marked for Review")) {
+                    status = "Marked for Review";
+                }
+            }
+            
+            // ✅ Parse from table rows - look for label: value pattern
+            $(element).find("tr, .menu-tbl tr").each((i, row) => {
+                const rowText = $(row).text().trim();
+                const cells = $(row).find("td");
                 
-                // For TITA questions: "Given Answer : 310" or "Given Answer : --"
-                const givenMatch = opt.match(/Given Answer\s*:\s*(.+)/i);
-                if (givenMatch) {
-                    const answer = givenMatch[1].trim();
-                    if (answer && answer !== '--' && answer !== '-') {
-                        chosenOption = answer;
-                        status = "Answered";
-                    } else {
-                        status = "Not Answered";
+                if (cells.length >= 2) {
+                    const labelCell = $(cells[0]).text().trim().toLowerCase();
+                    const valueCell = $(cells[1]).text().trim();
+                    
+                    if (labelCell.includes("chosen option") && !chosenOption) {
+                        const numMatch = valueCell.match(/(\d+)/);
+                        if (numMatch) {
+                            chosenOption = numMatch[1];
+                            status = "Answered";
+                        }
+                    } else if (labelCell.includes("correct answer") && !correctAnswer) {
+                        const numMatch = valueCell.match(/(\d+)/);
+                        if (numMatch) {
+                            correctAnswer = numMatch[1];
+                        }
+                    } else if (labelCell.includes("given answer") && !chosenOption) {
+                        const val = valueCell.trim();
+                        if (val && val !== '--' && val !== '-') {
+                            chosenOption = val;
+                            status = "Answered";
+                        } else {
+                            status = "Not Answered";
+                        }
+                    } else if (labelCell.includes("possible answer") && !correctAnswer) {
+                        correctAnswer = valueCell.trim();
                     }
                 }
             });
             
-            // Method 2: Look in full text for these patterns
-            if (!correctAnswer) {
-                const possibleMatch = fullText.match(/Possible Answer\s*:\s*([^\n\r]+)/i);
-                if (possibleMatch) {
-                    correctAnswer = possibleMatch[1].trim();
-                }
-            }
-            
-            if (!chosenOption && !status) {
-                const givenMatch = fullText.match(/Given Answer\s*:\s*([^\n\r]+)/i);
-                if (givenMatch) {
-                    const answer = givenMatch[1].trim();
-                    if (answer && answer !== '--' && answer !== '-') {
-                        chosenOption = answer;
-                        status = "Answered";
-                    } else {
-                        status = "Not Answered";
-                    }
-                }
-            }
-            
-            // Method 3: Look for "Chosen Option" and "Correct Answer" patterns (older format)
-            if (!chosenOption) {
-                const chosenMatch = fullText.match(/Chosen Option\s*:\s*(\d+)/i);
-                if (chosenMatch) {
-                    chosenOption = chosenMatch[1].trim();
-                    status = "Answered";
-                }
-            }
-            
-            if (!correctAnswer) {
-                const correctMatch = fullText.match(/Correct Answer\s*:\s*(\d+)/i);
-                if (correctMatch) {
-                    correctAnswer = correctMatch[1].trim();
-                }
-            }
-            
-            // Method 4: Check for Status field directly
-            if (!status) {
-                const statusMatch = fullText.match(/Status\s*:\s*(Answered|Not Answered|Marked for Review)/i);
-                if (statusMatch) {
-                    status = statusMatch[1].trim();
-                }
-            }
-            
-            // Method 5: Find by row structure (tr with label td followed by value td)
-            if (!status || (!chosenOption && status === "Answered")) {
-                $(element).find("tr").each((i, row) => {
-                    const cells = $(row).find("td");
-                    if (cells.length >= 2) {
-                        const labelCell = $(cells[0]).text().trim().toLowerCase();
-                        const valueCell = $(cells[1]).text().trim();
-                        
-                        if (labelCell.includes("status") && !status) {
-                            status = valueCell;
-                        } else if (labelCell.includes("chosen option") && !chosenOption) {
-                            chosenOption = valueCell;
-                            if (valueCell && valueCell !== '--') status = "Answered";
-                        } else if (labelCell.includes("correct answer") && !correctAnswer) {
-                            correctAnswer = valueCell;
-                        }
-                    }
-                });
-            }
-            
             // ✅ Determine if answer is correct
             if (chosenOption && correctAnswer) {
-                // Normalize both values for comparison
                 const normalizedChosen = chosenOption.toString().trim().toLowerCase();
                 const normalizedCorrect = correctAnswer.toString().trim().toLowerCase();
                 isCorrect = normalizedChosen === normalizedCorrect;
             }
-
-            console.log("🔍 Parsed Question:", { 
-                questionText: questionText.substring(0, 50),
-                chosenOption, 
-                correctAnswer,
-                status,
-                isCorrect
-            });
-        
-            extractedQuestions.push({ 
-                question: questionText, 
-                options, 
-                chosenOption, 
-                correctAnswer,
-                status,
-                isCorrect
-            });
+            
+            // Only add if we have meaningful data (skip empty/header rows)
+            if (status || chosenOption || correctAnswer) {
+                console.log("🔍 Q" + (index + 1) + ":", { 
+                    chosenOption, 
+                    correctAnswer,
+                    status,
+                    isCorrect
+                });
+            
+                extractedQuestions.push({ 
+                    question: questionText, 
+                    options, 
+                    chosenOption, 
+                    correctAnswer,
+                    status,
+                    isCorrect
+                });
+            }
         });
         
         console.log("✅ Extracted", extractedQuestions.length, "questions");
