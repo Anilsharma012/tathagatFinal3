@@ -176,69 +176,114 @@ router.post("/fetch-questions", async (req, res) => {
                 if (optionText && i > 0) options.push(optionText);
             });
         
-            // ✅ FIXED: Extract values by finding rows with specific labels
-            // HTML structure is: <tr><td>Label :</td><td>Value</td></tr>
             let chosenOption = "";
             let correctAnswer = "";
             let status = "";
+            let isCorrect = false;
             
-            // Method 1: Find by row structure (tr with label td followed by value td)
-            $(element).find("tr").each((i, row) => {
-                const cells = $(row).find("td");
-                if (cells.length >= 2) {
-                    const labelCell = $(cells[0]).text().trim().toLowerCase();
-                    const valueCell = $(cells[1]).text().trim();
-                    
-                    if (labelCell.includes("status")) {
-                        status = valueCell;
-                    } else if (labelCell.includes("chosen option")) {
-                        chosenOption = valueCell;
-                    } else if (labelCell.includes("correct answer")) {
-                        correctAnswer = valueCell;
+            // ✅ NEW: Parse from the full element text and options array
+            const fullText = $(element).text();
+            
+            // Method 1: Look for CAT 2025 format patterns in options array
+            options.forEach(opt => {
+                // For TITA questions: "Possible Answer: 700"
+                const possibleMatch = opt.match(/Possible Answer\s*:\s*(.+)/i);
+                if (possibleMatch) {
+                    correctAnswer = possibleMatch[1].trim();
+                }
+                
+                // For TITA questions: "Given Answer : 310" or "Given Answer : --"
+                const givenMatch = opt.match(/Given Answer\s*:\s*(.+)/i);
+                if (givenMatch) {
+                    const answer = givenMatch[1].trim();
+                    if (answer && answer !== '--' && answer !== '-') {
+                        chosenOption = answer;
+                        status = "Answered";
+                    } else {
+                        status = "Not Answered";
                     }
                 }
             });
             
-            // Method 2: Fallback - scan all td pairs for label:value pattern
-            if (!status || !chosenOption) {
-                const allTds = $(element).find("td");
-                for (let i = 0; i < allTds.length - 1; i++) {
-                    const currentText = $(allTds[i]).text().trim().toLowerCase();
-                    const nextText = $(allTds[i + 1]).text().trim();
-                    
-                    if (currentText.includes("status") && currentText.includes(":") && !status) {
-                        status = nextText;
-                    } else if (currentText.includes("chosen option") && !chosenOption) {
-                        chosenOption = nextText;
-                    } else if (currentText.includes("correct answer") && !correctAnswer) {
-                        correctAnswer = nextText;
+            // Method 2: Look in full text for these patterns
+            if (!correctAnswer) {
+                const possibleMatch = fullText.match(/Possible Answer\s*:\s*([^\n\r]+)/i);
+                if (possibleMatch) {
+                    correctAnswer = possibleMatch[1].trim();
+                }
+            }
+            
+            if (!chosenOption && !status) {
+                const givenMatch = fullText.match(/Given Answer\s*:\s*([^\n\r]+)/i);
+                if (givenMatch) {
+                    const answer = givenMatch[1].trim();
+                    if (answer && answer !== '--' && answer !== '-') {
+                        chosenOption = answer;
+                        status = "Answered";
+                    } else {
+                        status = "Not Answered";
                     }
                 }
             }
             
-            // Method 3: Look for text patterns within td cells themselves
+            // Method 3: Look for "Chosen Option" and "Correct Answer" patterns (older format)
+            if (!chosenOption) {
+                const chosenMatch = fullText.match(/Chosen Option\s*:\s*(\d+)/i);
+                if (chosenMatch) {
+                    chosenOption = chosenMatch[1].trim();
+                    status = "Answered";
+                }
+            }
+            
+            if (!correctAnswer) {
+                const correctMatch = fullText.match(/Correct Answer\s*:\s*(\d+)/i);
+                if (correctMatch) {
+                    correctAnswer = correctMatch[1].trim();
+                }
+            }
+            
+            // Method 4: Check for Status field directly
             if (!status) {
-                $(element).find("td").each((i, el) => {
-                    const cellText = $(el).text().trim();
-                    // Check if cell contains "Status : Value" format
-                    const statusMatch = cellText.match(/Status\s*:\s*(\w+)/i);
-                    if (statusMatch) {
-                        status = statusMatch[1];
-                    }
-                    // Also check if the cell text is just "Answered" or "Not Answered"
-                    if (!status && (cellText.toLowerCase() === "answered" || 
-                                   cellText.toLowerCase() === "not answered" ||
-                                   cellText.toLowerCase().includes("marked for review"))) {
-                        status = cellText;
+                const statusMatch = fullText.match(/Status\s*:\s*(Answered|Not Answered|Marked for Review)/i);
+                if (statusMatch) {
+                    status = statusMatch[1].trim();
+                }
+            }
+            
+            // Method 5: Find by row structure (tr with label td followed by value td)
+            if (!status || (!chosenOption && status === "Answered")) {
+                $(element).find("tr").each((i, row) => {
+                    const cells = $(row).find("td");
+                    if (cells.length >= 2) {
+                        const labelCell = $(cells[0]).text().trim().toLowerCase();
+                        const valueCell = $(cells[1]).text().trim();
+                        
+                        if (labelCell.includes("status") && !status) {
+                            status = valueCell;
+                        } else if (labelCell.includes("chosen option") && !chosenOption) {
+                            chosenOption = valueCell;
+                            if (valueCell && valueCell !== '--') status = "Answered";
+                        } else if (labelCell.includes("correct answer") && !correctAnswer) {
+                            correctAnswer = valueCell;
+                        }
                     }
                 });
             }
+            
+            // ✅ Determine if answer is correct
+            if (chosenOption && correctAnswer) {
+                // Normalize both values for comparison
+                const normalizedChosen = chosenOption.toString().trim().toLowerCase();
+                const normalizedCorrect = correctAnswer.toString().trim().toLowerCase();
+                isCorrect = normalizedChosen === normalizedCorrect;
+            }
 
-            console.log("🔍 Debugging Question:", { 
-                questionText, 
+            console.log("🔍 Parsed Question:", { 
+                questionText: questionText.substring(0, 50),
                 chosenOption, 
                 correctAnswer,
-                status 
+                status,
+                isCorrect
             });
         
             extractedQuestions.push({ 
@@ -246,11 +291,17 @@ router.post("/fetch-questions", async (req, res) => {
                 options, 
                 chosenOption, 
                 correctAnswer,
-                status 
+                status,
+                isCorrect
             });
         });
         
-        console.log("✅ Extracted Questions:", extractedQuestions); // Debugging log
+        console.log("✅ Extracted", extractedQuestions.length, "questions");
+        console.log("📊 Summary:", {
+            total: extractedQuestions.length,
+            answered: extractedQuestions.filter(q => q.status === "Answered").length,
+            correct: extractedQuestions.filter(q => q.isCorrect).length
+        });
 
         return res.json({
             status: "success",
