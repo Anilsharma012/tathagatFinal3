@@ -146,6 +146,78 @@ const IIMPredictor = () => {
     }
   }, [userId]);
 
+  useEffect(() => {
+    if (questions && questions.length > 0) {
+      console.log("Questions changed, auto-calculating scores...");
+      autoCalculateScores(questions);
+    }
+  }, [questions]);
+
+  const autoCalculateScores = (questionList) => {
+    let varcCorrect = 0, varcWrong = 0;
+    let dilrCorrect = 0, dilrWrong = 0;
+    let qaCorrect = 0, qaWrong = 0;
+    let attempted = 0, unattempted = 0;
+
+    const totalQuestions = questionList.length;
+    const varcQuestions = Math.ceil(totalQuestions * 0.33);
+    const dilrQuestions = Math.ceil(totalQuestions * 0.33);
+
+    questionList.forEach((q, index) => {
+      const status = (q.status || "").toLowerCase().trim();
+      const isCorrect = q.isCorrect || (q.chosenOption === q.correctAnswer);
+      
+      let section = 'qa';
+      if (index < varcQuestions) section = 'varc';
+      else if (index < varcQuestions + dilrQuestions) section = 'dilr';
+
+      if (status === "answered" || (status.includes("answered") && !status.includes("not answered"))) {
+        attempted++;
+        if (isCorrect) {
+          if (section === 'varc') varcCorrect++;
+          else if (section === 'dilr') dilrCorrect++;
+          else qaCorrect++;
+        } else {
+          if (section === 'varc') varcWrong++;
+          else if (section === 'dilr') dilrWrong++;
+          else qaWrong++;
+        }
+      } else {
+        unattempted++;
+      }
+    });
+
+    const varcRaw = calculateRawScore(varcCorrect, varcWrong);
+    const dilrRaw = calculateRawScore(dilrCorrect, dilrWrong);
+    const qaRaw = calculateRawScore(qaCorrect, qaWrong);
+    const overallRaw = varcRaw + dilrRaw + qaRaw;
+
+    const varcScaled = estimateScaledScore(varcRaw);
+    const dilrScaled = estimateScaledScore(dilrRaw);
+    const qaScaled = estimateScaledScore(qaRaw);
+    const overallScaled = varcScaled + dilrScaled + qaScaled;
+
+    const varcPercentile = estimatePercentile(varcScaled, 'varc');
+    const dilrPercentile = estimatePercentile(dilrScaled, 'dilr');
+    const qaPercentile = estimatePercentile(qaScaled, 'qa');
+    const overallPercentile = estimateOverallPercentile(varcPercentile, dilrPercentile, qaPercentile);
+
+    const newSectionScores = {
+      varc: { correct: varcCorrect, incorrect: varcWrong, score: varcRaw, scaledScore: varcScaled, percentile: varcPercentile },
+      dilr: { correct: dilrCorrect, incorrect: dilrWrong, score: dilrRaw, scaledScore: dilrScaled, percentile: dilrPercentile },
+      qa: { correct: qaCorrect, incorrect: qaWrong, score: qaRaw, scaledScore: qaScaled, percentile: qaPercentile },
+      overall: { correct: varcCorrect + dilrCorrect + qaCorrect, incorrect: varcWrong + dilrWrong + qaWrong, score: overallRaw, scaledScore: overallScaled, percentile: overallPercentile }
+    };
+    
+    setSectionScores(newSectionScores);
+    
+    const attemptPercentage = totalQuestions > 0 ? ((attempted / totalQuestions) * 100).toFixed(1) : 0;
+    setScore({ totalQuestions, attempted, unattempted, attemptPercentage });
+    setShowScoreCalculator(true);
+    
+    console.log("Auto-calculated scores:", newSectionScores);
+  };
+
   const handleSearch = async () => {
     if (!link) {
         toast.error("Please provide a valid link.");
@@ -192,19 +264,18 @@ const IIMPredictor = () => {
     setLoading(false);
   };
 
-  const calculateRawScore = (correct, wrongMCQ) => {
-    return (3 * correct) - (1 * wrongMCQ);
+  const calculateRawScore = (correct, incorrect) => {
+    return (3 * correct) - (1 * incorrect);
   };
 
-  const estimateScaledScore = (rawScore, section, hasAttempts) => {
-    if (!hasAttempts) return 0;
-    if (rawScore <= 0) return rawScore;
+  const estimateScaledScore = (rawScore) => {
     return rawScore;
   };
 
-  const estimatePercentile = (scaledScore, section, correct, incorrect) => {
-    const hasAttempts = correct > 0 || incorrect > 0;
-    if (!hasAttempts) return null;
+  const PERCENTILE_DATASET_AVAILABLE = true;
+
+  const estimatePercentile = (scaledScore, section) => {
+    if (!PERCENTILE_DATASET_AVAILABLE) return null;
     
     if (scaledScore <= 0) return 0;
 
@@ -261,11 +332,11 @@ const IIMPredictor = () => {
     return table[table.length - 1].percentile;
   };
 
-  const estimateOverallPercentile = (varcP, dilrP, qaP, hasAttempts) => {
-    if (!hasAttempts) return null;
+  const estimateOverallPercentile = (varcP, dilrP, qaP) => {
+    if (!PERCENTILE_DATASET_AVAILABLE) return null;
     
     const validPercentiles = [varcP, dilrP, qaP].filter(p => p !== null && p !== undefined);
-    if (validPercentiles.length === 0) return null;
+    if (validPercentiles.length === 0) return 0;
     
     const avgPercentile = validPercentiles.reduce((a, b) => a + b, 0) / validPercentiles.length;
     const minPercentile = Math.min(...validPercentiles);
@@ -273,8 +344,12 @@ const IIMPredictor = () => {
   };
 
   const formatPercentile = (percentile) => {
-    if (percentile === null || percentile === undefined) return "N/A";
+    if (percentile === null || percentile === undefined) return "Percentile unavailable";
     return percentile.toFixed(2);
+  };
+
+  const formatScore = (score) => {
+    return score.toFixed(1);
   };
 
   const calculateScore = () => {
@@ -323,27 +398,25 @@ const IIMPredictor = () => {
     const qaRaw = calculateRawScore(qaCorrect, qaWrong);
     const overallRaw = varcRaw + dilrRaw + qaRaw;
 
-    const varcHasAttempts = varcCorrect > 0 || varcWrong > 0;
-    const dilrHasAttempts = dilrCorrect > 0 || dilrWrong > 0;
-    const qaHasAttempts = qaCorrect > 0 || qaWrong > 0;
-    const overallHasAttempts = attempted > 0;
+    const varcScaled = estimateScaledScore(varcRaw);
+    const dilrScaled = estimateScaledScore(dilrRaw);
+    const qaScaled = estimateScaledScore(qaRaw);
+    const overallScaled = varcScaled + dilrScaled + qaScaled;
 
-    const varcScaled = estimateScaledScore(varcRaw, 'varc', varcHasAttempts);
-    const dilrScaled = estimateScaledScore(dilrRaw, 'dilr', dilrHasAttempts);
-    const qaScaled = estimateScaledScore(qaRaw, 'qa', qaHasAttempts);
-    const overallScaled = overallHasAttempts ? Math.round((varcScaled + dilrScaled + qaScaled) * 100) / 100 : 0;
+    const varcPercentile = estimatePercentile(varcScaled, 'varc');
+    const dilrPercentile = estimatePercentile(dilrScaled, 'dilr');
+    const qaPercentile = estimatePercentile(qaScaled, 'qa');
+    const overallPercentile = estimateOverallPercentile(varcPercentile, dilrPercentile, qaPercentile);
 
-    const varcPercentile = estimatePercentile(varcScaled, 'varc', varcCorrect, varcWrong);
-    const dilrPercentile = estimatePercentile(dilrScaled, 'dilr', dilrCorrect, dilrWrong);
-    const qaPercentile = estimatePercentile(qaScaled, 'qa', qaCorrect, qaWrong);
-    const overallPercentile = estimateOverallPercentile(varcPercentile, dilrPercentile, qaPercentile, overallHasAttempts);
-
-    setSectionScores({
+    const newSectionScores = {
       varc: { correct: varcCorrect, incorrect: varcWrong, score: varcRaw, scaledScore: varcScaled, percentile: varcPercentile },
       dilr: { correct: dilrCorrect, incorrect: dilrWrong, score: dilrRaw, scaledScore: dilrScaled, percentile: dilrPercentile },
       qa: { correct: qaCorrect, incorrect: qaWrong, score: qaRaw, scaledScore: qaScaled, percentile: qaPercentile },
       overall: { correct: varcCorrect + dilrCorrect + qaCorrect, incorrect: varcWrong + dilrWrong + qaWrong, score: overallRaw, scaledScore: overallScaled, percentile: overallPercentile }
-    });
+    };
+    
+    setSectionScores(newSectionScores);
+    console.log("Updated Section Scores:", newSectionScores);
 
     const attemptPercentage = totalQuestions > 0 ? ((attempted / totalQuestions) * 100).toFixed(1) : 0;
 
@@ -536,7 +609,7 @@ const IIMPredictor = () => {
                     <th className="section-col">Section</th>
                     <th>Correct</th>
                     <th>Incorrect*</th>
-                    <th>Raw Score</th>
+                    <th>Estimated Raw Score</th>
                     <th>Expected Scaled Score</th>
                     <th>Expected Percentile</th>
                   </tr>
@@ -546,37 +619,37 @@ const IIMPredictor = () => {
                     <td className="section-name">VARC</td>
                     <td>{sectionScores.varc.correct}</td>
                     <td>{sectionScores.varc.incorrect}</td>
-                    <td>{sectionScores.varc.score.toFixed(1)}</td>
-                    <td className="scaled">{sectionScores.varc.scaledScore.toFixed(2)}</td>
+                    <td>{formatScore(sectionScores.varc.score)}</td>
+                    <td className="scaled">{formatScore(sectionScores.varc.scaledScore)}</td>
                     <td className="percentile">{formatPercentile(sectionScores.varc.percentile)}</td>
                   </tr>
                   <tr>
                     <td className="section-name">DILR</td>
                     <td>{sectionScores.dilr.correct}</td>
                     <td>{sectionScores.dilr.incorrect}</td>
-                    <td>{sectionScores.dilr.score.toFixed(1)}</td>
-                    <td className="scaled">{sectionScores.dilr.scaledScore.toFixed(2)}</td>
+                    <td>{formatScore(sectionScores.dilr.score)}</td>
+                    <td className="scaled">{formatScore(sectionScores.dilr.scaledScore)}</td>
                     <td className="percentile">{formatPercentile(sectionScores.dilr.percentile)}</td>
                   </tr>
                   <tr>
                     <td className="section-name">QA</td>
                     <td>{sectionScores.qa.correct}</td>
                     <td>{sectionScores.qa.incorrect}</td>
-                    <td>{sectionScores.qa.score.toFixed(1)}</td>
-                    <td className="scaled">{sectionScores.qa.scaledScore.toFixed(2)}</td>
+                    <td>{formatScore(sectionScores.qa.score)}</td>
+                    <td className="scaled">{formatScore(sectionScores.qa.scaledScore)}</td>
                     <td className="percentile">{formatPercentile(sectionScores.qa.percentile)}</td>
                   </tr>
                   <tr className="overall-row">
                     <td className="section-name">Overall</td>
                     <td>{sectionScores.overall.correct}</td>
                     <td>{sectionScores.overall.incorrect}</td>
-                    <td>{sectionScores.overall.score.toFixed(1)}</td>
-                    <td className="scaled">{sectionScores.overall.scaledScore.toFixed(2)}</td>
+                    <td>{formatScore(sectionScores.overall.score)}</td>
+                    <td className="scaled">{formatScore(sectionScores.overall.scaledScore)}</td>
                     <td className="percentile">{formatPercentile(sectionScores.overall.percentile)}</td>
                   </tr>
                 </tbody>
               </table>
-              <p className="table-note">* Incorrect may include TITA questions. Negative marks (-1) apply only to MCQs.</p>
+              <p className="table-note">* Incorrect may include TITA. Negative marks apply only to MCQs. This score is estimated.</p>
             </div>
 
             <div className="response-info">
