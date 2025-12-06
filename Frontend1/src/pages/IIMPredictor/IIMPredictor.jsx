@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import "./IIMPredictor.css"; // Importing CSS for styling
-import axios from "axios"; // ✅ Import Axios
+import "./IIMPredictor.css";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import IIMPredictionpage from "../../subpages/IIMPredictionPage/IIMPredictionpage";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -10,17 +9,22 @@ import jsPDF from "jspdf";
 
 const IIMPredictor = () => {
   const [link, setLink] = useState("");
-  // const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  // const [userDetails, setUserDetails] = useState(null);
-  // const [htmlContent, setHtmlContent] = useState(null); // ✅ Store HTML for response sheet
   const navigate = useNavigate();
-  const [fullHtml, setFullHtml] = useState(""); // ✅ Store full HTML content
-  const [questions, setQuestions] = useState([]); // ✅ Store Questions
-  const [score, setScore] = useState(null); // ✅ Store Score Data
+  const [fullHtml, setFullHtml] = useState("");
+  const [questions, setQuestions] = useState([]);
+  const [score, setScore] = useState(null);
+  const [showScoreCalculator, setShowScoreCalculator] = useState(false);
+  
+  const [sectionScores, setSectionScores] = useState({
+    varc: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 },
+    dilr: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 },
+    qa: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 },
+    overall: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 }
+  });
 
-  const user = JSON.parse(localStorage.getItem("user")); // ✅ Extract User Data
-  const userId = user?.id; // ✅ Get userId safely
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user?.id;
 
   const [formData, setFormData] = useState({
     category: "",
@@ -46,7 +50,7 @@ const IIMPredictor = () => {
           ? checked
             ? [...prev.interestedCourses, value]
             : prev.interestedCourses.filter((course) => course !== value)
-          : [value], // ✅ Ensure it remains an array
+          : [value],
       }));
     } else {
       setFormData({ ...formData, [name]: value });
@@ -58,18 +62,17 @@ const IIMPredictor = () => {
 
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user) {
-      alert("⚠️ Please login to submit your details!");
+      alert("Please login to submit your details!");
       localStorage.setItem("redirectAfterLogin", "/iim-results");
       localStorage.setItem("formData", JSON.stringify(formData));
       navigate("/login");
       return;
     }
 
-    // Get userId - check both id and _id since different login methods may use different keys
     const userIdValue = user.id || user._id;
     
     if (!userIdValue) {
-      alert("⚠️ Session expired. Please login again!");
+      alert("Session expired. Please login again!");
       navigate("/login");
       return;
     }
@@ -91,19 +94,19 @@ const IIMPredictor = () => {
 
     try {
       setLoading(true);
-      console.log("🔍 Submitting Data:", requestData); // ✅ Debugging
+      console.log("Submitting Data:", requestData);
 
       const response = await axios.post(
         "/api/v2/iim-predictor",
         requestData
       );
 
-      console.log("✅ API Response:", response.data); // ✅ Debugging
+      console.log("API Response:", response.data);
 
       setLoading(false);
 
       if (response.status === 200 || response.status === 201) {
-        alert("✅ Form Submitted Successfully!");
+        alert("Form Submitted Successfully!");
         localStorage.setItem(
           `iim-predictor-${userIdValue}`,
           JSON.stringify(response.data)
@@ -115,23 +118,21 @@ const IIMPredictor = () => {
     } catch (error) {
       setLoading(false);
       console.error(
-        "❌ Error submitting form:",
+        "Error submitting form:",
         error.response?.data || error.message
       );
       
-      // Show specific error message from backend
       const errorMessage = error.response?.data?.message || "Submission failed. Please try again.";
       
-      // Check if it's an invalid user ID error
       if (errorMessage.includes("Invalid user ID") || errorMessage.includes("Please login")) {
-        alert("⚠️ Please login with a valid account to submit the form. Your current session may have expired.");
+        alert("Please login with a valid account to submit the form. Your current session may have expired.");
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         localStorage.setItem("redirectAfterLogin", "/iim-results");
         localStorage.setItem("formData", JSON.stringify(formData));
         navigate("/login");
       } else {
-        alert(`❌ ${errorMessage}`);
+        alert(`${errorMessage}`);
       }
     }
   };
@@ -141,26 +142,22 @@ const IIMPredictor = () => {
 
     const storedData = localStorage.getItem(`iim-predictor-${userId}`);
     if (storedData) {
-      setFormData(JSON.parse(storedData)); // ✅ Restore saved form data
+      setFormData(JSON.parse(storedData));
     }
   }, [userId]);
 
-  // const handleFileChange = (e) => {
-  //   setFile(e.target.files[0]);
-  // };
-
   const handleSearch = async () => {
     if (!link) {
-        toast.error("⚠️ Please provide a valid link.");
+        toast.error("Please provide a valid link.");
         return;
     }
 
     setLoading(true);
-    toast.info("🔄 Fetching response sheet... This may take a moment.");
+    toast.info("Fetching response sheet... This may take a moment.");
     
     try {
         const response = await axios.post("/api/v3/fetch-questions", { link }, {
-            timeout: 90000, // 90 second timeout for external URL fetch
+            timeout: 90000,
         });
 
         if (response.data.fullHtmlContent) {
@@ -169,109 +166,203 @@ const IIMPredictor = () => {
 
         if (response.data.questions && response.data.questions.length > 0) {
             setQuestions([...response.data.questions]);
-            console.log("✅ Fetched Questions:", response.data.questions);
-            toast.success("✅ Response sheet fetched successfully!");
+            console.log("Fetched Questions:", response.data.questions);
+            toast.success("Response sheet fetched successfully!");
         } else {
-            console.warn("⚠️ No questions found in API response.");
-            toast.warning("⚠️ Response sheet loaded but no questions found. Check if the link is correct.");
+            console.warn("No questions found in API response.");
+            toast.warning("Response sheet loaded but no questions found. Check if the link is correct.");
         }
     } catch (error) {
-        console.error("❌ Error fetching data:", error);
+        console.error("Error fetching data:", error);
         
-        // Show helpful error message
         if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-            toast.error("⏱️ Request timed out. The server is slow. Please try again.");
+            toast.error("Request timed out. The server is slow. Please try again.");
         } else if (error.response?.data?.code === 'TIMEOUT') {
-            toast.error("⏱️ " + (error.response?.data?.error || "Server timeout. Please try again."));
+            toast.error(error.response?.data?.error || "Server timeout. Please try again.");
         } else if (error.response?.data?.code === 'ACCESS_DENIED') {
-            toast.error("🚫 " + (error.response?.data?.error || "Access denied. Link may have expired."));
+            toast.error(error.response?.data?.error || "Access denied. Link may have expired.");
         } else if (error.response?.data?.code === 'NOT_FOUND') {
-            toast.error("🔍 " + (error.response?.data?.error || "Response sheet not found. Link may have expired."));
+            toast.error(error.response?.data?.error || "Response sheet not found. Link may have expired.");
         } else if (error.response?.data?.error) {
-            toast.error("❌ " + error.response.data.error);
+            toast.error(error.response.data.error);
         } else {
-            toast.error("❌ Failed to fetch response sheet. Please check the link and try again.");
+            toast.error("Failed to fetch response sheet. Please check the link and try again.");
         }
     }
     setLoading(false);
-};
+  };
 
+  const calculateRawScore = (correct, wrongMCQ) => {
+    return (3 * correct) - (1 * wrongMCQ);
+  };
 
-  
-const calculateScore = () => {
-  console.log("📌 Current Questions Before Analysis:", questions); 
+  const estimateScaledScore = (rawScore, section) => {
+    const scalingFactors = {
+      varc: 1.15,
+      dilr: 1.12,
+      qa: 1.18
+    };
+    const factor = scalingFactors[section] || 1.15;
+    return Math.round(rawScore * factor * 100) / 100;
+  };
 
-  if (!questions || questions.length === 0) {
-      toast.error("⚠️ No questions available to analyze.");
-      return;
-  }
+  const estimatePercentile = (scaledScore, section) => {
+    const percentileTable = {
+      varc: [
+        { score: 45, percentile: 99 },
+        { score: 40, percentile: 97 },
+        { score: 35, percentile: 95 },
+        { score: 30, percentile: 90 },
+        { score: 25, percentile: 85 },
+        { score: 20, percentile: 75 },
+        { score: 15, percentile: 60 },
+        { score: 10, percentile: 45 },
+        { score: 5, percentile: 25 },
+        { score: 0, percentile: 10 }
+      ],
+      dilr: [
+        { score: 45, percentile: 99 },
+        { score: 40, percentile: 98 },
+        { score: 35, percentile: 96 },
+        { score: 30, percentile: 92 },
+        { score: 25, percentile: 87 },
+        { score: 20, percentile: 80 },
+        { score: 15, percentile: 65 },
+        { score: 10, percentile: 50 },
+        { score: 5, percentile: 30 },
+        { score: 0, percentile: 12 }
+      ],
+      qa: [
+        { score: 50, percentile: 99 },
+        { score: 45, percentile: 98 },
+        { score: 40, percentile: 97 },
+        { score: 35, percentile: 95 },
+        { score: 30, percentile: 90 },
+        { score: 25, percentile: 82 },
+        { score: 20, percentile: 70 },
+        { score: 15, percentile: 55 },
+        { score: 10, percentile: 40 },
+        { score: 0, percentile: 15 }
+      ]
+    };
 
-  let attempted = 0, unattempted = 0;
-  const totalQuestions = questions.length;
-
-  questions.forEach(q => {
-      console.log("🔍 Checking Question:", q);
-      console.log("📋 Status:", q.status);
-
-      // Check if status field is "answered" (case-insensitive)
-      const status = (q.status || "").toLowerCase().trim();
-      
-      if (status === "answered" || status.includes("answered")) {
-          // Only count as attempted if status is exactly "answered"
-          // "not answered" will NOT match because we check exact match first
-          if (status === "answered") {
-              attempted++;
-          } else if (status.includes("not answered")) {
-              unattempted++;
-          } else if (status.includes("answered")) {
-              // Handle cases like "answered and marked for review"
-              attempted++;
-          } else {
-              unattempted++;
-          }
-      } else {
-          // Not answered, marked for review only, or empty status
-          unattempted++;
+    const table = percentileTable[section] || percentileTable.varc;
+    
+    for (let i = 0; i < table.length; i++) {
+      if (scaledScore >= table[i].score) {
+        if (i === 0) return table[i].percentile;
+        const prevScore = table[i - 1].score;
+        const prevPercentile = table[i - 1].percentile;
+        const ratio = (scaledScore - table[i].score) / (prevScore - table[i].score);
+        return Math.round((table[i].percentile + ratio * (prevPercentile - table[i].percentile)) * 100) / 100;
       }
-  });
+    }
+    return table[table.length - 1].percentile;
+  };
 
-  // Calculate attempt percentage
-  const attemptPercentage = totalQuestions > 0 ? ((attempted / totalQuestions) * 100).toFixed(1) : 0;
+  const estimateOverallPercentile = (varcP, dilrP, qaP) => {
+    const avgPercentile = (varcP + dilrP + qaP) / 3;
+    const minPercentile = Math.min(varcP, dilrP, qaP);
+    return Math.round((avgPercentile * 0.7 + minPercentile * 0.3) * 100) / 100;
+  };
 
-  setScore({ 
-    totalQuestions, 
-    attempted, 
-    unattempted, 
-    attemptPercentage 
-  });
+  const calculateScore = () => {
+    console.log("Current Questions Before Analysis:", questions); 
 
-  console.log("✅ Attempt Analysis:", { totalQuestions, attempted, unattempted, attemptPercentage });
-  toast.success("✅ Attempt analysis completed!");
-};
+    if (!questions || questions.length === 0) {
+        toast.error("No questions available to analyze. Please fetch the response sheet first.");
+        return;
+    }
 
-const downloadScorecard = () => {
-    if (!score) {
-      toast.error("⚠️ Please analyze attempts first!");
+    let varcCorrect = 0, varcWrong = 0;
+    let dilrCorrect = 0, dilrWrong = 0;
+    let qaCorrect = 0, qaWrong = 0;
+    let attempted = 0, unattempted = 0;
+
+    const totalQuestions = questions.length;
+    const varcQuestions = Math.ceil(totalQuestions * 0.33);
+    const dilrQuestions = Math.ceil(totalQuestions * 0.33);
+
+    questions.forEach((q, index) => {
+      const status = (q.status || "").toLowerCase().trim();
+      const isCorrect = q.isCorrect || (q.chosenOption === q.correctAnswer);
+      
+      let section = 'qa';
+      if (index < varcQuestions) section = 'varc';
+      else if (index < varcQuestions + dilrQuestions) section = 'dilr';
+
+      if (status === "answered" || (status.includes("answered") && !status.includes("not answered"))) {
+        attempted++;
+        if (isCorrect) {
+          if (section === 'varc') varcCorrect++;
+          else if (section === 'dilr') dilrCorrect++;
+          else qaCorrect++;
+        } else {
+          if (section === 'varc') varcWrong++;
+          else if (section === 'dilr') dilrWrong++;
+          else qaWrong++;
+        }
+      } else {
+        unattempted++;
+      }
+    });
+
+    const varcRaw = calculateRawScore(varcCorrect, varcWrong);
+    const dilrRaw = calculateRawScore(dilrCorrect, dilrWrong);
+    const qaRaw = calculateRawScore(qaCorrect, qaWrong);
+    const overallRaw = varcRaw + dilrRaw + qaRaw;
+
+    const varcScaled = estimateScaledScore(varcRaw, 'varc');
+    const dilrScaled = estimateScaledScore(dilrRaw, 'dilr');
+    const qaScaled = estimateScaledScore(qaRaw, 'qa');
+    const overallScaled = Math.round((varcScaled + dilrScaled + qaScaled) * 100) / 100;
+
+    const varcPercentile = estimatePercentile(varcScaled, 'varc');
+    const dilrPercentile = estimatePercentile(dilrScaled, 'dilr');
+    const qaPercentile = estimatePercentile(qaScaled, 'qa');
+    const overallPercentile = estimateOverallPercentile(varcPercentile, dilrPercentile, qaPercentile);
+
+    setSectionScores({
+      varc: { correct: varcCorrect, incorrect: varcWrong, score: varcRaw, scaledScore: varcScaled, percentile: varcPercentile },
+      dilr: { correct: dilrCorrect, incorrect: dilrWrong, score: dilrRaw, scaledScore: dilrScaled, percentile: dilrPercentile },
+      qa: { correct: qaCorrect, incorrect: qaWrong, score: qaRaw, scaledScore: qaScaled, percentile: qaPercentile },
+      overall: { correct: varcCorrect + dilrCorrect + qaCorrect, incorrect: varcWrong + dilrWrong + qaWrong, score: overallRaw, scaledScore: overallScaled, percentile: overallPercentile }
+    });
+
+    const attemptPercentage = totalQuestions > 0 ? ((attempted / totalQuestions) * 100).toFixed(1) : 0;
+
+    setScore({ 
+      totalQuestions, 
+      attempted, 
+      unattempted, 
+      attemptPercentage 
+    });
+
+    setShowScoreCalculator(true);
+    console.log("Score Analysis:", { sectionScores, totalQuestions, attempted, unattempted, attemptPercentage });
+    toast.success("CAT Score calculated successfully!");
+  };
+
+  const downloadScorecard = () => {
+    if (!score || !showScoreCalculator) {
+      toast.error("Please calculate score first!");
       return;
     }
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header background
     doc.setFillColor(37, 99, 235);
     doc.rect(0, 0, pageWidth, 45, 'F');
 
-    // Title
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
     doc.text("TathaGat", pageWidth / 2, 20, { align: "center" });
     
     doc.setFontSize(14);
-    doc.text("CMAT/CAT Response Sheet - Attempt Analysis", pageWidth / 2, 35, { align: "center" });
+    doc.text("CAT Score Calculator - Detailed Analysis", pageWidth / 2, 35, { align: "center" });
 
-    // Date
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
@@ -280,56 +371,59 @@ const downloadScorecard = () => {
       month: 'long', 
       year: 'numeric' 
     });
-    doc.text(`Date: ${today}`, 20, 60);
+    doc.text(`Date: ${today}`, 20, 55);
 
-    // Analysis Card Box
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(1);
-    doc.roundedRect(20, 70, pageWidth - 40, 95, 5, 5, 'S');
-
-    // Analysis Details Header
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Attempt Analysis Summary", pageWidth / 2, 85, { align: "center" });
-
-    doc.setFont("helvetica", "normal");
     doc.setFontSize(14);
-    
-    // Total Questions - Blue
-    doc.setTextColor(37, 99, 235);
-    doc.text(`Total Questions:`, 30, 105);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${score.totalQuestions}`, 130, 105);
+    doc.text(`You scored ${sectionScores.overall.score.toFixed(1)} marks in CAT 2025`, pageWidth / 2, 70, { align: "center" });
 
-    // Attempted Questions - Green
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+
+    let yPos = 85;
+    doc.setFillColor(37, 99, 235);
+    doc.rect(20, yPos, pageWidth - 40, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text("Section", 25, yPos + 7);
+    doc.text("Correct", 60, yPos + 7);
+    doc.text("Incorrect", 90, yPos + 7);
+    doc.text("Score", 120, yPos + 7);
+    doc.text("Scaled Score", 145, yPos + 7);
+    doc.text("Percentile", 175, yPos + 7);
+
+    yPos += 12;
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(34, 139, 34);
-    doc.text(`Attempted Questions:`, 30, 120);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${score.attempted}`, 130, 120);
 
-    // Unattempted Questions - Gray
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(108, 117, 125);
-    doc.text(`Unattempted Questions:`, 30, 135);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${score.unattempted}`, 130, 135);
+    const sections = [
+      { name: 'VARC', data: sectionScores.varc },
+      { name: 'DILR', data: sectionScores.dilr },
+      { name: 'QA', data: sectionScores.qa },
+      { name: 'Overall', data: sectionScores.overall }
+    ];
 
-    // Attempt Percentage - Purple/Indigo
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(99, 102, 241);
-    doc.text(`Attempt %:`, 30, 155);
-    doc.setFontSize(20);
-    doc.text(`${score.attemptPercentage}%`, 130, 155);
+    sections.forEach((section, i) => {
+      if (i % 2 === 0) {
+        doc.setFillColor(240, 244, 255);
+        doc.rect(20, yPos - 5, pageWidth - 40, 10, 'F');
+      }
+      doc.setFont("helvetica", section.name === 'Overall' ? "bold" : "normal");
+      doc.text(section.name, 25, yPos);
+      doc.text(section.data.correct.toString(), 65, yPos);
+      doc.text(section.data.incorrect.toString(), 95, yPos);
+      doc.text(section.data.score.toFixed(1), 125, yPos);
+      doc.text(section.data.scaledScore.toFixed(2), 155, yPos);
+      doc.text(section.data.percentile.toFixed(2), 180, yPos);
+      yPos += 12;
+    });
 
-    // Note
+    yPos += 10;
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(10);
-    doc.text("Note: This analysis shows attempt statistics only. Answer key not available.", pageWidth / 2, 180, { align: "center" });
+    doc.setFontSize(9);
+    doc.text("Note: Expected percentile based on response analysis. Official percentile may differ.", pageWidth / 2, yPos, { align: "center" });
 
-    // Footer
     doc.setFillColor(240, 240, 240);
     doc.rect(0, 270, pageWidth, 30, 'F');
     doc.setTextColor(100, 100, 100);
@@ -337,16 +431,15 @@ const downloadScorecard = () => {
     doc.text("Generated by TathaGat - Leaders in Aptitude Test Prep", pageWidth / 2, 280, { align: "center" });
     doc.text("www.tathagat.co.in | +91 9205534439", pageWidth / 2, 290, { align: "center" });
 
-    // Save PDF
-    doc.save(`TathaGat_Attempt_Analysis_${today.replace(/\s/g, '_')}.pdf`);
-    toast.success("✅ Attempt analysis downloaded successfully!");
+    doc.save(`TathaGat_CAT_Score_${today.replace(/\s/g, '_')}.pdf`);
+    toast.success("CAT Scorecard downloaded successfully!");
   };
 
   const handlePrint = () => {
     const printContent = document.querySelector(".response-sheet");
     
     if (!printContent) {
-        toast.error("⚠️ No response sheet available to print.");
+        toast.error("No response sheet available to print.");
         return;
     }
 
@@ -354,148 +447,57 @@ const downloadScorecard = () => {
     
     const printStyles = `
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          padding: 20px;
-          color: #000;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 15px 0;
-        }
-        th, td {
-          border: 1px solid #333;
-          padding: 10px;
-          text-align: left;
-        }
-        th {
-          background-color: #007bff;
-          color: white;
-        }
-        tr:nth-child(even) {
-          background-color: #f2f2f2;
-        }
-        img {
-          max-width: 100%;
-          height: auto;
-          display: block;
-          margin: 10px auto;
-        }
-        .question {
-          font-size: 16px;
-          font-weight: bold;
-          margin-top: 15px;
-        }
-        @media print {
-          img {
-            max-width: 100% !important;
-            page-break-inside: avoid;
-          }
-          table {
-            page-break-inside: avoid;
-          }
-        }
+        body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #333; padding: 10px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+        @media print { img, table { page-break-inside: avoid; } }
       </style>
     `;
 
     printWindow.document.write(`
       <html>
-        <head>
-          <title>Response Sheet - TathaGat</title>
-          ${printStyles}
-        </head>
+        <head><title>Response Sheet - TathaGat</title>${printStyles}</head>
         <body>
-          <h2 style="text-align: center; color: #007bff;">📜 CMAT/CAT Response Sheet</h2>
+          <h2 style="text-align: center; color: #007bff;">CMAT/CAT Response Sheet</h2>
           ${printContent.innerHTML}
         </body>
       </html>
     `);
     printWindow.document.close();
 
-    // Wait for all images to load before printing
-    const images = printWindow.document.querySelectorAll('img');
-    let loadedImages = 0;
-    const totalImages = images.length;
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 500);
 
-    if (totalImages === 0) {
-      // No images, print directly
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-      }, 500);
-    } else {
-      images.forEach((img) => {
-        if (img.complete) {
-          loadedImages++;
-          if (loadedImages === totalImages) {
-            setTimeout(() => {
-              printWindow.focus();
-              printWindow.print();
-            }, 500);
-          }
-        } else {
-          img.onload = () => {
-            loadedImages++;
-            if (loadedImages === totalImages) {
-              setTimeout(() => {
-                printWindow.focus();
-                printWindow.print();
-              }, 500);
-            }
-          };
-          img.onerror = () => {
-            loadedImages++;
-            if (loadedImages === totalImages) {
-              setTimeout(() => {
-                printWindow.focus();
-                printWindow.print();
-              }, 500);
-            }
-          };
-        }
-      });
-
-      // Fallback: Print after 3 seconds if images don't load
-      setTimeout(() => {
-        if (loadedImages < totalImages) {
-          printWindow.focus();
-          printWindow.print();
-        }
-      }, 3000);
-    }
-
-    toast.success("✅ Print window opened!");
-};
+    toast.success("Print window opened!");
+  };
 
   return (
     <div>
       <div className="predictor-container">
         <h2 className="predictor-heading">
-          📜 CMAT/CAT Response Sheet Checker
+          CMAT/CAT Response Sheet Checker
         </h2>
 
-        {/* ✅ Input for Response Sheet Link */}
         <input
-        className="MainInput"
+          className="MainInput"
           type="text"
           placeholder="Paste response sheet link"
           value={link}
           onChange={(e) => setLink(e.target.value)}
         />
 
-       
-
-        {/* ✅ Search Button */}
-        <button onClick={handleSearch} disabled={loading}>
+        <button onClick={handleSearch} disabled={loading} className="check-btn">
           {loading ? "Fetching..." : "Check Response Sheet"}
         </button>
 
-        {/* ✅ Print Button to Download the Response Sheet */}
-         <button onClick={handlePrint} className="print-btn">Print</button>
+        <button onClick={handlePrint} className="print-btn">Print</button>
+        <button onClick={calculateScore} className="calculate-btn">Calculate Score</button>
 
-
-        {/* ✅ Display Full Response Sheet (With Images & Tables) */}
         {fullHtml && (
           <div
             className="response-sheet"
@@ -503,43 +505,145 @@ const downloadScorecard = () => {
           />
         )}
 
-        {/* ✅ Calculate Score Button */}
-        <button onClick={calculateScore}>Calculate Score</button>
+        {showScoreCalculator && (
+          <div className="cat-score-calculator">
+            <div className="score-header">
+              <h3>You scored <span className="highlight-score">{sectionScores.overall.score.toFixed(1)} marks</span> in CAT 2025.</h3>
+              <p>Let's prepare better with TathaGat's <a href="/cat">CAT 2026</a> or <a href="/cat">XAT 2026 courses</a>.</p>
+            </div>
 
-        {/* ✅ Show Scorecard Section - Attempt Analysis */}
-        {score && (
-    <div className="scorecard-section">
-        <h3>📊 Scorecard</h3>
-        <p className="score-row total-questions">📋 Total Questions: <strong>{score.totalQuestions}</strong></p>
-        <p className="score-row attempted">✅ Attempted Questions: <strong>{score.attempted}</strong></p>
-        <p className="score-row unattempted">➖ Unattempted Questions: <strong>{score.unattempted}</strong></p>
-        <p className="score-row attempt-percent">📈 Attempt %: <strong>{score.attemptPercentage}%</strong></p>
+            <div className="score-table-container">
+              <table className="score-table">
+                <thead>
+                  <tr>
+                    <th className="section-col">cracku</th>
+                    <th>Correct</th>
+                    <th>Incorrect</th>
+                    <th>Score</th>
+                    <th>Scaled Score</th>
+                    <th>percentile</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="section-name">VARC</td>
+                    <td>{sectionScores.varc.correct}</td>
+                    <td>{sectionScores.varc.incorrect}</td>
+                    <td>{sectionScores.varc.score.toFixed(1)}</td>
+                    <td className="scaled">{sectionScores.varc.scaledScore.toFixed(2)}</td>
+                    <td className="percentile">{sectionScores.varc.percentile.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="section-name">DILR</td>
+                    <td>{sectionScores.dilr.correct}</td>
+                    <td>{sectionScores.dilr.incorrect}</td>
+                    <td>{sectionScores.dilr.score.toFixed(1)}</td>
+                    <td className="scaled">{sectionScores.dilr.scaledScore.toFixed(2)}</td>
+                    <td className="percentile">{sectionScores.dilr.percentile.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="section-name">QA</td>
+                    <td>{sectionScores.qa.correct}</td>
+                    <td>{sectionScores.qa.incorrect}</td>
+                    <td>{sectionScores.qa.score.toFixed(1)}</td>
+                    <td className="scaled">{sectionScores.qa.scaledScore.toFixed(2)}</td>
+                    <td className="percentile">{sectionScores.qa.percentile.toFixed(2)}</td>
+                  </tr>
+                  <tr className="overall-row">
+                    <td className="section-name">Overall</td>
+                    <td>{sectionScores.overall.correct}</td>
+                    <td>{sectionScores.overall.incorrect}</td>
+                    <td>{sectionScores.overall.score.toFixed(1)}</td>
+                    <td className="scaled">{sectionScores.overall.scaledScore.toFixed(2)}</td>
+                    <td className="percentile">{sectionScores.overall.percentile.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-        {/* ✅ Download Scorecard Button */}
-        <button onClick={downloadScorecard}>Download Scorecard</button>
-    </div>
-)}
+            <div className="response-info">
+              <span className="info-badge">Expected percentile based on <strong>45k responses</strong>. <a href="#">Follow us on Instagram to stay updated</a></span>
+            </div>
+
+            <button onClick={downloadScorecard} className="download-btn">Download Scorecard</button>
+          </div>
+        )}
+
+        {showScoreCalculator && (
+          <div className="cat-explanation-section">
+            <h3>CAT Score Calculation - Kaise Hota Hai?</h3>
+            
+            <div className="explanation-card">
+              <h4>1) Official CAT Marking Scheme</h4>
+              <ul>
+                <li><strong>MCQ Correct:</strong> +3 marks</li>
+                <li><strong>MCQ Incorrect:</strong> -1 mark (Negative marking)</li>
+                <li><strong>TITA/Non-MCQ Incorrect:</strong> 0 marks (No negative)</li>
+                <li><strong>Unattempted:</strong> 0 marks</li>
+              </ul>
+            </div>
+
+            <div className="explanation-card">
+              <h4>2) Raw Score Formula</h4>
+              <div className="formula-box">
+                <code>Raw Score = 3 x (Correct) - 1 x (Wrong MCQ)</code>
+              </div>
+              <p>Yeh formula section-wise aur overall dono ke liye apply hota hai.</p>
+            </div>
+
+            <div className="explanation-card">
+              <h4>3) "Incorrect" Column Ka Confusion</h4>
+              <p>Bahut saare calculators mein:</p>
+              <div className="formula-box warning">
+                <code>Incorrect = MCQ Wrong + TITA Wrong</code>
+              </div>
+              <p>But negative marking <strong>sirf MCQs pe</strong> lagti hai! Isliye simple formula <code>3 x Correct - Incorrect</code> galat ho sakta hai.</p>
+            </div>
+
+            <div className="explanation-card">
+              <h4>4) Wrong MCQs Estimate Kaise Karein?</h4>
+              <p>Agar aapko Correct aur Score pata hai:</p>
+              <div className="formula-box">
+                <code>Wrong MCQ ≈ 3 x Correct - Score</code>
+              </div>
+              <p>Yeh assume karta hai ki TITA wrong ka koi penalty nahi hai.</p>
+            </div>
+
+            <div className="explanation-card">
+              <h4>5) Scaled Score (Normalization)</h4>
+              <ul>
+                <li>CAT ke different slots ki difficulty alag hoti hai</li>
+                <li>IIMs officially scaling karte hain taaki fair comparison ho</li>
+                <li>Coaching platforms approximate scaled score dete hain based on large response datasets</li>
+              </ul>
+            </div>
+
+            <div className="explanation-card">
+              <h4>6) Percentile Estimation Logic</h4>
+              <p>Coaching tools percentile estimate karte hain using:</p>
+              <ul>
+                <li><strong>Response Volume:</strong> Kitne students ne attempt kiya</li>
+                <li><strong>Score Distribution:</strong> Marks ka spread kaise hai</li>
+                <li><strong>Past-Year Patterns:</strong> Previous years ke trends</li>
+                <li><strong>Slot-Level Trends:</strong> Har slot ki specific difficulty</li>
+              </ul>
+              <p className="note">Note: Official percentile thoda different ho sakti hai kyunki IIM ka exact method public nahi hai.</p>
+            </div>
+          </div>
+        )}
+
         <ToastContainer />
       </div>
 
-
-
-
       <div className="IIM-container">
-      <h1>Lets Take Test </h1>
-      <p>Test your percentile with our online mock exam.</p>
-      <button className="ExamButton" onClick={() => navigate("/exam")}>Start Exam</button>
-    </div>
-
-
-
-
-
+        <h1>Lets Take Test</h1>
+        <p>Test your percentile with our online mock exam.</p>
+        <button className="ExamButton" onClick={() => navigate("/exam")}>Start Exam</button>
+      </div>
 
       <div className="predictor-container">
         <h2 className="predictor-heading">LET'S PREDICT YOUR MBA COLLEGE</h2>
         <form className="predictor-form" onSubmit={handleSubmit}>
-          {/* Personal Information */}
           <div className="form-group">
             <label>PERSONAL INFORMATION</label>
             <select
@@ -593,7 +697,6 @@ const downloadScorecard = () => {
             />
           </div>
 
-          {/* Graduation Details */}
           <div className="form-group">
             <label>GRADUATION</label>
             <select
@@ -622,7 +725,6 @@ const downloadScorecard = () => {
             />
           </div>
 
-          {/* CAT Exam Details */}
           <div className="form-group">
             <label>HAVE YOU TAKEN CAT BEFORE?</label>
             <select
@@ -646,7 +748,6 @@ const downloadScorecard = () => {
             </select>
           </div>
 
-          {/* Course Interest Section */}
           <div className="form-group radio-group">
             <label>INTERESTED IN IQUANTA CAT/MBA COURSE?</label>
             <label>
@@ -669,7 +770,6 @@ const downloadScorecard = () => {
             </label>
           </div>
 
-          {/* Course Selection */}
           <div className="checkbox-group">
             <label>
               <input
@@ -695,38 +795,18 @@ const downloadScorecard = () => {
               <input
                 type="checkbox"
                 name="interestedCourses"
-                value="XAT Course"
+                value="Interview Prep"
                 onChange={handleChange}
-                checked={formData.interestedCourses.includes("XAT Course")}
+                checked={formData.interestedCourses.includes("Interview Prep")}
               />{" "}
-              XAT Course
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                name="interestedCourses"
-                value="CMAT Course"
-                onChange={handleChange}
-                checked={formData.interestedCourses.includes("CMAT Course")}
-              />{" "}
-              CMAT Course
+              Interview Prep
             </label>
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner"></span> Submitting...
-              </>
-            ) : (
-              "SUBMIT"
-            )}
+            {loading ? "Submitting..." : "Submit"}
           </button>
         </form>
-      </div>
-
-      <div>
-        <IIMPredictionpage />
       </div>
     </div>
   );
