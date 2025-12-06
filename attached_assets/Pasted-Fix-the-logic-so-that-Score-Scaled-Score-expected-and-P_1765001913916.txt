@@ -1,0 +1,195 @@
+Fix the logic so that Score, Scaled Score (expected), and Percentile are computed correctly and never show fake defaults.
+
+1) CAT Marking Rules (must be applied)
+
+MCQ correct = +3
+
+MCQ wrong = −1
+
+TITA/Non-MCQ wrong = 0
+
+Unattempted = 0
+
+If the UI only has “Correct” and “Incorrect” without MCQ/TITA split, then:
+
+Clearly label the score as “Estimated Raw Score”
+
+Or add an internal assumption field for Wrong MCQ vs Wrong TITA
+
+2) Section-wise Raw Score Formula
+
+Use:
+
+Raw Score
+=
+3
+×
+(
+Correct
+)
+−
+1
+×
+(
+Wrong MCQ
+)
+Raw Score=3×(Correct)−1×(Wrong MCQ)
+
+Important:
+
+Do NOT assume:
+
+Wrong MCQ
+=
+Incorrect
+Wrong MCQ=Incorrect
+
+unless the app explicitly confirms Incorrect = only MCQ wrong.
+
+3) “Incorrect” Display Clarification
+
+Many calculators show:
+
+Incorrect
+=
+Wrong MCQ
++
+Wrong TITA
+Incorrect=Wrong MCQ+Wrong TITA
+
+So negative marking should apply only to MCQ wrong.
+
+The UI must show a small note:
+“Incorrect may include TITA. Negative marks apply only to MCQs.”
+
+4) Expected Scaled Score Logic
+
+Since official IIM scaling is not public per user in real-time, the app should:
+
+Treat scaled score as Expected Scaled Score
+
+Use either:
+
+Slot-wise estimated scaling model
+
+Or fallback safely:
+
+Expected Scaled Score
+≈
+Raw Score
+Expected Scaled Score≈Raw Score
+
+But clearly label it as estimate.
+
+5) Correct Percentile Formula (Data-driven)
+
+Percentile must be based on a dataset of responses (example: 45k responses).
+
+Use:
+
+Percentile
+=
+100
+×
+#
+(
+scores
+<
+𝑆
+)
+𝑁
+Percentile=100×
+N
+#(scores<S)
+	​
+
+
+For tie-safe version:
+
+Percentile
+=
+100
+×
+#
+(
+scores
+<
+𝑆
+)
++
+0.5
+×
+#
+(
+scores
+=
+𝑆
+)
+𝑁
+Percentile=100×
+N
+#(scores<S)+0.5×#(scores=S)
+	​
+
+
+Where:
+
+𝑆
+S = user’s raw/expected scaled score
+
+𝑁
+N = total responses in dataset
+
+6) Zero/Empty State Rules (must be fixed)
+
+If:
+
+Correct
+=
+0
+and
+Incorrect
+=
+0
+Correct=0andIncorrect=0
+
+Then:
+
+Score must show:
+
+0
+0
+
+Percentile should show either:
+
+0.00
+
+or “Not enough attempts”
+
+Do NOT show random defaults like 10/12/15.
+
+7) Guardrails (No Fake Numbers)
+
+Remove any hardcoded fallback percentiles.
+
+If dataset is not loaded or unavailable:
+
+show “Percentile unavailable”
+
+not a guessed number.
+
+8) UI Output Requirements
+
+Section table must reflect:
+
+Correct
+
+Incorrect
+
+Raw Score
+
+Expected Scaled Score
+
+Expected Percentile
+
+Overall row should be computed from totals (not averaged blindly).

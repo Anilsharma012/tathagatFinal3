@@ -17,10 +17,10 @@ const IIMPredictor = () => {
   const [showScoreCalculator, setShowScoreCalculator] = useState(false);
   
   const [sectionScores, setSectionScores] = useState({
-    varc: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 },
-    dilr: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 },
-    qa: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 },
-    overall: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: 0 }
+    varc: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: null },
+    dilr: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: null },
+    qa: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: null },
+    overall: { correct: 0, incorrect: 0, score: 0, scaledScore: 0, percentile: null }
   });
 
   const user = JSON.parse(localStorage.getItem("user"));
@@ -196,17 +196,18 @@ const IIMPredictor = () => {
     return (3 * correct) - (1 * wrongMCQ);
   };
 
-  const estimateScaledScore = (rawScore, section) => {
-    const scalingFactors = {
-      varc: 1.15,
-      dilr: 1.12,
-      qa: 1.18
-    };
-    const factor = scalingFactors[section] || 1.15;
-    return Math.round(rawScore * factor * 100) / 100;
+  const estimateScaledScore = (rawScore, section, hasAttempts) => {
+    if (!hasAttempts) return 0;
+    if (rawScore <= 0) return rawScore;
+    return rawScore;
   };
 
-  const estimatePercentile = (scaledScore, section) => {
+  const estimatePercentile = (scaledScore, section, correct, incorrect) => {
+    const hasAttempts = correct > 0 || incorrect > 0;
+    if (!hasAttempts) return null;
+    
+    if (scaledScore <= 0) return 0;
+
     const percentileTable = {
       varc: [
         { score: 45, percentile: 99 },
@@ -218,7 +219,7 @@ const IIMPredictor = () => {
         { score: 15, percentile: 60 },
         { score: 10, percentile: 45 },
         { score: 5, percentile: 25 },
-        { score: 0, percentile: 10 }
+        { score: 1, percentile: 5 }
       ],
       dilr: [
         { score: 45, percentile: 99 },
@@ -230,7 +231,7 @@ const IIMPredictor = () => {
         { score: 15, percentile: 65 },
         { score: 10, percentile: 50 },
         { score: 5, percentile: 30 },
-        { score: 0, percentile: 12 }
+        { score: 1, percentile: 5 }
       ],
       qa: [
         { score: 50, percentile: 99 },
@@ -242,7 +243,7 @@ const IIMPredictor = () => {
         { score: 20, percentile: 70 },
         { score: 15, percentile: 55 },
         { score: 10, percentile: 40 },
-        { score: 0, percentile: 15 }
+        { score: 1, percentile: 5 }
       ]
     };
 
@@ -260,10 +261,20 @@ const IIMPredictor = () => {
     return table[table.length - 1].percentile;
   };
 
-  const estimateOverallPercentile = (varcP, dilrP, qaP) => {
-    const avgPercentile = (varcP + dilrP + qaP) / 3;
-    const minPercentile = Math.min(varcP, dilrP, qaP);
+  const estimateOverallPercentile = (varcP, dilrP, qaP, hasAttempts) => {
+    if (!hasAttempts) return null;
+    
+    const validPercentiles = [varcP, dilrP, qaP].filter(p => p !== null && p !== undefined);
+    if (validPercentiles.length === 0) return null;
+    
+    const avgPercentile = validPercentiles.reduce((a, b) => a + b, 0) / validPercentiles.length;
+    const minPercentile = Math.min(...validPercentiles);
     return Math.round((avgPercentile * 0.7 + minPercentile * 0.3) * 100) / 100;
+  };
+
+  const formatPercentile = (percentile) => {
+    if (percentile === null || percentile === undefined) return "N/A";
+    return percentile.toFixed(2);
   };
 
   const calculateScore = () => {
@@ -312,15 +323,20 @@ const IIMPredictor = () => {
     const qaRaw = calculateRawScore(qaCorrect, qaWrong);
     const overallRaw = varcRaw + dilrRaw + qaRaw;
 
-    const varcScaled = estimateScaledScore(varcRaw, 'varc');
-    const dilrScaled = estimateScaledScore(dilrRaw, 'dilr');
-    const qaScaled = estimateScaledScore(qaRaw, 'qa');
-    const overallScaled = Math.round((varcScaled + dilrScaled + qaScaled) * 100) / 100;
+    const varcHasAttempts = varcCorrect > 0 || varcWrong > 0;
+    const dilrHasAttempts = dilrCorrect > 0 || dilrWrong > 0;
+    const qaHasAttempts = qaCorrect > 0 || qaWrong > 0;
+    const overallHasAttempts = attempted > 0;
 
-    const varcPercentile = estimatePercentile(varcScaled, 'varc');
-    const dilrPercentile = estimatePercentile(dilrScaled, 'dilr');
-    const qaPercentile = estimatePercentile(qaScaled, 'qa');
-    const overallPercentile = estimateOverallPercentile(varcPercentile, dilrPercentile, qaPercentile);
+    const varcScaled = estimateScaledScore(varcRaw, 'varc', varcHasAttempts);
+    const dilrScaled = estimateScaledScore(dilrRaw, 'dilr', dilrHasAttempts);
+    const qaScaled = estimateScaledScore(qaRaw, 'qa', qaHasAttempts);
+    const overallScaled = overallHasAttempts ? Math.round((varcScaled + dilrScaled + qaScaled) * 100) / 100 : 0;
+
+    const varcPercentile = estimatePercentile(varcScaled, 'varc', varcCorrect, varcWrong);
+    const dilrPercentile = estimatePercentile(dilrScaled, 'dilr', dilrCorrect, dilrWrong);
+    const qaPercentile = estimatePercentile(qaScaled, 'qa', qaCorrect, qaWrong);
+    const overallPercentile = estimateOverallPercentile(varcPercentile, dilrPercentile, qaPercentile, overallHasAttempts);
 
     setSectionScores({
       varc: { correct: varcCorrect, incorrect: varcWrong, score: varcRaw, scaledScore: varcScaled, percentile: varcPercentile },
@@ -414,7 +430,8 @@ const IIMPredictor = () => {
       doc.text(section.data.incorrect.toString(), 95, yPos);
       doc.text(section.data.score.toFixed(1), 125, yPos);
       doc.text(section.data.scaledScore.toFixed(2), 155, yPos);
-      doc.text(section.data.percentile.toFixed(2), 180, yPos);
+      const percentileText = section.data.percentile !== null ? section.data.percentile.toFixed(2) : "N/A";
+      doc.text(percentileText, 180, yPos);
       yPos += 12;
     });
 
@@ -516,12 +533,12 @@ const IIMPredictor = () => {
               <table className="score-table">
                 <thead>
                   <tr>
-                    <th className="section-col">cracku</th>
+                    <th className="section-col">Section</th>
                     <th>Correct</th>
-                    <th>Incorrect</th>
-                    <th>Score</th>
-                    <th>Scaled Score</th>
-                    <th>percentile</th>
+                    <th>Incorrect*</th>
+                    <th>Raw Score</th>
+                    <th>Expected Scaled Score</th>
+                    <th>Expected Percentile</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -531,7 +548,7 @@ const IIMPredictor = () => {
                     <td>{sectionScores.varc.incorrect}</td>
                     <td>{sectionScores.varc.score.toFixed(1)}</td>
                     <td className="scaled">{sectionScores.varc.scaledScore.toFixed(2)}</td>
-                    <td className="percentile">{sectionScores.varc.percentile.toFixed(2)}</td>
+                    <td className="percentile">{formatPercentile(sectionScores.varc.percentile)}</td>
                   </tr>
                   <tr>
                     <td className="section-name">DILR</td>
@@ -539,7 +556,7 @@ const IIMPredictor = () => {
                     <td>{sectionScores.dilr.incorrect}</td>
                     <td>{sectionScores.dilr.score.toFixed(1)}</td>
                     <td className="scaled">{sectionScores.dilr.scaledScore.toFixed(2)}</td>
-                    <td className="percentile">{sectionScores.dilr.percentile.toFixed(2)}</td>
+                    <td className="percentile">{formatPercentile(sectionScores.dilr.percentile)}</td>
                   </tr>
                   <tr>
                     <td className="section-name">QA</td>
@@ -547,7 +564,7 @@ const IIMPredictor = () => {
                     <td>{sectionScores.qa.incorrect}</td>
                     <td>{sectionScores.qa.score.toFixed(1)}</td>
                     <td className="scaled">{sectionScores.qa.scaledScore.toFixed(2)}</td>
-                    <td className="percentile">{sectionScores.qa.percentile.toFixed(2)}</td>
+                    <td className="percentile">{formatPercentile(sectionScores.qa.percentile)}</td>
                   </tr>
                   <tr className="overall-row">
                     <td className="section-name">Overall</td>
@@ -555,10 +572,11 @@ const IIMPredictor = () => {
                     <td>{sectionScores.overall.incorrect}</td>
                     <td>{sectionScores.overall.score.toFixed(1)}</td>
                     <td className="scaled">{sectionScores.overall.scaledScore.toFixed(2)}</td>
-                    <td className="percentile">{sectionScores.overall.percentile.toFixed(2)}</td>
+                    <td className="percentile">{formatPercentile(sectionScores.overall.percentile)}</td>
                   </tr>
                 </tbody>
               </table>
+              <p className="table-note">* Incorrect may include TITA questions. Negative marks (-1) apply only to MCQs.</p>
             </div>
 
             <div className="response-info">
