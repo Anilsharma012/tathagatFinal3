@@ -563,10 +563,21 @@ const startTestAttempt = async (req, res) => {
       if (questions.length > 0 && (!section.questions || section.questions.length === 0)) {
         const sectionIndex = test.sections.findIndex(s => s.name === section.name);
         if (sectionIndex !== -1) {
-          test.sections[sectionIndex].questions = questions.map(q => q._id);
-          test.sections[sectionIndex].totalQuestions = questions.length;
-          await test.save();
-          console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
+          // Use updateOne to avoid triggering full document validation on potentially corrupted data
+          try {
+            await MockTest.updateOne(
+              { _id: test._id },
+              { 
+                $set: { 
+                  [`sections.${sectionIndex}.questions`]: questions.map(q => q._id),
+                  [`sections.${sectionIndex}.totalQuestions`]: questions.length
+                }
+              }
+            );
+            console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
+          } catch (updateError) {
+            console.warn(`⚠️ Could not update section ${section.name}:`, updateError.message);
+          }
         }
       }
       
@@ -1610,10 +1621,22 @@ const getAttemptData = async (req, res) => {
       if (questions.length > 0 && (!section.questions || section.questions.length === 0)) {
         const sectionIndex = test.sections.findIndex(s => s.name === section.name);
         if (sectionIndex !== -1) {
-          test.sections[sectionIndex].questions = questions.map(q => q._id);
-          test.sections[sectionIndex].totalQuestions = questions.length;
-          await test.save();
-          console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
+          // Use updateOne to avoid triggering full document validation on potentially corrupted data
+          try {
+            await MockTest.updateOne(
+              { _id: test._id },
+              { 
+                $set: { 
+                  [`sections.${sectionIndex}.questions`]: questions.map(q => q._id),
+                  [`sections.${sectionIndex}.totalQuestions`]: questions.length
+                }
+              }
+            );
+            console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
+          } catch (updateError) {
+            console.warn(`⚠️ Could not update section ${section.name}:`, updateError.message);
+            // Continue without failing - questions are still available in memory
+          }
         }
       }
       
