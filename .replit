@@ -42,10 +42,6 @@ localPort = 5001
 externalPort = 3000
 
 [[ports]]
-localPort = 35053
-externalPort = 8099
-
-[[ports]]
 localPort = 36869
 externalPort = 3002
 
@@ -100,4 +96,3 @@ PORT = "3001"
 REACT_APP_BACKEND_URL = "http://localhost:5000/api/v1"
 EMAIL = "ethan2233har@gmail.com"
 KARIX_SENDER_ID = "TATHGT"
-RAZORPAY_KEY_ID = "rzp_test_JLdFnx7r5NMiBS"

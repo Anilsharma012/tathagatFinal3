@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaDownload, FaEdit, FaTrash, FaEye, FaFileAlt, FaFilter, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaDownload, FaEdit, FaTrash, FaEye, FaFileAlt, FaFilter, FaSearch, FaBook, FaVideo, FaHistory } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import './StudyMaterials.css';
 
@@ -7,6 +7,7 @@ const StudyMaterials = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Study Materials');
   const [filters, setFilters] = useState({
     subject: 'All Subjects',
     category: 'All Categories',
@@ -35,6 +36,16 @@ const StudyMaterials = () => {
   const subjects = ['All Subjects', 'Quantitative Aptitude', 'Verbal Ability', 'Data Interpretation', 'Logical Reasoning', 'General Knowledge'];
   const categories = ['All Categories', 'Study Materials', 'Video Lectures', 'Previous Year Papers'];
   const types = ['All Types', 'PDF', 'Video', 'Practice Sets', 'Notes', 'Other'];
+
+  const openUploadModal = (category) => {
+    setSelectedCategory(category);
+    setUploadData(prev => ({
+      ...prev,
+      category: category,
+      type: category === 'Video Lectures' ? 'Video' : 'PDF'
+    }));
+    setShowUploadModal(true);
+  };
 
   // Fetch study materials
   const fetchMaterials = async () => {
@@ -199,12 +210,26 @@ const StudyMaterials = () => {
           <h1><FaFileAlt /> Study Materials Management</h1>
           <p>Upload and manage study materials for students</p>
         </div>
-        <button 
-          className="upload-btn"
-          onClick={() => setShowUploadModal(true)}
-        >
-          <FaPlus /> Upload Material
-        </button>
+        <div className="upload-buttons-group">
+          <button 
+            className="upload-btn upload-btn-study"
+            onClick={() => openUploadModal('Study Materials')}
+          >
+            <FaBook /> Upload Study Material
+          </button>
+          <button 
+            className="upload-btn upload-btn-video"
+            onClick={() => openUploadModal('Video Lectures')}
+          >
+            <FaVideo /> Upload Video Lecture
+          </button>
+          <button 
+            className="upload-btn upload-btn-papers"
+            onClick={() => openUploadModal('Previous Year Papers')}
+          >
+            <FaHistory /> Upload Previous Year Paper
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -360,7 +385,7 @@ const StudyMaterials = () => {
         <div className="modal-overlay">
           <div className="upload-modal">
             <div className="modal-header">
-              <h2>Upload Study Material</h2>
+              <h2>Upload {selectedCategory}</h2>
               <button 
                 className="close-btn"
                 onClick={() => setShowUploadModal(false)}

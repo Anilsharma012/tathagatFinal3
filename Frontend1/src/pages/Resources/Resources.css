@@ -822,4 +822,72 @@
       width: 100%;
     }
   }
+
+.tf-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #666;
+}
+
+.tf-no-materials {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.tf-no-materials p {
+  font-size: 18px;
+  margin: 0;
+}
+
+.tf-no-papers {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.tf-no-papers p {
+  font-size: 16px;
+  margin: 0;
+}
+
+.tf-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 30px 20px;
+  background-color: #f5f5f5;
+}
+
+.tf-page-btn {
+  background-color: #1A237E;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.tf-page-btn:hover:not(:disabled) {
+  background-color: #303F9F;
+}
+
+.tf-page-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.tf-page-info {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
     

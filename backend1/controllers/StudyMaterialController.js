@@ -182,7 +182,7 @@ const getStudentStudyMaterials = async (req, res) => {
   try {
     console.log('👨‍🎓 Get student study materials request');
     
-    const { subject, type } = req.query;
+    const { subject, type, category, search, page = 1, limit = 20 } = req.query;
     
     let query = { isActive: true };
     
@@ -193,17 +193,39 @@ const getStudentStudyMaterials = async (req, res) => {
     if (type && type !== 'All Types') {
       query.type = type;
     }
+    
+    if (category && category !== 'All Category') {
+      query.category = category;
+    }
+    
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
 
     const materials = await StudyMaterial.find(query)
       .populate('uploadedBy', 'name')
       .select('-filePath') // Don't expose file path to students
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await StudyMaterial.countDocuments(query);
 
     console.log(`✅ Found ${materials.length} study materials for students`);
     
     res.status(200).json({
       success: true,
-      data: materials
+      data: materials,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
     });
 
   } catch (error) {
