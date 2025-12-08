@@ -22,6 +22,9 @@ const authMiddleware = async (req, res, next) => {
   console.log('NODE_ENV:', process.env.NODE_ENV);
 
   try {
+    // Check if this is an admin route - admin routes should NOT fall back to demo student
+    const isAdminRoute = req.path.includes('/admin') || req.baseUrl?.includes('/admin');
+    
     // First, try to verify if there's a valid JWT token (for admin/real users)
     const authHeader = req.headers.authorization || req.header("Authorization");
 
@@ -42,7 +45,7 @@ const authMiddleware = async (req, res, next) => {
           return next();
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_secret_key_for_development');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_admin_key');
 
         // If token is valid, use the decoded user (admin/subadmin/real student)
         req.user = decoded;
@@ -57,11 +60,31 @@ const authMiddleware = async (req, res, next) => {
         console.log('✅ Valid JWT token found, user role:', req.user.role);
         return next();
       } catch (tokenError) {
-        console.log('⚠️ Invalid token provided, falling back to demo user');
+        console.log('⚠️ Invalid token provided:', tokenError.message);
+        
+        // For admin routes, don't fall back to demo user - return 401
+        if (isAdminRoute) {
+          console.log('❌ Admin route requires valid token');
+          return res.status(401).json({ 
+            success: false, 
+            message: "Invalid or expired token. Please login again." 
+          });
+        }
+        
+        console.log('⚠️ Falling back to demo user for non-admin route');
+      }
+    } else {
+      // No token provided
+      if (isAdminRoute) {
+        console.log('❌ Admin route requires authentication');
+        return res.status(401).json({ 
+          success: false, 
+          message: "Authentication required. Please login." 
+        });
       }
     }
 
-    // If no valid token, use demo student user (for student-only routes)
+    // If no valid token and not admin route, use demo student user (for student-only routes)
     console.log('🔧 Development mode - using demo student user');
     const User = require("../models/UserSchema");
 
