@@ -23,6 +23,9 @@ echo "Starting frontend on port 5000..."
 export PORT=5000
 export DANGEROUSLY_DISABLE_HOST_CHECK=true
 export WDS_SOCKET_PORT=0
-export NODE_OPTIONS="--max-old-space-size=4096"
+export NODE_OPTIONS="--max-old-space-size=2048"
+export GENERATE_SOURCEMAP=false
+export TSC_COMPILE_ON_ERROR=true
+export ESLINT_NO_DEV_ERRORS=true
 export BROWSER=none
 exec npm start
