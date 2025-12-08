@@ -1,1049 +1,760 @@
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
+
+const Razorpay = require("razorpay");
+
 const User = require("../models/UserSchema");
+const Course = require("../models/course/Course");
 const Payment = require("../models/Payment");
 const Receipt = require("../models/Receipt");
-const jwt = require("jsonwebtoken");
-const Course =require("../models/course/Course")
-const Razorpay = require("razorpay");
-const crypto = require("crypto");
 
+// ---------------- Helpers ----------------
+const getUserId = (req) => req.user?.id || req.user?._id || req.user?.userId;
 
-console.log("🔑 Razorpay Config Debug:");
-console.log("  RAZORPAY_KEY_ID exists:", !!process.env.RAZORPAY_KEY_ID);
-console.log("  RAZORPAY_KEY_ID value:", process.env.RAZORPAY_KEY_ID ? process.env.RAZORPAY_KEY_ID.substring(0, 15) + "..." : "NOT SET");
-console.log("  RAZORPAY_KEY_SECRET exists:", !!process.env.RAZORPAY_KEY_SECRET);
-console.log("  RAZORPAY_KEY_SECRET length:", process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.length : 0);
+const signToken = (user) => {
+  const secret = process.env.JWT_SECRET || "dev_jwt_secret_change_me";
+  return jwt.sign(
+    { id: user._id, email: user.email },
+    secret,
+    { expiresIn: "30d" }
+  );
+};
 
-const razorpayInstance = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_JLdFnx7r5NMiBS",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "wlVOAREeWhLHJQrlDUr0iEn7"
-});
+const getRazorpay = () => {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
+  if (!key_id || !key_secret) {
+    // Dev-friendly error
+    throw new Error("Razorpay keys missing in env");
+  }
 
-exports.updateDetails = async (req, res) => {
+  return new Razorpay({ key_id, key_secret });
+};
+
+// ---------------- Auth ----------------
+exports.signup = async (req, res) => {
   try {
-    console.log("🔥 Incoming update request");
-    console.log("✔️ req.user:", req.user);
-    console.log("📦 req.body:", req.body);
+    const { name, email, phoneNumber, password } = req.body;
 
-    const { name, email, phoneNumber, city, gender, dob, profilePic, targetExam } = req.body;
-    const userId = req.user?.id;
-
-    let user;
-    
-    // SECURITY FIX: In development mode, ALWAYS use demo user to prevent privilege escalation
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔧 DEV MODE: Using demo user for safety`);
-      
-      // Always use demo user in development to prevent arbitrary user modification
-      user = await User.findOne({ email: 'demo@test.com' });
-      
-      if (!user) {
-        // Create demo user if not exists
-        user = new User({
-          email: 'demo@test.com',
-          phoneNumber: phoneNumber || '9999999999',
-          name: name || 'Demo Student',
-          isEmailVerified: true,
-          isPhoneVerified: true,
-          city: city || 'Demo City',
-          gender: gender || 'Male',
-          dob: dob || new Date('1995-01-01'),
-          selectedCategory: 'CAT',
-          selectedExam: targetExam || 'CAT 2025',
-          enrolledCourses: []
-        });
-        console.log('🔧 DEV MODE: Created new demo user');
-      }
-    } else {
-      // Production mode: Use authenticated user ID
-      if (userId) {
-        const mongoose = require('mongoose');
-        if (mongoose.Types.ObjectId.isValid(userId)) {
-          user = await User.findById(userId);
-        }
-      }
+    if (!name || !email || !phoneNumber || !password) {
+      return res.status(400).json({
+        status: false,
+        msg: "All fields are required",
+      });
     }
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const existing = await User.findOne({
+      $or: [{ email }, { phoneNumber }],
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        status: false,
+        msg: "User already exists with this email/phone",
+      });
     }
 
-    // Update user fields - allow all fields to be updated
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (phoneNumber) user.phoneNumber = phoneNumber;
-    if (city) user.city = city;
-    if (gender) user.gender = gender;
-    if (dob) user.dob = dob;
-    if (profilePic) user.profilePic = profilePic;
-    if (targetExam) user.selectedExam = targetExam;
+    const hashed = await bcrypt.hash(password, 10);
 
-    await user.save();
-    console.log("✅ User details saved successfully:", user._id);
+    const user = await User.create({
+      name,
+      email,
+      phoneNumber,
+      password: hashed,
+    });
 
-    // Return full URL for profile pic if it exists
-    const profilePicUrl = user.profilePic ? 
-      (user.profilePic.startsWith('http') ? user.profilePic : user.profilePic) : null;
+    const token = signToken(user);
 
-    res.status(200).json({
-      success: true,
-      message: "User details updated successfully",
-      user: {
+    return res.json({
+      status: true,
+      msg: "Signup successful",
+      token,
+      data: {
         _id: user._id,
         name: user.name,
         email: user.email,
         phoneNumber: user.phoneNumber,
-        city: user.city,
-        gender: user.gender,
-        dob: user.dob,
-        profilePic: profilePicUrl,
-        selectedExam: user.selectedExam,
-        selectedCategory: user.selectedCategory
       },
-      redirectTo: "/student/dashboard"
     });
-  } catch (error) {
-    console.error("❌ Update details error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+  } catch (err) {
+    console.error("Signup error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: "Signup failed",
+    });
   }
 };
 
-exports.saveCategory = async (req, res) => {
+exports.login = async (req, res) => {
   try {
-    const { category } = req.body;
+    const { email, phoneNumber, password } = req.body;
 
-    if (!category) {
-      return res.status(400).json({ message: "Category is required" });
-    }
-
-    // Development mode: return mock success
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔥 DEV MODE: Category saved - ${category}`);
-
-      res.status(200).json({
-        message: "Exam category saved successfully",
-        redirectTo: `/exam-selection/${category}`,
-        devMode: true
+    if ((!email && !phoneNumber) || !password) {
+      return res.status(400).json({
+        status: false,
+        msg: "Email/Phone and password required",
       });
-      return;
     }
 
-    // Production mode: use database
-    const userId = req.user.id;
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.selectedCategory = category;
-    await user.save();
-
-    res.status(200).json({
-      message: "Exam category saved successfully",
-      redirectTo: `/exam-selection/${category}`,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-exports.saveExam = async (req, res) => {
-  try {
-    const { category, exam } = req.body;
-
-    if (!category || !exam) {
-      return res.status(400).json({ message: "Category and Exam are required" });
-    }
-
-    // Development mode: return mock success
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔥 DEV MODE: Exam saved - Category: ${category}, Exam: ${exam}`);
-
-      res.status(200).json({
-        message: "Exam saved successfully",
-        redirectTo: "/student/dashboard",
-        devMode: true
-      });
-      return;
-    }
-
-    // Production mode: use database
-    const userId = req.user.id;
-    let user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.selectedCategory = category;
-    user.selectedExam = exam;
-    await user.save();
-
-    res.status(200).json({ message: "Exam saved successfully", redirectTo: "/student/dashboard" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-exports.autoLogin = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found!" });
-
-    let redirectTo = "/user-details";
-
-    if (
-      user.name &&
-      user.phoneNumber &&
-      user.city &&
-      user.gender &&
-      user.dob &&
-      user.selectedCategory &&
-      user.selectedExam
-    ) {
-      redirectTo = "/";
-    } else if (user.selectedCategory && !user.selectedExam) {
-      redirectTo = `/exam-selection/${user.selectedCategory}`;
-    } else if (!user.selectedCategory) {
-      redirectTo = "/exam-category";
-    }
-
-    res.status(200).json({ exists: true, user, redirectTo });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-
-exports.uploadProfilePic = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
-    }
-
-    const fileUrl = `/uploads/${req.file.filename}`;
-    console.log("📷 Profile pic uploaded:", fileUrl);
-
-    const userId = req.user?.id;
-    let user;
-    
-    // SECURITY FIX: In development mode, ALWAYS use demo user to prevent privilege escalation
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 DEV MODE: Using demo user for profile pic (safety)');
-      user = await User.findOne({ email: 'demo@test.com' });
-      if (!user) {
-        user = new User({
-          email: 'demo@test.com',
-          phoneNumber: '9999999999',
-          name: 'Demo Student',
-          isEmailVerified: true,
-          isPhoneVerified: true,
-          enrolledCourses: []
-        });
-      }
-    } else {
-      // Production mode: Use authenticated user ID
-      if (userId) {
-        const mongoose = require('mongoose');
-        if (mongoose.Types.ObjectId.isValid(userId)) {
-          user = await User.findById(userId);
-        }
-      }
-    }
-
-    if (user) {
-      user.profilePic = fileUrl;
-      await user.save();
-      console.log("✅ User profile pic updated:", user._id);
-    }
-
-    res.status(200).json({ 
-      success: true, 
-      url: fileUrl,
-      message: "Profile picture updated successfully"
-    });
-  } catch (error) {
-    console.error("❌ Upload profile pic error:", error);
-    res.status(500).json({ success: false, message: "Upload failed", error: error.message });
-  }
-};
-
-
-exports.enrollInCourse = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const courseId = req.params.courseId;
-
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
-    }
-
-    const user = await User.findById(userId);
-
-    const alreadyEnrolled = user.enrolledCourses.some(
-      (c) => c.courseId.toString() === courseId
+    const user = await User.findOne(
+      email ? { email } : { phoneNumber }
     );
 
-    if (alreadyEnrolled) {
-      return res.status(400).json({ success: false, message: "Already enrolled" });
-    }
-
-    user.enrolledCourses.push({
-      courseId: courseId,
-      status: "locked",
-      enrolledAt: new Date(),
-    });
-
-    await user.save();
-    res.status(200).json({ success: true, message: "Enrolled successfully (locked)" });
-  } catch (err) {
-    console.error("❌ Enroll error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-
-exports.unlockCourseForStudent = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const courseId = req.params.courseId;
-
-    const user = await User.findById(userId);
-
-    const courseEntry = user.enrolledCourses.find(
-      (c) => c.courseId.toString() === courseId
-    );
-
-    if (!courseEntry) {
-      return res.status(404).json({ success: false, message: "Course not enrolled" });
-    }
-
-    if (courseEntry.status === "unlocked") {
-      return res.status(400).json({ success: false, message: "Already unlocked" });
-    }
-
-    courseEntry.status = "unlocked";
-    await user.save();
-
-    res.status(200).json({ success: true, message: "Course unlocked successfully" });
-  } catch (err) {
-    console.error("Unlock error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-exports.getUnlockedCourses = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    console.log('🔍 getUnlockedCourses called for user:', userId);
-
-    const mongoose = require('mongoose');
-    
-    // Get the actual user - either demo user in dev mode or authenticated user
-    let user;
-    
-    if (process.env.NODE_ENV === 'development' || userId === '507f1f77bcf86cd799439011') {
-      console.log('🔧 Development mode - using demo user');
-      const demoEmail = 'demo@test.com';
-      user = await User.findOneAndUpdate(
-        { email: demoEmail },
-        {
-          $setOnInsert: {
-            email: demoEmail,
-            phoneNumber: '9999999999',
-            name: 'Demo Student',
-            isEmailVerified: true,
-            isPhoneVerified: true,
-            city: 'Demo City',
-            gender: 'Male',
-            dob: new Date('1995-01-01'),
-            selectedCategory: 'CAT',
-            selectedExam: 'CAT 2025',
-            enrolledCourses: []
-          }
-        },
-        { upsert: true, new: true }
-      ).populate('enrolledCourses.courseId');
-      console.log('✅ Demo user ready with ID:', user._id);
-    } else {
-      // Validate userId format
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        console.log(`⚠️ Invalid userId format: ${userId}, returning empty courses array`);
-        return res.status(200).json({ success: true, courses: [] });
-      }
-      user = await User.findById(userId).populate("enrolledCourses.courseId");
-    }
-
-    if (!user) {
-      console.log(`⚠️ User not found, returning empty courses array`);
-      return res.status(200).json({ success: true, courses: [] });
-    }
-
-    // IMPORTANT: Only return courses that have a verified payment with status "paid"
-    // This ensures only purchased courses appear in "My Courses"
-    const paidPayments = await Payment.find({ 
-      userId: user._id, 
-      status: 'paid' 
-    }).select('courseId');
-    
-    const paidCourseIds = paidPayments.map(p => p.courseId.toString());
-    console.log('💰 Paid course IDs for user:', paidCourseIds);
-
-    // Filter enrolled courses to only include those with verified payments
-    const purchasedCourses = user.enrolledCourses
-      .filter(c => {
-        const courseIdStr = c.courseId?._id?.toString() || c.courseId?.toString();
-        const isPaid = paidCourseIds.includes(courseIdStr);
-        const isUnlocked = c.status === "unlocked";
-        console.log(`🔍 Course ${courseIdStr}: isPaid=${isPaid}, isUnlocked=${isUnlocked}`);
-        return isPaid && isUnlocked && c.courseId;
-      })
-      .map(c => ({
-        _id: c._id,
-        status: c.status,
-        enrolledAt: c.enrolledAt,
-        courseId: c.courseId,
-      }));
-
-    console.log('📊 Returning purchased courses count:', purchasedCourses.length);
-    res.status(200).json({ success: true, courses: purchasedCourses });
-
-  } catch (error) {
-    console.error('❌ Error in getUnlockedCourses:', error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
-  }
-};
-
-
-
-
-
-exports.createOrder = async (req, res) => {
-  try {
-    const { amount: rawAmount, courseId, userId: rawUserId, courseName } = req.body || {};
-
-    if (!courseId) {
-      return res.status(400).json({ success: false, message: "courseId is required" });
-    }
-
-    // Verify course exists (skip for mock courses in development)
-    let course;
-    const isMockCourse = String(courseId).startsWith('dev_mock_');
-    
-    if (isMockCourse && process.env.NODE_ENV !== 'production') {
-      // Use mock course data for development
-      course = {
-        _id: courseId,
-        name: courseName || 'Mock Course',
-        price: rawAmount ? rawAmount / 100 : 15999
-      };
-      console.log('🔧 Development mode - using mock course:', courseId);
-    } else {
-      course = await Course.findById(courseId);
-      if (!course) {
-        return res.status(404).json({ success: false, message: "Course not found" });
-      }
-    }
-
-    // Normalize/validate amount (paise)
-    let amount = Number(rawAmount);
-    if (!Number.isFinite(amount) || amount < 100) {
-      amount = Math.round(Number(course.price || 0) * 100);
-    }
-    if (!Number.isFinite(amount) || amount < 100) {
-      return res.status(400).json({ success: false, message: "Invalid amount" });
-    }
-
-    // Ensure req.user.id is valid ObjectId in dev
-    try {
-      const mongoose = require('mongoose');
-      if (!mongoose.Types.ObjectId.isValid(req.user?.id)) {
-        req.user = { ...(req.user || {}), id: '507f1f77bcf86cd799439011' };
-      }
-    } catch {}
-
-    const options = {
-      amount,
-      currency: "INR",
-      receipt: `receipt_${Date.now()}_${String(courseId).slice(-6)}`,
-      notes: { courseId: String(courseId), courseName: String(courseName || course.name) }
-    };
-
-    const order = await razorpayInstance.orders.create(options);
-
-    // Save payment record in database
-    const payment = new Payment({
-      userId: req.user.id,
-      courseId: courseId,
-      razorpay_order_id: order.id,
-      amount,
-      currency: "INR",
-      status: "created",
-      originalAmount: amount,
-    });
-
-    await payment.save();
-    console.log("✅ Payment record created:", payment._id);
-
-    res.status(200).json({
-      success: true,
-      order,
-      paymentId: payment._id,
-      keyId: process.env.RAZORPAY_KEY_ID || "rzp_test_JLdFnx7r5NMiBS"
-    });
-  } catch (err) {
-    console.error("❌ Create order error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create order",
-      error: err.message
-    });
-  }
-};
-
-
- // Adjust path if needed
-
-exports.verifyAndUnlockPayment = async (req, res) => {
-  try {
-    console.log("✅ verifyAndUnlockPayment hit with body:", req.body);
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, courseId } = req.body;
-
-    // Development: bypass strict verification and unlock directly
-    if (process.env.NODE_ENV !== 'production') {
-      const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-      
-      // Handle mock courses in development
-      const isMockCourse = String(courseId).startsWith('dev_mock_');
-      let course;
-      if (isMockCourse) {
-        course = { _id: courseId, name: 'Mock Course', price: 15999 };
-        console.log('🔧 Development mode - using mock course for unlock:', courseId);
-      } else {
-        course = await Course.findById(courseId);
-        if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
-      }
-
-      let payment = await Payment.findOne({ razorpay_order_id }) || new Payment({
-        userId: req.user.id,
-        courseId,
-        razorpay_order_id: razorpay_order_id || `dev_order_${Date.now()}`,
-        amount: (course.price || 0) * 100,
-        currency: 'INR',
-      });
-      payment.razorpay_payment_id = razorpay_payment_id || `dev_payment_${Date.now()}`;
-      payment.razorpay_signature = razorpay_signature || 'dev_signature';
-      payment.status = 'paid';
-      await payment.save();
-
-      let courseEntry = user.enrolledCourses.find(c => c.courseId.toString() === courseId);
-      if (!courseEntry) {
-        user.enrolledCourses.push({ courseId, status: 'unlocked', enrolledAt: new Date() });
-      } else {
-        courseEntry.status = 'unlocked';
-      }
-      await user.save();
-
-      const receipt = new Receipt({
-        paymentId: payment._id,
-        userId: user._id,
-        courseId: course._id,
-        receiptNumber: Receipt.generateReceiptNumber(),
-        amount: payment.amount,
-        totalAmount: payment.amount,
-        customerDetails: { name: user.name || user.email, email: user.email, phone: user.phoneNumber, address: user.city || '' },
-        courseDetails: { name: course.name, description: course.description, price: course.price },
-      });
-      await receipt.save();
-
-      return res.status(200).json({ success: true, message: 'Payment verified & course unlocked', user, payment, receipt });
-    }
-
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !courseId) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required payment parameters"
-      });
-    }
-
-    // Find the payment record
-    const payment = await Payment.findOne({ razorpay_order_id }).populate('courseId');
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: "Payment record not found"
-      });
-    }
-
-    // Verify signature
-    const key_secret = process.env.RAZORPAY_KEY_SECRET || "wlVOAREeWhLHJQrlDUr0iEn7";
-    const generated_signature = crypto
-      .createHmac("sha256", key_secret)
-      .update(razorpay_order_id + "|" + razorpay_payment_id)
-      .digest("hex");
-
-    if (generated_signature !== razorpay_signature) {
-      // Update payment status to failed
-      payment.status = "failed";
-      await payment.save();
-      return res.status(400).json({
-        success: false,
-        message: "Invalid payment signature"
-      });
-    }
-
-    // Get user and course details
-    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
-        success: false,
-        message: "User not found"
+        status: false,
+        msg: "User not found",
       });
     }
 
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found"
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return res.status(401).json({
+        status: false,
+        msg: "Invalid credentials",
       });
     }
 
-    // Update payment record
-    payment.razorpay_payment_id = razorpay_payment_id;
-    payment.razorpay_signature = razorpay_signature;
-    payment.status = "paid";
-    await payment.save();
+    const token = signToken(user);
 
-    // Update user enrollment
-    let courseEntry = user.enrolledCourses.find(c => c.courseId.toString() === courseId);
-    if (!courseEntry) {
-      user.enrolledCourses.push({
-        courseId,
-        status: "unlocked",
-        enrolledAt: new Date()
-      });
-    } else {
-      courseEntry.status = "unlocked";
-    }
-    await user.save();
-
-    // Generate receipt
-    const receipt = new Receipt({
-      paymentId: payment._id,
-      userId: user._id,
-      courseId: course._id,
-      receiptNumber: Receipt.generateReceiptNumber(),
-      amount: payment.amount,
-      totalAmount: payment.amount,
-      customerDetails: {
-        name: user.name || user.email,
+    return res.json({
+      status: true,
+      msg: "Login successful",
+      token,
+      data: {
+        _id: user._id,
+        name: user.name,
         email: user.email,
-        phone: user.phoneNumber,
-        address: user.city || "",
-      },
-      courseDetails: {
-        name: course.name,
-        description: course.description,
-        price: course.price,
+        phoneNumber: user.phoneNumber,
       },
     });
-
-    await receipt.save();
-    console.log("✅ Receipt generated:", receipt.receiptNumber);
-
-    return res.status(200).json({
-      success: true,
-      message: "Payment verified & course unlocked",
-      user: user,
-      payment: payment,
-      receipt: receipt
-    });
-
   } catch (err) {
-    console.error("❌ Verify & Unlock error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: err.message
-    });
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-// Get user's payment history
-exports.getPaymentHistory = async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
-      return res.status(200).json({ success: true, payments: [], count: 0 });
-    }
-    const payments = await Payment.getUserPayments(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      payments: payments,
-      count: payments.length
-    });
-  } catch (err) {
-    console.error("❌ Get payment history error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch payment history",
-      error: err.message
-    });
-  }
-};
-
-// Get user's receipts
-exports.getUserReceipts = async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
-      return res.status(200).json({ success: true, receipts: [], count: 0 });
-    }
-    const receipts = await Receipt.getUserReceipts(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      receipts: receipts,
-      count: receipts.length
-    });
-  } catch (err) {
-    console.error("❌ Get user receipts error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch receipts",
-      error: err.message
-    });
-  }
-};
-
-// Download specific receipt
-exports.downloadReceipt = async (req, res) => {
-  try {
-    const { receiptId } = req.params;
-    const { format = 'json' } = req.query; // json, html, or text
-
-    const receipt = await Receipt.findById(receiptId)
-      .populate('paymentId')
-      .populate('courseId', 'name description price');
-
-    if (!receipt) {
-      return res.status(404).json({
-        success: false,
-        message: "Receipt not found"
-      });
-    }
-
-    // Verify ownership
-    if (receipt.userId.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied"
-      });
-    }
-
-    // Mark as downloaded
-    await receipt.markAsDownloaded();
-
-    // Get receipt data
-    const receiptData = receipt.getReceiptData();
-
-    if (format === 'html') {
-      const { generateReceiptHTML } = require('../utils/receiptGenerator');
-      const html = generateReceiptHTML(receiptData);
-
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Content-Disposition', `inline; filename="receipt-${receipt.receiptNumber}.html"`);
-      return res.send(html);
-    }
-
-    if (format === 'text') {
-      const { generateReceiptText } = require('../utils/receiptGenerator');
-      const text = generateReceiptText(receiptData);
-
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Content-Disposition', `attachment; filename="receipt-${receipt.receiptNumber}.txt"`);
-      return res.send(text);
-    }
-
-    // Default JSON response
-    res.status(200).json({
-      success: true,
-      receipt: receiptData,
-      downloadCount: receipt.downloadCount,
-      formats: {
-        html: `/api/user/receipt/${receiptId}/download?format=html`,
-        text: `/api/user/receipt/${receiptId}/download?format=text`
-      }
-    });
-  } catch (err) {
-    console.error("❌ Download receipt error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to download receipt",
-      error: err.message
+    console.error("Login error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: "Login failed",
     });
   }
 };
 
 exports.verifyToken = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ")
+      ? header.split(" ")[1]
+      : req.query.token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Token missing or invalid!" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "test_secret_key_for_development");
-
-    // Development mode: return mock user data
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔥 DEV MODE: Token verified for user`, decoded);
-
-      const mockUser = {
-        _id: "dev_user_id",
-        email: decoded.email,
-        phoneNumber: decoded.phoneNumber,
-        name: "Dev User",
-        city: "",
-        gender: "",
-        dob: "",
-        profilePic: "",
-        selectedCategory: "",
-        selectedExam: ""
-      };
-
-      res.status(200).json({
-        message: "Token verified successfully",
-        user: mockUser,
-        redirectTo: "/user-details",
-        devMode: true
+    if (!token) {
+      return res.status(401).json({
+        status: false,
+        msg: "Token missing",
       });
-      return;
     }
 
-    // Production mode: use database
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: "User not found!" });
+    const secret = process.env.JWT_SECRET || "dev_jwt_secret_change_me";
+    const decoded = jwt.verify(token, secret);
 
-    let redirectTo = "/user-details";
-
-    if (
-      user.name &&
-      user.city &&
-      user.gender &&
-      user.dob &&
-      user.selectedCategory &&
-      user.selectedExam
-    ) {
-      redirectTo = "/";
-    } else if (user.selectedCategory && !user.selectedExam) {
-      redirectTo = `/exam-selection/${user.selectedCategory}`;
-    } else if (!user.selectedCategory) {
-      redirectTo = "/exam-category";
-    }
-
-    res.status(200).json({ user, redirectTo });
+    return res.json({
+      status: true,
+      msg: "Token valid",
+      data: decoded,
+    });
   } catch (err) {
-    res.status(401).json({ message: "Token expired or invalid!" });
+    return res.status(401).json({
+      status: false,
+      msg: "Token invalid",
+    });
   }
 };
 
-
-
-// exports.verifyAndUnlockPayment = async (req, res) => {
-//   try {
-//     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, courseId } = req.body;
-//     console.log("Received courseId:", courseId);
-
-//     const key_secret = process.env.RAZORPAY_KEY_SECRET || "wlVOAREeWhLHJQrlDUr0iEn7";
-//     const generated_signature = crypto
-//       .createHmac("sha256", key_secret)
-//       .update(razorpay_order_id + "|" + razorpay_payment_id)
-//       .digest("hex");
-
-//     if (generated_signature !== razorpay_signature) {
-//       return res.status(400).json({ success: false, message: "Invalid signature" });
-//     }
-
-//     const user = await User.findById(req.user.id);
-//     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-
-//     console.log("User enrolledCourses:", user.enrolledCourses);
-
-//     let courseEntry = user.enrolledCourses.find(
-//       c => c.courseId && c.courseId.toString() === courseId
-//     );
-
-//     if (!courseEntry) {
-//       user.enrolledCourses.push({
-//         courseId,
-//         status: "unlocked",
-//         enrolledAt: new Date()
-//       });
-//       console.log(`✅ New course entry added for user ${user._id}, course ${courseId}`);
-//     } else {
-//       courseEntry.status = "unlocked";
-//         console.log(`✅ Existing course unlocked for user ${user._id}, course ${courseId}`);
-//     }
-
-//     await user.save();
-//     res.status(200).json({ success: true, message: "Payment verified & course unlocked", enrolledCourses: user.enrolledCourses });
-//     console.log(`�� User saved with unlocked courses:`, user.enrolledCourses);
-
-//   } catch (err) {
-//     console.error("❌ Verify & Unlock error:", err);
-//     res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
-
-
-
-
-
-
-
-exports.verifyAndUnlockPayment = async (req, res) => {
+exports.autoLogin = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, courseId } = req.body;
-    console.log("✅ verifyAndUnlockPayment hit with courseId:", courseId);
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        status: false,
+        msg: "Unauthorized",
+      });
+    }
 
-    // Validate required fields
-    if (!courseId) {
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate("enrolledCourses.courseId");
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        msg: "User not found",
+      });
+    }
+
+    return res.json({
+      status: true,
+      msg: "Auto login success",
+      data: user,
+    });
+  } catch (err) {
+    console.error("AutoLogin error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: "Auto login failed",
+    });
+  }
+};
+
+// ---------------- Profile ----------------
+exports.updateDetails = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const allowed = [
+      "name",
+      "email",
+      "phoneNumber",
+      "city",
+      "state",
+      "profilePic",
+    ];
+
+    const updates = {};
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    }
+
+    // Prevent accidental duplicates
+    if (updates.email) {
+      const exists = await User.findOne({
+        email: updates.email,
+        _id: { $ne: userId },
+      });
+      if (exists) {
+        return res.status(409).json({
+          status: false,
+          msg: "Email already in use",
+        });
+      }
+    }
+
+    if (updates.phoneNumber) {
+      const exists = await User.findOne({
+        phoneNumber: updates.phoneNumber,
+        _id: { $ne: userId },
+      });
+      if (exists) {
+        return res.status(409).json({
+          status: false,
+          msg: "Phone already in use",
+        });
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true }
+    ).select("-password");
+
+    return res.json({
+      status: true,
+      msg: "Profile updated",
+      data: user,
+    });
+  } catch (err) {
+    console.error("updateDetails error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: "Update failed",
+    });
+  }
+};
+
+exports.uploadProfilePic = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    if (!req.file) {
       return res.status(400).json({
-        success: false,
-        message: "courseId is required"
+        status: false,
+        msg: "No file uploaded",
       });
     }
 
-    // For production mode, validate payment fields
-    if (process.env.NODE_ENV !== 'development') {
-      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-        return res.status(400).json({
-          success: false,
-          message: "Payment verification fields are required"
-        });
-      }
+    // Your multer config decides final path.
+    // Keep it simple and store relative path/filename.
+    const filePath = req.file.path || req.file.filename;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { profilePic: filePath } },
+      { new: true }
+    ).select("-password");
+
+    return res.json({
+      status: true,
+      msg: "Profile pic updated",
+      data: user,
+      profilePic: filePath,
+    });
+  } catch (err) {
+    console.error("uploadProfilePic error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: "Upload failed",
+    });
+  }
+};
+
+// ---------------- Dashboard selections ----------------
+exports.saveCategory = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { category } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
     }
 
-    // Development bypass - skip signature verification, use actual user from token
-    if (process.env.NODE_ENV === 'development' || (razorpay_order_id && razorpay_order_id.startsWith('dev_'))) {
-      console.log('🔧 Development mode - skipping payment verification');
-      console.log('🔍 Using user from token:', req.user);
-
-      // Find user by ID from token, or use/create demo user as fallback
-      let user = await User.findById(req.user.id);
-
-      if (!user) {
-        console.log('⚠️ User not found by token ID, using demo user fallback');
-
-        // Use a consistent demo user to avoid phoneNumber conflicts
-        const demoEmail = 'demo@test.com';
-        user = await User.findOneAndUpdate(
-          { email: demoEmail },
-          {
-            $setOnInsert: {
-              email: demoEmail,
-              phoneNumber: '9999999999',
-              name: 'Demo Student',
-              isEmailVerified: true,
-              isPhoneVerified: true,
-              city: 'Demo City',
-              gender: 'Male',
-              dob: new Date('1995-01-01'),
-              selectedCategory: 'CAT',
-              selectedExam: 'CAT 2025',
-              enrolledCourses: []
-            }
-          },
-          { upsert: true, new: true }
-        );
-
-        console.log('✅ Using demo user:', user._id);
-      }
-
-      // Add course to enrolled courses
-      console.log('🔍 Current enrolled courses before adding:', user.enrolledCourses);
-      const existingCourse = user.enrolledCourses.find(c => c.courseId && c.courseId.toString() === courseId);
-      console.log('🔍 Looking for existing course with ID:', courseId);
-      console.log('🔍 Existing course found:', existingCourse);
-
-      if (!existingCourse) {
-        user.enrolledCourses.push({
-          courseId,
-          status: "unlocked",
-          enrolledAt: new Date()
-        });
-        await user.save();
-        console.log('✅ Course unlocked for user:', user._id);
-        console.log('📚 Updated enrolled courses:', user.enrolledCourses);
-      } else {
-        // If an enrollment exists but is not unlocked, update it to unlocked
-        if (existingCourse.status !== 'unlocked') {
-          existingCourse.status = 'unlocked';
-          await user.save();
-          console.log('✅ Existing enrollment status updated to unlocked for user:', user._id);
-        } else {
-          console.log('ℹ️ Course already unlocked for user');
-        }
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: "Course unlocked successfully",
-        enrolledCourses: user.enrolledCourses
-      });
+    if (!category) {
+      return res.status(400).json({ status: false, msg: "Category required" });
     }
 
-    const key_secret = process.env.RAZORPAY_KEY_SECRET || "wlVOAREeWhLHJQrlDUr0iEn7";
-    const generated_signature = crypto
-      .createHmac("sha256", key_secret)
-      .update(razorpay_order_id + "|" + razorpay_payment_id)
-      .digest("hex");
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { selectedCategory: category } },
+      { new: true }
+    ).select("-password");
 
-    if (generated_signature !== razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Invalid signature" });
+    return res.json({
+      status: true,
+      msg: "Category saved",
+      data: user,
+    });
+  } catch (err) {
+    console.error("saveCategory error:", err);
+    return res.status(500).json({ status: false, msg: "Save failed" });
+  }
+};
+
+exports.saveExam = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { exam } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
     }
 
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    if (!exam) {
+      return res.status(400).json({ status: false, msg: "Exam required" });
+    }
 
-    let courseEntry = user.enrolledCourses.find(c => c.courseId && c.courseId.toString() === courseId);
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { selectedExam: exam } },
+      { new: true }
+    ).select("-password");
 
-    if (!courseEntry) {
+    return res.json({
+      status: true,
+      msg: "Exam saved",
+      data: user,
+    });
+  } catch (err) {
+    console.error("saveExam error:", err);
+    return res.status(500).json({ status: false, msg: "Save failed" });
+  }
+};
+
+// ---------------- Courses ----------------
+exports.enrollInCourse = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { courseId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ status: false, msg: "Course not found" });
+    }
+
+    const user = await User.findById(userId);
+    user.enrolledCourses = user.enrolledCourses || [];
+
+    const existing = user.enrolledCourses.find(
+      (c) => String(c.courseId) === String(courseId)
+    );
+
+    if (!existing) {
       user.enrolledCourses.push({
         courseId,
-        status: "unlocked",
-        enrolledAt: new Date()
+        status: "locked",
+        enrolledAt: new Date(),
       });
-      console.log(`✅ New course entry added for user ${user._id}, course ${courseId}`);
-    } else {
-      courseEntry.status = "unlocked";
-      console.log(`✅ Existing course unlocked for user ${user._id}, course ${courseId}`);
     }
 
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Payment verified & course unlocked",
-      enrolledCourses: user.enrolledCourses
+    return res.json({
+      status: true,
+      msg: "Enrolled (locked). Complete payment to unlock.",
+      data: user.enrolledCourses,
     });
-
   } catch (err) {
-    console.error("❌ Verify & Unlock error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("enrollInCourse error:", err);
+    return res.status(500).json({ status: false, msg: "Enroll failed" });
+  }
+};
+
+exports.unlockCourseForStudent = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { courseId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const user = await User.findById(userId);
+    user.enrolledCourses = user.enrolledCourses || [];
+
+    const existing = user.enrolledCourses.find(
+      (c) => String(c.courseId) === String(courseId)
+    );
+
+    if (!existing) {
+      user.enrolledCourses.push({
+        courseId,
+        status: "unlocked",
+        enrolledAt: new Date(),
+      });
+    } else {
+      existing.status = "unlocked";
+    }
+
+    await user.save();
+
+    return res.json({
+      status: true,
+      msg: "Course unlocked",
+      data: user.enrolledCourses,
+    });
+  } catch (err) {
+    console.error("unlockCourseForStudent error:", err);
+    return res.status(500).json({ status: false, msg: "Unlock failed" });
+  }
+};
+
+exports.getUnlockedCourses = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const user = await User.findById(userId)
+      .populate("enrolledCourses.courseId")
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({ status: false, msg: "User not found" });
+    }
+
+    const enrolled = user.enrolledCourses || [];
+    const unlocked = enrolled.filter((c) => c.status === "unlocked");
+
+    return res.json({
+      status: true,
+      msg: "My courses fetched",
+      enrolledCourses: enrolled,
+      unlockedCourses: unlocked,
+    });
+  } catch (err) {
+    console.error("getUnlockedCourses error:", err);
+    return res.status(500).json({ status: false, msg: "Fetch failed" });
+  }
+};
+
+// ---------------- Payments ----------------
+exports.createOrder = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { courseId } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+    if (!courseId) {
+      return res.status(400).json({ status: false, msg: "courseId required" });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ status: false, msg: "Course not found" });
+    }
+
+    const amount = Number(course.price || 0);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        status: false,
+        msg: "Invalid course price",
+      });
+    }
+
+    const razorpay = getRazorpay();
+
+    const options = {
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: `rcpt_${userId}_${courseId}_${Date.now()}`,
+      notes: { userId: String(userId), courseId: String(courseId) },
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    // Save a "created" payment entry
+    try {
+      await Payment.create({
+        userId,
+        courseId,
+        razorpay_order_id: order.id,
+        amount,
+        currency: "INR",
+        status: "created",
+        originalAmount: amount,
+      });
+    } catch (e) {
+      // If schema differs, don't break order creation
+      console.warn("Payment create warning:", e?.message);
+    }
+
+    return res.json({
+      status: true,
+      msg: "Order created",
+      order,
+      key: process.env.RAZORPAY_KEY_ID,
+      amount,
+      courseId,
+    });
+  } catch (err) {
+    console.error("createOrder error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: err.message || "Order creation failed",
+    });
+  }
+};
+
+exports.verifyAndUnlockPayment = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      courseId,
+      // optional dev friendly payload:
+      devMode,
+    } = req.body;
+
+    if (!courseId) {
+      return res.status(400).json({
+        status: false,
+        msg: "courseId required",
+      });
+    }
+
+    // Dev bypass ONLY if you explicitly pass devMode=true
+    if (devMode === true && process.env.NODE_ENV !== "production") {
+      console.log("🔧 Dev bypass enabled by request");
+    } else {
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return res.status(400).json({
+          status: false,
+          msg: "Payment verification fields are required",
+        });
+      }
+
+      const secret = process.env.RAZORPAY_KEY_SECRET;
+      if (!secret) {
+        return res.status(500).json({
+          status: false,
+          msg: "Razorpay secret missing",
+        });
+      }
+
+      const generated = crypto
+        .createHmac("sha256", secret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest("hex");
+
+      if (generated !== razorpay_signature) {
+        return res.status(400).json({
+          status: false,
+          msg: "Invalid payment signature",
+        });
+      }
+    }
+
+    // Mark payment paid (best-effort)
+    try {
+      const payment =
+        (razorpay_order_id &&
+          (await Payment.findOne({ razorpay_order_id }))) ||
+        null;
+
+      if (payment) {
+        payment.status = "paid";
+        payment.razorpay_payment_id = razorpay_payment_id;
+        payment.razorpay_signature = razorpay_signature;
+        await payment.save();
+      } else {
+        await Payment.create({
+          userId,
+          courseId,
+          razorpay_order_id: razorpay_order_id || `dev_${Date.now()}`,
+          razorpay_payment_id: razorpay_payment_id || `dev_pay_${Date.now()}`,
+          razorpay_signature: razorpay_signature || "dev_signature",
+          amount: 0,
+          currency: "INR",
+          status: "paid",
+        });
+      }
+    } catch (e) {
+      console.warn("Payment update warning:", e?.message);
+    }
+
+    // Unlock course in user doc
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ status: false, msg: "User not found" });
+    }
+
+    user.enrolledCourses = user.enrolledCourses || [];
+    const existing = user.enrolledCourses.find(
+      (c) => String(c.courseId) === String(courseId)
+    );
+
+    if (!existing) {
+      user.enrolledCourses.push({
+        courseId,
+        status: "unlocked",
+        enrolledAt: new Date(),
+      });
+    } else {
+      existing.status = "unlocked";
+    }
+
+    await user.save();
+
+    // Create receipt (best-effort)
+    try {
+      await Receipt.create({
+        userId,
+        courseId,
+        razorpay_order_id: razorpay_order_id || null,
+        razorpay_payment_id: razorpay_payment_id || null,
+        amount: 0,
+        status: "paid",
+        createdAt: new Date(),
+      });
+    } catch (e) {
+      console.warn("Receipt create warning:", e?.message);
+    }
+
+    return res.json({
+      status: true,
+      msg: "Payment verified & course unlocked",
+      enrolledCourses: user.enrolledCourses,
+    });
+  } catch (err) {
+    console.error("verifyAndUnlockPayment error:", err);
+    return res.status(500).json({
+      status: false,
+      msg: "Payment verification failed",
+    });
+  }
+};
+
+exports.getPaymentHistory = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const payments = await Payment.find({ userId }).sort({ createdAt: -1 });
+
+    return res.json({
+      status: true,
+      msg: "Payment history",
+      data: payments,
+    });
+  } catch (err) {
+    console.error("getPaymentHistory error:", err);
+    return res.status(500).json({ status: false, msg: "Fetch failed" });
+  }
+};
+
+exports.getReceipts = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const receipts = await Receipt.find({ userId }).sort({ createdAt: -1 });
+
+    return res.json({
+      status: true,
+      msg: "Receipts fetched",
+      data: receipts,
+    });
+  } catch (err) {
+    console.error("getReceipts error:", err);
+    return res.status(500).json({ status: false, msg: "Fetch failed" });
+  }
+};
+
+exports.downloadReceipt = async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { receiptId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ status: false, msg: "Unauthorized" });
+    }
+
+    const receipt = await Receipt.findOne({ _id: receiptId, userId });
+    if (!receipt) {
+      return res.status(404).json({ status: false, msg: "Receipt not found" });
+    }
+
+    // Simple JSON download (safe baseline)
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=receipt_${receiptId}.json`
+    );
+    return res.send(JSON.stringify(receipt, null, 2));
+  } catch (err) {
+    console.error("downloadReceipt error:", err);
+    return res.status(500).json({ status: false, msg: "Download failed" });
   }
 };
