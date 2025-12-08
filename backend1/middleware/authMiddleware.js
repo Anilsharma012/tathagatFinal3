@@ -62,7 +62,19 @@ const authMiddleware = async (req, res, next) => {
       } catch (tokenError) {
         console.log('⚠️ Invalid token provided:', tokenError.message);
         
-        // For admin routes, don't fall back to demo user - return 401
+        // In development mode, allow admin routes with demo admin user
+        if (process.env.NODE_ENV !== 'production' && isAdminRoute) {
+          console.log('🔧 Development mode - using demo admin for admin route');
+          req.user = {
+            id: '507f1f77bcf86cd799439011',
+            role: 'admin',
+            email: 'admin@dev.com',
+            name: 'Development Admin'
+          };
+          return next();
+        }
+        
+        // For admin routes in production, don't fall back to demo user - return 401
         if (isAdminRoute) {
           console.log('❌ Admin route requires valid token');
           return res.status(401).json({ 
@@ -75,6 +87,18 @@ const authMiddleware = async (req, res, next) => {
       }
     } else {
       // No token provided
+      // In development mode, allow admin routes with demo admin user
+      if (process.env.NODE_ENV !== 'production' && isAdminRoute) {
+        console.log('🔧 Development mode - using demo admin for admin route (no token)');
+        req.user = {
+          id: '507f1f77bcf86cd799439011',
+          role: 'admin',
+          email: 'admin@dev.com',
+          name: 'Development Admin'
+        };
+        return next();
+      }
+      
       if (isAdminRoute) {
         console.log('❌ Admin route requires authentication');
         return res.status(401).json({ 

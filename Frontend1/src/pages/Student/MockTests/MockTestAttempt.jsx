@@ -41,6 +41,8 @@ const MockTestAttempt = () => {
   const [showScratchPad, setShowScratchPad] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [calculatorValue, setCalculatorValue] = useState('0');
+  const [calculatorExpression, setCalculatorExpression] = useState('');
+  const [calculatorMemory, setCalculatorMemory] = useState(0);
   const [scratchPadContent, setScratchPadContent] = useState('');
   const [drawingMode, setDrawingMode] = useState(false);
   const canvasRef = useRef(null);
@@ -738,20 +740,154 @@ const MockTestAttempt = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  const [pendingOperator, setPendingOperator] = useState(null);
+  const [previousValue, setPreviousValue] = useState(null);
+
   const handleCalculatorInput = (value) => {
     if (value === 'C') {
       setCalculatorValue('0');
+      setCalculatorExpression('');
+      setPendingOperator(null);
+      setPreviousValue(null);
     } else if (value === '=') {
       try {
-        const result = eval(calculatorValue.replace(/×/g, '*').replace(/÷/g, '/'));
-        setCalculatorValue(result.toString());
+        if (pendingOperator && previousValue !== null) {
+          const prev = parseFloat(previousValue);
+          const curr = parseFloat(calculatorValue);
+          let result;
+          switch (pendingOperator) {
+            case '+': result = prev + curr; break;
+            case '-': result = prev - curr; break;
+            case '×': case '*': result = prev * curr; break;
+            case '÷': case '/': 
+              if (curr === 0) { 
+                setCalculatorValue('Error');
+                setPendingOperator(null);
+                setPreviousValue(null);
+                setCalculatorExpression('');
+                return; 
+              }
+              result = prev / curr; 
+              break;
+            default: result = curr;
+          }
+          if (isNaN(result) || !isFinite(result)) {
+            setCalculatorValue('Error');
+            setPendingOperator(null);
+            setPreviousValue(null);
+            setCalculatorExpression('');
+          } else {
+            setCalculatorExpression(`${previousValue} ${pendingOperator} ${calculatorValue} =`);
+            setCalculatorValue(result.toString());
+            setPendingOperator(null);
+            setPreviousValue(null);
+          }
+        }
       } catch {
         setCalculatorValue('Error');
+        setPendingOperator(null);
+        setPreviousValue(null);
+        setCalculatorExpression('');
       }
-    } else if (value === '⌫') {
+    } else if (value === '←') {
       setCalculatorValue(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
+    } else if (value === '+/-') {
+      setCalculatorValue(prev => {
+        if (prev === '0' || prev === 'Error') return prev;
+        return prev.startsWith('-') ? prev.slice(1) : '-' + prev;
+      });
+    } else if (value === 'sqrt') {
+      const num = parseFloat(calculatorValue);
+      if (isNaN(num) || num < 0) {
+        setCalculatorValue('Error');
+        setPendingOperator(null);
+        setPreviousValue(null);
+        setCalculatorExpression('');
+      } else {
+        const result = Math.sqrt(num);
+        setCalculatorExpression(`√(${calculatorValue})`);
+        setCalculatorValue(result.toString());
+        setPendingOperator(null);
+        setPreviousValue(null);
+      }
+    } else if (value === '%') {
+      const num = parseFloat(calculatorValue);
+      if (isNaN(num)) {
+        setCalculatorValue('Error');
+        setPendingOperator(null);
+        setPreviousValue(null);
+        setCalculatorExpression('');
+      } else {
+        setCalculatorValue((num / 100).toString());
+      }
+    } else if (value === '1/x') {
+      const num = parseFloat(calculatorValue);
+      if (isNaN(num) || num === 0) {
+        setCalculatorValue('Error');
+        setPendingOperator(null);
+        setPreviousValue(null);
+        setCalculatorExpression('');
+      } else {
+        setCalculatorExpression(`1/(${calculatorValue})`);
+        setCalculatorValue((1 / num).toString());
+        setPendingOperator(null);
+        setPreviousValue(null);
+      }
+    } else if (value === 'MC') {
+      setCalculatorMemory(0);
+    } else if (value === 'MR') {
+      setCalculatorValue(calculatorMemory.toString());
+    } else if (value === 'MS') {
+      const num = parseFloat(calculatorValue);
+      if (!isNaN(num) && isFinite(num)) {
+        setCalculatorMemory(num);
+      }
+    } else if (value === 'M+') {
+      const num = parseFloat(calculatorValue);
+      if (!isNaN(num) && isFinite(num)) {
+        setCalculatorMemory(prev => prev + num);
+      }
+    } else if (value === 'M-') {
+      const num = parseFloat(calculatorValue);
+      if (!isNaN(num) && isFinite(num)) {
+        setCalculatorMemory(prev => prev - num);
+      }
+    } else if (['+', '-', '×', '÷', '*', '/'].includes(value)) {
+      if (calculatorValue === 'Error') {
+        return;
+      }
+      if (pendingOperator && previousValue !== null) {
+        const prev = parseFloat(previousValue);
+        const curr = parseFloat(calculatorValue);
+        let result;
+        switch (pendingOperator) {
+          case '+': result = prev + curr; break;
+          case '-': result = prev - curr; break;
+          case '×': case '*': result = prev * curr; break;
+          case '÷': case '/': result = curr === 0 ? NaN : prev / curr; break;
+          default: result = curr;
+        }
+        if (isNaN(result) || !isFinite(result)) {
+          setCalculatorValue('Error');
+          setPendingOperator(null);
+          setPreviousValue(null);
+          setCalculatorExpression('');
+          return;
+        }
+        const op = value === '*' ? '×' : value === '/' ? '÷' : value;
+        setCalculatorExpression(`${result} ${op}`);
+        setPreviousValue(result.toString());
+        setCalculatorValue('0');
+        setPendingOperator(op);
+      } else {
+        const op = value === '*' ? '×' : value === '/' ? '÷' : value;
+        setCalculatorExpression(`${calculatorValue} ${op}`);
+        setPreviousValue(calculatorValue);
+        setCalculatorValue('0');
+        setPendingOperator(op);
+      }
     } else {
-      setCalculatorValue(prev => prev === '0' ? value : prev + value);
+      setCalculatorValue(prev => prev === '0' || prev === 'Error' ? value : prev + value);
     }
   };
 
@@ -1140,36 +1276,52 @@ const MockTestAttempt = () => {
 
       {showCalculator && (
         <div className="modal-overlay">
-          <div className="calculator-modal">
+          <div className="calculator-modal scientific">
             <div className="calculator-header">
               <h4>Calculator</h4>
               <button onClick={() => setShowCalculator(false)}>×</button>
             </div>
-            <div className="calculator-display">
-              {calculatorValue}
-            </div>
-            <div className="calculator-buttons">
-              {[
-                ['C', '⌫', '÷', '×'],
-                ['7', '8', '9', '-'],
-                ['4', '5', '6', '+'],
-                ['1', '2', '3', '='],
-                ['0', '.', '', '']
-              ].map((row, rowIndex) => (
-                <div key={rowIndex} className="calculator-row">
-                  {row.map((btn, btnIndex) => (
-                    btn && (
-                      <button
-                        key={btnIndex}
-                        className={`calc-btn ${btn === '=' ? 'equals' : ''} ${['C', '⌫'].includes(btn) ? 'function' : ''}`}
-                        onClick={() => handleCalculatorInput(btn)}
-                      >
-                        {btn}
-                      </button>
-                    )
+            <div className="calculator-body">
+              <div className="calculator-expression">{calculatorExpression}</div>
+              <div className="calculator-display">{calculatorValue}</div>
+              <div className="calculator-buttons">
+                <div className="calculator-row memory-row">
+                  {['MC', 'MR', 'MS', 'M+', 'M-'].map((btn) => (
+                    <button key={btn} className="calc-btn memory" onClick={() => handleCalculatorInput(btn)}>{btn}</button>
                   ))}
                 </div>
-              ))}
+                <div className="calculator-row">
+                  <button className="calc-btn function-red" onClick={() => handleCalculatorInput('←')}>←</button>
+                  <button className="calc-btn function-red" onClick={() => handleCalculatorInput('C')}>C</button>
+                  <button className="calc-btn function-red" onClick={() => handleCalculatorInput('+/-')}>+/-</button>
+                  <button className="calc-btn function" onClick={() => handleCalculatorInput('sqrt')}>sqrt</button>
+                </div>
+                <div className="calculator-main">
+                  <div className="calculator-numpad">
+                    <div className="calculator-row">
+                      {['7', '8', '9', '/', '%'].map((btn) => (
+                        <button key={btn} className={`calc-btn ${['/', '%'].includes(btn) ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
+                      ))}
+                    </div>
+                    <div className="calculator-row">
+                      {['4', '5', '6', '*', '1/x'].map((btn) => (
+                        <button key={btn} className={`calc-btn ${['*', '1/x'].includes(btn) ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
+                      ))}
+                    </div>
+                    <div className="calculator-row">
+                      {['1', '2', '3', '-'].map((btn) => (
+                        <button key={btn} className={`calc-btn ${btn === '-' ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
+                      ))}
+                      <button className="calc-btn equals tall" onClick={() => handleCalculatorInput('=')}>=</button>
+                    </div>
+                    <div className="calculator-row">
+                      <button className="calc-btn number wide" onClick={() => handleCalculatorInput('0')}>0</button>
+                      <button className="calc-btn number" onClick={() => handleCalculatorInput('.')}>.</button>
+                      <button className="calc-btn operator" onClick={() => handleCalculatorInput('+')}>+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
