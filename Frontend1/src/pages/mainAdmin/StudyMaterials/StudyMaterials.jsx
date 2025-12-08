@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaDownload, FaEdit, FaTrash, FaEye, FaFileAlt, FaFilter, FaSearch, FaBook, FaVideo, FaHistory } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEye, FaFileAlt, FaFilter, FaSearch, FaBook, FaVideo, FaHistory } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import './StudyMaterials.css';
 
@@ -32,6 +32,20 @@ const StudyMaterials = () => {
   });
 
   const [uploadLoading, setUploadLoading] = useState(false);
+  
+  // Preview and Edit modal states
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [editData, setEditData] = useState({
+    title: '',
+    description: '',
+    subject: '',
+    category: '',
+    type: '',
+    tags: ''
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   const subjects = ['All Subjects', 'Quantitative Aptitude', 'Verbal Ability', 'Data Interpretation', 'Logical Reasoning', 'General Knowledge'];
   const categories = ['All Categories', 'Study Materials', 'Video Lectures', 'Previous Year Papers'];
@@ -167,6 +181,68 @@ const StudyMaterials = () => {
     } catch (error) {
       console.error('Error deleting material:', error);
       toast.error('Failed to delete study material');
+    }
+  };
+
+  // Handle Preview
+  const handlePreview = (material) => {
+    setSelectedMaterial(material);
+    setShowPreviewModal(true);
+  };
+
+  // Handle Edit - open edit modal with material data
+  const handleEdit = (material) => {
+    setSelectedMaterial(material);
+    setEditData({
+      title: material.title || '',
+      description: material.description || '',
+      subject: material.subject || 'Quantitative Aptitude',
+      category: material.category || 'Study Materials',
+      type: material.type || 'PDF',
+      tags: material.tags ? (Array.isArray(material.tags) ? material.tags.join(', ') : material.tags) : ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle Edit Submit
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedMaterial) return;
+
+    setEditLoading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/study-materials/admin/${selectedMaterial._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: editData.title,
+          description: editData.description,
+          subject: editData.subject,
+          category: editData.category,
+          type: editData.type,
+          tags: editData.tags
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Study material updated successfully!');
+        setShowEditModal(false);
+        setSelectedMaterial(null);
+        fetchMaterials();
+      } else {
+        toast.error(data.message || 'Failed to update study material');
+      }
+    } catch (error) {
+      console.error('Error updating material:', error);
+      toast.error('Failed to update study material');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -332,12 +408,14 @@ const StudyMaterials = () => {
                       <button 
                         className="action-btn view-btn"
                         title="View Details"
+                        onClick={() => handlePreview(material)}
                       >
                         <FaEye />
                       </button>
                       <button 
                         className="action-btn edit-btn"
                         title="Edit Material"
+                        onClick={() => handleEdit(material)}
                       >
                         <FaEdit />
                       </button>
@@ -479,6 +557,209 @@ const StudyMaterials = () => {
                   disabled={uploadLoading}
                 >
                   {uploadLoading ? 'Uploading...' : 'Upload Material'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreviewModal && selectedMaterial && (
+        <div className="modal-overlay">
+          <div className="upload-modal preview-modal">
+            <div className="modal-header">
+              <h2>Material Details</h2>
+              <button 
+                className="close-btn"
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  setSelectedMaterial(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="preview-content">
+              <div className="preview-item">
+                <label>Title:</label>
+                <span>{selectedMaterial.title}</span>
+              </div>
+              <div className="preview-item">
+                <label>Description:</label>
+                <span>{selectedMaterial.description || 'No description'}</span>
+              </div>
+              <div className="preview-item">
+                <label>Subject:</label>
+                <span>{selectedMaterial.subject}</span>
+              </div>
+              <div className="preview-item">
+                <label>Category:</label>
+                <span>{selectedMaterial.category}</span>
+              </div>
+              <div className="preview-item">
+                <label>Type:</label>
+                <span>{selectedMaterial.type}</span>
+              </div>
+              <div className="preview-item">
+                <label>File Size:</label>
+                <span>{selectedMaterial.fileSize || 'N/A'}</span>
+              </div>
+              <div className="preview-item">
+                <label>Downloads:</label>
+                <span>{selectedMaterial.downloadCount || 0}</span>
+              </div>
+              <div className="preview-item">
+                <label>Tags:</label>
+                <span>{selectedMaterial.tags ? (Array.isArray(selectedMaterial.tags) ? selectedMaterial.tags.join(', ') : selectedMaterial.tags) : 'No tags'}</span>
+              </div>
+              <div className="preview-item">
+                <label>Uploaded:</label>
+                <span>{formatDate(selectedMaterial.createdAt)}</span>
+              </div>
+              {selectedMaterial.filePath && (
+                <div className="preview-item">
+                  <label>File:</label>
+                  <a href={`/api/study-materials/download/${selectedMaterial._id}`} target="_blank" rel="noopener noreferrer" className="download-link">
+                    Download File
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="form-actions">
+              <button 
+                type="button"
+                className="cancel-btn"
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  setSelectedMaterial(null);
+                }}
+              >
+                Close
+              </button>
+              <button 
+                type="button"
+                className="submit-btn"
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  handleEdit(selectedMaterial);
+                }}
+              >
+                Edit Material
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && selectedMaterial && (
+        <div className="modal-overlay">
+          <div className="upload-modal edit-modal">
+            <div className="modal-header">
+              <h2>Edit Study Material</h2>
+              <button 
+                className="close-btn"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedMaterial(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="upload-form">
+              <div className="form-group">
+                <label>Title *</label>
+                <input
+                  type="text"
+                  value={editData.title}
+                  onChange={(e) => setEditData(prev => ({ ...prev, title: e.target.value }))}
+                  required
+                  placeholder="Enter material title"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={editData.description}
+                  onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter description (optional)"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Subject *</label>
+                  <select
+                    value={editData.subject}
+                    onChange={(e) => setEditData(prev => ({ ...prev, subject: e.target.value }))}
+                    required
+                  >
+                    {subjects.filter(s => s !== 'All Subjects').map(subject => (
+                      <option key={subject} value={subject}>{subject}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Category *</label>
+                  <select
+                    value={editData.category}
+                    onChange={(e) => setEditData(prev => ({ ...prev, category: e.target.value }))}
+                    required
+                  >
+                    {categories.filter(c => c !== 'All Categories').map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Type *</label>
+                  <select
+                    value={editData.type}
+                    onChange={(e) => setEditData(prev => ({ ...prev, type: e.target.value }))}
+                    required
+                  >
+                    {types.filter(t => t !== 'All Types').map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Tags</label>
+                  <input
+                    type="text"
+                    value={editData.tags}
+                    onChange={(e) => setEditData(prev => ({ ...prev, tags: e.target.value }))}
+                    placeholder="Enter tags separated by commas"
+                  />
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button 
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedMaterial(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="submit-btn"
+                  disabled={editLoading}
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

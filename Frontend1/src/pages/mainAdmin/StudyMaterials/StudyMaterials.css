@@ -580,3 +580,51 @@
     padding: 16px;
   }
 }
+
+/* Preview Modal Styles */
+.preview-modal {
+  max-width: 600px;
+}
+
+.preview-content {
+  padding: 20px;
+}
+
+.preview-item {
+  display: flex;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.preview-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.preview-item label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.preview-item span {
+  color: #212529;
+  word-break: break-word;
+}
+
+.preview-item .download-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.preview-item .download-link:hover {
+  text-decoration: underline;
+}
+
+/* Edit Modal Styles */
+.edit-modal {
+  max-width: 600px;
+}
