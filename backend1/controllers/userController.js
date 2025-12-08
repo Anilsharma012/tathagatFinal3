@@ -494,22 +494,24 @@ exports.createOrder = async (req, res) => {
     const { courseId } = req.body;
 
     if (!userId) {
-      return res.status(401).json({ status: false, msg: "Unauthorized" });
+      return res.status(401).json({ success: false, status: false, msg: "Unauthorized", message: "Unauthorized" });
     }
     if (!courseId) {
-      return res.status(400).json({ status: false, msg: "courseId required" });
+      return res.status(400).json({ success: false, status: false, msg: "courseId required", message: "courseId required" });
     }
 
     const course = await Course.findById(courseId);
     if (!course) {
-      return res.status(404).json({ status: false, msg: "Course not found" });
+      return res.status(404).json({ success: false, status: false, msg: "Course not found", message: "Course not found" });
     }
 
     const amount = Number(course.price || 0);
     if (!amount || amount <= 0) {
       return res.status(400).json({
+        success: false,
         status: false,
         msg: "Invalid course price",
+        message: "Invalid course price",
       });
     }
 
@@ -541,18 +543,23 @@ exports.createOrder = async (req, res) => {
     }
 
     return res.json({
+      success: true,
       status: true,
       msg: "Order created",
+      message: "Order created",
       order,
       key: process.env.RAZORPAY_KEY_ID,
+      keyId: process.env.RAZORPAY_KEY_ID,
       amount,
       courseId,
     });
   } catch (err) {
     console.error("createOrder error:", err);
     return res.status(500).json({
+      success: false,
       status: false,
       msg: err.message || "Order creation failed",
+      message: err.message || "Order creation failed",
     });
   }
 };
@@ -561,7 +568,7 @@ exports.verifyAndUnlockPayment = async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) {
-      return res.status(401).json({ status: false, msg: "Unauthorized" });
+      return res.status(401).json({ success: false, status: false, msg: "Unauthorized", message: "Unauthorized" });
     }
 
     const {
@@ -575,8 +582,10 @@ exports.verifyAndUnlockPayment = async (req, res) => {
 
     if (!courseId) {
       return res.status(400).json({
+        success: false,
         status: false,
         msg: "courseId required",
+        message: "courseId required",
       });
     }
 
@@ -586,16 +595,20 @@ exports.verifyAndUnlockPayment = async (req, res) => {
     } else {
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
         return res.status(400).json({
+          success: false,
           status: false,
           msg: "Payment verification fields are required",
+          message: "Payment verification fields are required",
         });
       }
 
       const secret = process.env.RAZORPAY_KEY_SECRET;
       if (!secret) {
         return res.status(500).json({
+          success: false,
           status: false,
           msg: "Razorpay secret missing",
+          message: "Razorpay secret missing",
         });
       }
 
@@ -606,8 +619,10 @@ exports.verifyAndUnlockPayment = async (req, res) => {
 
       if (generated !== razorpay_signature) {
         return res.status(400).json({
+          success: false,
           status: false,
           msg: "Invalid payment signature",
+          message: "Invalid payment signature",
         });
       }
     }
@@ -643,7 +658,7 @@ exports.verifyAndUnlockPayment = async (req, res) => {
     // Unlock course in user doc
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ status: false, msg: "User not found" });
+      return res.status(404).json({ success: false, status: false, msg: "User not found", message: "User not found" });
     }
 
     user.enrolledCourses = user.enrolledCourses || [];
@@ -679,15 +694,19 @@ exports.verifyAndUnlockPayment = async (req, res) => {
     }
 
     return res.json({
+      success: true,
       status: true,
       msg: "Payment verified & course unlocked",
+      message: "Payment verified & course unlocked",
       enrolledCourses: user.enrolledCourses,
     });
   } catch (err) {
     console.error("verifyAndUnlockPayment error:", err);
     return res.status(500).json({
+      success: false,
       status: false,
       msg: "Payment verification failed",
+      message: "Payment verification failed",
     });
   }
 };
