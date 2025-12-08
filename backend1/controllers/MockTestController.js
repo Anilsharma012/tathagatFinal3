@@ -503,7 +503,7 @@ const startTestAttempt = async (req, res) => {
     const newAttempt = new MockTestAttempt({
       userId: userId,
       testPaperId: testId,
-      seriesId: test.seriesId._id,
+      seriesId: test.seriesId?._id || null,
       totalDuration: test.duration,
       startedAt: new Date(),
       status: 'IN_PROGRESS',
