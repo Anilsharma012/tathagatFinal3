@@ -386,16 +386,48 @@ exports.getComprehensiveCourseContent = async (req, res) => {
       groupedVideos[topicKey].push(video);
     });
 
-    // 2. Get Mock Tests (from MockTestSeries that might be linked to this course)
-    // Also get all published mock test series that students can access
-    const mockTestSeries = await MockTestSeries.find({
+    // 2. Get Mock Tests for this specific course
+    // First, get mock tests directly linked to this course (courseId)
+    const directCourseMockTests = await MockTest.find({
+      courseId: courseId,
+      isActive: true,
+      $or: [{ isPublished: true }, { isPublished: { $exists: false } }]
+    }).sort({ testNumber: 1, createdAt: -1 }).lean();
+
+    console.log(`📝 Found ${directCourseMockTests.length} mock tests directly linked to course`);
+
+    // Get mock test series that are linked to this course
+    const courseLinkedSeries = await MockTestSeries.find({
+      courseId: courseId,
+      isActive: true,
+      $or: [{ isPublished: true }, { isPublished: { $exists: false } }]
+    }).lean();
+
+    // Get mock tests within each course-linked series
+    const courseSeriesWithTests = await Promise.all(
+      courseLinkedSeries.map(async (series) => {
+        const tests = await MockTest.find({
+          seriesId: series._id,
+          isActive: true,
+          $or: [{ isPublished: true }, { isPublished: { $exists: false } }]
+        }).sort({ testNumber: 1 }).lean();
+        return {
+          ...series,
+          tests
+        };
+      })
+    );
+
+    // Also get globally published mock test series (not course-specific)
+    const globalMockTestSeries = await MockTestSeries.find({
+      courseId: { $exists: false },
       isActive: true,
       isPublished: true
     }).lean();
 
-    // Get mock tests within each series
-    const mockTestsWithTests = await Promise.all(
-      mockTestSeries.map(async (series) => {
+    // Get mock tests within each global series
+    const globalSeriesWithTests = await Promise.all(
+      globalMockTestSeries.map(async (series) => {
         const tests = await MockTest.find({
           seriesId: series._id,
           isActive: true,
@@ -408,7 +440,22 @@ exports.getComprehensiveCourseContent = async (req, res) => {
       })
     );
 
-    console.log(`📝 Found ${mockTestSeries.length} mock test series`);
+    // Combine all series (course-specific first, then global)
+    const mockTestsWithTests = [...courseSeriesWithTests, ...globalSeriesWithTests];
+
+    // Create a virtual series for direct course mock tests if any exist
+    if (directCourseMockTests.length > 0) {
+      mockTestsWithTests.unshift({
+        _id: 'course-direct-tests',
+        title: 'Course Mock Tests',
+        description: 'Mock tests for this course',
+        isActive: true,
+        isPublished: true,
+        tests: directCourseMockTests
+      });
+    }
+
+    console.log(`📝 Total: ${directCourseMockTests.length} direct tests, ${courseLinkedSeries.length} course series, ${globalMockTestSeries.length} global series`);
 
     // 3. Get Full Course Structure (Subjects -> Chapters -> Topics -> Tests)
     const subjects = await Subject.find({ courseId }).sort({ order: 1 }).lean();
@@ -460,7 +507,7 @@ exports.getComprehensiveCourseContent = async (req, res) => {
         groupedByTopic: groupedVideos
       },
       mockTests: {
-        totalSeries: mockTestSeries.length,
+        totalSeries: mockTestsWithTests.length,
         totalTests: totalMockTests,
         series: mockTestsWithTests
       },
