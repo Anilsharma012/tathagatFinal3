@@ -519,6 +519,17 @@ const startTestAttempt = async (req, res) => {
 
     // Get questions for the test
     const questionsWithSections = [];
+    
+    // First, get ALL questions for this test as a fallback pool
+    const allTestQuestions = await MockTestQuestion.find({
+      testPaperId: testId,
+      isActive: true
+    }).select('_id questionText passage questionType section images options marks sequenceNumber correctOptionIds').sort({ sequenceNumber: 1 });
+    
+    console.log(`📚 Total questions for test: ${allTestQuestions.length}`);
+    
+    let usedQuestionIds = new Set();
+    
     for (const section of test.sections) {
       let questions = [];
       
@@ -529,23 +540,33 @@ const startTestAttempt = async (req, res) => {
         }).select('_id questionText passage questionType section images options marks sequenceNumber correctOptionIds').sort({ sequenceNumber: 1 });
       }
       
-      // Fallback: If no questions found in section.questions, query by testPaperId and section name
+      // Fallback 1: Query by testPaperId and section name
       if (questions.length === 0) {
-        console.log(`🔄 Fallback: Querying questions for section ${section.name} by testPaperId`);
+        console.log(`🔄 Fallback 1: Querying questions for section ${section.name} by testPaperId`);
         questions = await MockTestQuestion.find({
           testPaperId: testId,
           section: section.name,
           isActive: true
         }).select('_id questionText passage questionType section images options marks sequenceNumber correctOptionIds').sort({ sequenceNumber: 1 });
-        
-        // Also update the test's section with these question IDs for future use
-        if (questions.length > 0) {
-          const sectionIndex = test.sections.findIndex(s => s.name === section.name);
-          if (sectionIndex !== -1) {
-            test.sections[sectionIndex].questions = questions.map(q => q._id);
-            await test.save();
-            console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
-          }
+      }
+      
+      // Fallback 2: If still no questions and this is first section, use all test questions
+      if (questions.length === 0 && allTestQuestions.length > 0) {
+        console.log(`🔄 Fallback 2: Using all test questions for section ${section.name}`);
+        // For first section, assign all unused questions
+        questions = allTestQuestions.filter(q => !usedQuestionIds.has(q._id.toString()));
+        // Mark these as used
+        questions.forEach(q => usedQuestionIds.add(q._id.toString()));
+      }
+      
+      // Update the test's section with these question IDs for future use
+      if (questions.length > 0 && (!section.questions || section.questions.length === 0)) {
+        const sectionIndex = test.sections.findIndex(s => s.name === section.name);
+        if (sectionIndex !== -1) {
+          test.sections[sectionIndex].questions = questions.map(q => q._id);
+          test.sections[sectionIndex].totalQuestions = questions.length;
+          await test.save();
+          console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
         }
       }
       
@@ -1547,6 +1568,17 @@ const getAttemptData = async (req, res) => {
     }).populate('testPaperId');
     
     const test = attempt.testPaperId;
+    
+    // First, get ALL questions for this test as a fallback pool
+    const allTestQuestions = await MockTestQuestion.find({
+      testPaperId: test._id,
+      isActive: true
+    }).select('_id questionText passage questionType section images options marks sequenceNumber correctOptionIds').sort({ sequenceNumber: 1 });
+    
+    console.log(`📚 Resume - Total questions for test: ${allTestQuestions.length}`);
+    
+    let usedQuestionIds = new Set();
+    
     for (const section of test.sections) {
       let questions = [];
       
@@ -1557,23 +1589,31 @@ const getAttemptData = async (req, res) => {
         }).select('_id questionText passage questionType section images options marks sequenceNumber correctOptionIds').sort({ sequenceNumber: 1 });
       }
       
-      // Fallback: If no questions found in section.questions, query by testPaperId and section name
+      // Fallback 1: If no questions found in section.questions, query by testPaperId and section name
       if (questions.length === 0) {
-        console.log(`🔄 Resume fallback: Querying questions for section ${section.name} by testPaperId`);
+        console.log(`🔄 Resume fallback 1: Querying questions for section ${section.name} by testPaperId`);
         questions = await MockTestQuestion.find({
           testPaperId: test._id,
           section: section.name,
           isActive: true
         }).select('_id questionText passage questionType section images options marks sequenceNumber correctOptionIds').sort({ sequenceNumber: 1 });
-        
-        // Also update the test's section with these question IDs for future use
-        if (questions.length > 0) {
-          const sectionIndex = test.sections.findIndex(s => s.name === section.name);
-          if (sectionIndex !== -1) {
-            test.sections[sectionIndex].questions = questions.map(q => q._id);
-            await test.save();
-            console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
-          }
+      }
+      
+      // Fallback 2: If still no questions, use all test questions
+      if (questions.length === 0 && allTestQuestions.length > 0) {
+        console.log(`🔄 Resume fallback 2: Using all test questions for section ${section.name}`);
+        questions = allTestQuestions.filter(q => !usedQuestionIds.has(q._id.toString()));
+        questions.forEach(q => usedQuestionIds.add(q._id.toString()));
+      }
+      
+      // Update the test's section with these question IDs for future use
+      if (questions.length > 0 && (!section.questions || section.questions.length === 0)) {
+        const sectionIndex = test.sections.findIndex(s => s.name === section.name);
+        if (sectionIndex !== -1) {
+          test.sections[sectionIndex].questions = questions.map(q => q._id);
+          test.sections[sectionIndex].totalQuestions = questions.length;
+          await test.save();
+          console.log(`✅ Updated section ${section.name} with ${questions.length} question IDs`);
         }
       }
       
