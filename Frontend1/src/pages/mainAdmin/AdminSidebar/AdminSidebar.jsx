@@ -60,6 +60,9 @@ const AdminSidebar = () => {
         <NavLink to="/admin/scorecard-management" className="admin-link">
           <FaTrophy className="admin-icon" /> Score Cards
         </NavLink>
+        <NavLink to="/admin/success-stories" className="admin-link">
+          <FaTrophy className="admin-icon" /> Success Stories
+        </NavLink>
 
         <div className="admin-group-title">Analytics</div>
         <NavLink to="/admin/evaluate-answers" className="admin-link">Evaluate Answers (OCR)</NavLink>
