@@ -56,38 +56,91 @@ function parseNameFromTitle(title = "") {
 
 /* ------------------- Component ------------------- */
 const SuccessStory = () => {
-  // ✅ Custom titles (screenshot jaise) + colleges
-  const achieversData = useMemo(
-    () => [
-      {
-        image: "https://img.youtube.com/vi/uENlBxSGf-Q/hqdefault.jpg",
-        videoUrl: "https://youtu.be/uENlBxSGf-Q",
-        title: "AYUSH KOVIND", // ← bottom-left text
-        college: "IIM A",            // ← right badge
-      },
-      {
-        image: "https://img.youtube.com/vi/OcJId_ai8uY/hqdefault.jpg",
-        videoUrl: "https://youtu.be/OcJId_ai8uY",
-        title: "ANSHUL MALIK",
-        college: "ISB",
-      },
-      {
-        image: "https://img.youtube.com/vi/MOqCTCPKma4/hqdefault.jpg",
-        videoUrl: "https://youtu.be/MOqCTCPKma4",
-        title: "DIVYAM GABA",
-        college: "NMIMS",
-      },
-      {
-        image: "https://img.youtube.com/vi/KybGz3L5R3A/hqdefault.jpg",
-        videoUrl: "https://youtu.be/KybGz3L5R3A",
-        title: "ADITYA DANG",
-        college: "FMS ",
-      },
-    ],
-    []
-  );
-
+  const [achieversData, setAchieversData] = useState([]);
   const [videoMeta, setVideoMeta] = useState({});
+  const [loadingStories, setLoadingStories] = useState(true);
+
+  useEffect(() => {
+    const fetchSuccessStories = async () => {
+      try {
+        setLoadingStories(true);
+        const response = await fetch('/api/success-stories/public');
+        const data = await response.json();
+        
+        if (data.success && data.stories && data.stories.length > 0) {
+          const formattedStories = data.stories.map(story => {
+            const videoId = getYouTubeId(story.youtubeUrl);
+            return {
+              image: story.thumbnailUrl || (videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : ''),
+              videoUrl: story.youtubeUrl,
+              title: story.studentName,
+              college: story.university,
+            };
+          });
+          setAchieversData(formattedStories);
+        } else {
+          setAchieversData([
+            {
+              image: "https://img.youtube.com/vi/uENlBxSGf-Q/hqdefault.jpg",
+              videoUrl: "https://youtu.be/uENlBxSGf-Q",
+              title: "AYUSH KOVIND",
+              college: "IIM A",
+            },
+            {
+              image: "https://img.youtube.com/vi/OcJId_ai8uY/hqdefault.jpg",
+              videoUrl: "https://youtu.be/OcJId_ai8uY",
+              title: "ANSHUL MALIK",
+              college: "ISB",
+            },
+            {
+              image: "https://img.youtube.com/vi/MOqCTCPKma4/hqdefault.jpg",
+              videoUrl: "https://youtu.be/MOqCTCPKma4",
+              title: "DIVYAM GABA",
+              college: "NMIMS",
+            },
+            {
+              image: "https://img.youtube.com/vi/KybGz3L5R3A/hqdefault.jpg",
+              videoUrl: "https://youtu.be/KybGz3L5R3A",
+              title: "ADITYA DANG",
+              college: "FMS",
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching success stories:', error);
+        setAchieversData([
+          {
+            image: "https://img.youtube.com/vi/uENlBxSGf-Q/hqdefault.jpg",
+            videoUrl: "https://youtu.be/uENlBxSGf-Q",
+            title: "AYUSH KOVIND",
+            college: "IIM A",
+          },
+          {
+            image: "https://img.youtube.com/vi/OcJId_ai8uY/hqdefault.jpg",
+            videoUrl: "https://youtu.be/OcJId_ai8uY",
+            title: "ANSHUL MALIK",
+            college: "ISB",
+          },
+          {
+            image: "https://img.youtube.com/vi/MOqCTCPKma4/hqdefault.jpg",
+            videoUrl: "https://youtu.be/MOqCTCPKma4",
+            title: "DIVYAM GABA",
+            college: "NMIMS",
+          },
+          {
+            image: "https://img.youtube.com/vi/KybGz3L5R3A/hqdefault.jpg",
+            videoUrl: "https://youtu.be/KybGz3L5R3A",
+            title: "ADITYA DANG",
+            college: "FMS",
+          },
+        ]);
+      } finally {
+        setLoadingStories(false);
+      }
+    };
+
+    fetchSuccessStories();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
