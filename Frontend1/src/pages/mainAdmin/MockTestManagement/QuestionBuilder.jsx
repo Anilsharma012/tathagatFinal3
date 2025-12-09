@@ -253,7 +253,7 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
       if (data && data.success) {
         alert(`Question ${editingQuestion ? 'updated' : 'created'} successfully!`);
         loadQuestions();
-        handleCancelEdit();
+        handleCancelEdit(!editingQuestion);
         if (onQuestionSaved) onQuestionSaved();
       }
     } catch (error) {
@@ -289,12 +289,13 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
     });
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = (preserveSection = false) => {
+    const currentSection = formData.section;
     setEditingQuestion(null);
     setFormData({
       questionText: '',
       questionType: 'SINGLE_CORRECT_MCQ',
-      section: 'VARC',
+      section: preserveSection ? currentSection : 'VARC',
       options: [
         { label: 'A', value: '' },
         { label: 'B', value: '' },

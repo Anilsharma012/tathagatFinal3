@@ -282,15 +282,36 @@ const FinalResource = () => {
                   <p className="tgsm-doc-desc">
                     {item.description || "Download this resource to enhance your preparation."}
                   </p>
-                  <a 
-                    href={item.fileUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('authToken');
+                        const response = await fetch(`/api/study-materials/download/${item._id}`, {
+                          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = item.fileName || item.title || 'download.pdf';
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                        } else {
+                          alert('Failed to download file. Please try again.');
+                        }
+                      } catch (error) {
+                        console.error('Download error:', error);
+                        alert('Failed to download file. Please try again.');
+                      }
+                    }}
                     className="tgsm-btn tgsm-btn-download"
-                    style={{ textDecoration: "none", display: "inline-block" }}
+                    style={{ cursor: "pointer", border: "none" }}
                   >
                     Download PDF {item.fileSize || ""} <span className="tgsm-icon-download">⬇</span>
-                  </a>
+                  </button>
                 </div>
               ))
             )}
