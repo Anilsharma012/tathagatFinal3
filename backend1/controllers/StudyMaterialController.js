@@ -3,14 +3,42 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Base directory for uploads (absolute path)
+const UPLOADS_BASE_DIR = path.join(__dirname, '..', 'uploads', 'study-materials');
+
+// Helper function to resolve file path (handles both relative and absolute paths)
+const resolveFilePath = (filePath) => {
+  if (!filePath) return null;
+  
+  // If path is absolute and exists, use it
+  if (path.isAbsolute(filePath) && fs.existsSync(filePath)) {
+    return filePath;
+  }
+  
+  // Try relative to backend1 directory
+  const backendPath = path.join(__dirname, '..', filePath);
+  if (fs.existsSync(backendPath)) {
+    return backendPath;
+  }
+  
+  // Try just the filename in uploads/study-materials
+  const fileName = path.basename(filePath);
+  const uploadsPath = path.join(UPLOADS_BASE_DIR, fileName);
+  if (fs.existsSync(uploadsPath)) {
+    return uploadsPath;
+  }
+  
+  // Return the backend-relative path as fallback
+  return backendPath;
+};
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = 'uploads/study-materials/';
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+    if (!fs.existsSync(UPLOADS_BASE_DIR)) {
+      fs.mkdirSync(UPLOADS_BASE_DIR, { recursive: true });
     }
-    cb(null, uploadPath);
+    cb(null, UPLOADS_BASE_DIR);
   },
   filename: function (req, file, cb) {
     const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
@@ -260,11 +288,15 @@ const viewStudyMaterial = async (req, res) => {
       });
     }
 
-    // Check if file exists
-    if (!fs.existsSync(material.filePath)) {
+    // Resolve and check if file exists
+    const resolvedPath = resolveFilePath(material.filePath);
+    console.log('📁 Resolved file path:', resolvedPath, 'from:', material.filePath);
+    
+    if (!resolvedPath || !fs.existsSync(resolvedPath)) {
+      console.log('❌ File not found at path:', resolvedPath);
       return res.status(404).json({
         success: false,
-        message: 'File not found on server'
+        message: 'File not found on server. The study material file may not have been uploaded yet.'
       });
     }
 
@@ -279,7 +311,7 @@ const viewStudyMaterial = async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
     // Stream the file
-    const fileStream = fs.createReadStream(material.filePath);
+    const fileStream = fs.createReadStream(resolvedPath);
     fileStream.pipe(res);
 
   } catch (error) {
@@ -314,11 +346,15 @@ const downloadStudyMaterial = async (req, res) => {
       });
     }
 
-    // Check if file exists
-    if (!fs.existsSync(material.filePath)) {
+    // Resolve and check if file exists
+    const resolvedPath = resolveFilePath(material.filePath);
+    console.log('📁 Resolved file path:', resolvedPath, 'from:', material.filePath);
+    
+    if (!resolvedPath || !fs.existsSync(resolvedPath)) {
+      console.log('❌ File not found at path:', resolvedPath);
       return res.status(404).json({
         success: false,
-        message: 'File not found on server'
+        message: 'File not found on server. The study material file may not have been uploaded yet.'
       });
     }
 
@@ -332,7 +368,7 @@ const downloadStudyMaterial = async (req, res) => {
     res.setHeader('Content-Type', 'application/octet-stream');
 
     // Stream the file
-    const fileStream = fs.createReadStream(material.filePath);
+    const fileStream = fs.createReadStream(resolvedPath);
     fileStream.pipe(res);
 
   } catch (error) {
@@ -406,9 +442,10 @@ const deleteStudyMaterial = async (req, res) => {
       });
     }
 
-    // Delete file from filesystem
-    if (fs.existsSync(material.filePath)) {
-      fs.unlinkSync(material.filePath);
+    // Delete file from filesystem using resolved path
+    const resolvedPath = resolveFilePath(material.filePath);
+    if (resolvedPath && fs.existsSync(resolvedPath)) {
+      fs.unlinkSync(resolvedPath);
     }
 
     // Delete from database
