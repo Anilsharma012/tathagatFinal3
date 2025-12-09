@@ -6,16 +6,9 @@ cd backend1 && NODE_ENV=development SKIP_SEED=1 node index.js 2>&1 | sed 's/^/[B
 BACKEND_PID=$!
 cd /home/runner/workspace
 
-# Wait for backend to start and verify it's running
+# Wait for backend to start
 echo "Waiting for backend to initialize..."
-sleep 10
-
-# Check if backend is running
-if ps -p $BACKEND_PID > /dev/null; then
-   echo "[INFO] Backend process (PID: $BACKEND_PID) is running"
-else
-   echo "[WARNING] Backend process may have failed to start"
-fi
+sleep 3
 
 # Start frontend  
 cd Frontend1
@@ -23,7 +16,7 @@ echo "Starting frontend on port 5000..."
 export PORT=5000
 export DANGEROUSLY_DISABLE_HOST_CHECK=true
 export WDS_SOCKET_PORT=0
-export NODE_OPTIONS="--max-old-space-size=2048"
+export NODE_OPTIONS="--max-old-space-size=1024"
 export GENERATE_SOURCEMAP=false
 export TSC_COMPILE_ON_ERROR=true
 export ESLINT_NO_DEV_ERRORS=true
