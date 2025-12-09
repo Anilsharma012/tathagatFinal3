@@ -823,50 +823,90 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
             <p className="no-questions">No questions added yet. Add your first question using the form.</p>
           ) : (
             <div className="questions-list">
-              {questions.map((question, index) => (
-                <div key={question._id} className={`question-card ${editingQuestion?._id === question._id ? 'editing' : ''}`}>
-                  <div className="question-card-header">
-                    <span className="question-number">Q{index + 1}</span>
-                    <span className={`question-badge ${question.questionType}`}>
-                      {question.questionType}
-                    </span>
-                    <span className={`difficulty-badge ${question.difficulty}`}>
-                      {question.difficulty}
-                    </span>
-                    <span className="section-badge">{question.section}</span>
+              {['VARC', 'DILR', 'QA', 'GENERAL'].map(section => {
+                const sectionQuestions = questions.filter(q => q.section === section);
+                if (sectionQuestions.length === 0) return null;
+                
+                return (
+                  <div key={section} className="section-group">
+                    <div className="section-header" style={{
+                      backgroundColor: section === 'VARC' ? '#e3f2fd' : 
+                                      section === 'DILR' ? '#fff3e0' : 
+                                      section === 'QA' ? '#e8f5e9' : '#f3e5f5',
+                      padding: '10px 15px',
+                      marginTop: '15px',
+                      marginBottom: '10px',
+                      borderRadius: '6px',
+                      fontWeight: 'bold',
+                      color: '#333'
+                    }}>
+                      {section} ({sectionQuestions.length} questions)
+                    </div>
+                    {sectionQuestions.map((question, index) => {
+                      const globalIndex = questions.findIndex(q => q._id === question._id);
+                      const hasImage = question.questionText && question.questionText.includes('<img');
+                      const textOnly = question.questionText ? question.questionText.replace(/<[^>]*>/g, '') : '';
+                      const truncatedText = textOnly.length > 120 ? textOnly.substring(0, 120) + '...' : textOnly;
+                      
+                      return (
+                        <div key={question._id} className={`question-card ${editingQuestion?._id === question._id ? 'editing' : ''}`}>
+                          <div className="question-card-header">
+                            <span className="question-number">Q{globalIndex + 1}</span>
+                            <span className={`question-badge ${question.questionType}`}>
+                              {question.questionType}
+                            </span>
+                            <span className={`difficulty-badge ${question.difficulty}`}>
+                              {question.difficulty}
+                            </span>
+                            <span className="section-badge">{question.section}</span>
+                          </div>
+                          <div className="question-text">
+                            <div>{truncatedText}</div>
+                            {hasImage && (
+                              <div className="question-image-preview" style={{
+                                marginTop: '8px',
+                                maxHeight: '150px',
+                                overflow: 'hidden',
+                                borderRadius: '4px'
+                              }}>
+                                <div 
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: sanitizeHtml(question.questionText) 
+                                  }}
+                                  style={{
+                                    maxHeight: '150px',
+                                    overflow: 'hidden'
+                                  }}
+                                  className="question-images-container"
+                                />
+                              </div>
+                            )}
+                          </div>
+                          <div className="question-meta">
+                            <span>+{question.marks?.positive || 3} / {question.marks?.negative || -1}</span>
+                            <span>{question.timeSuggestionSeconds || 180}s</span>
+                            {question.topicTag && <span>📌 {question.topicTag}</span>}
+                          </div>
+                          <div className="question-actions">
+                            <button
+                              onClick={() => handleEditQuestion(question)}
+                              className="btn-edit"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteQuestion(question._id)}
+                              className="btn-delete"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="question-text">
-                    <div 
-                      dangerouslySetInnerHTML={{ 
-                        __html: sanitizeHtml(
-                          question.questionText.length > 120 
-                            ? question.questionText.substring(0, 120) + '...'
-                            : question.questionText
-                        ) 
-                      }} 
-                    />
-                  </div>
-                  <div className="question-meta">
-                    <span>+{question.marks?.positive || 3} / {question.marks?.negative || -1}</span>
-                    <span>{question.timeSuggestionSeconds || 180}s</span>
-                    {question.topicTag && <span>📌 {question.topicTag}</span>}
-                  </div>
-                  <div className="question-actions">
-                    <button
-                      onClick={() => handleEditQuestion(question)}
-                      className="btn-edit"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuestion(question._id)}
-                      className="btn-delete"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

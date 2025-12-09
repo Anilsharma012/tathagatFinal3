@@ -1252,7 +1252,8 @@ const MockTestAttempt = () => {
                 <button 
                   className="section-btn primary" 
                   onClick={handleNextSection}
-                  disabled={isCurrentSectionLocked}
+                  disabled={isCurrentSectionLocked || currentSectionTimeRemaining > 0}
+                  title={currentSectionTimeRemaining > 0 ? `Wait for section timer to complete (${formatTime(currentSectionTimeRemaining)} remaining)` : ''}
                 >
                   Submit Section & Continue
                 </button>
@@ -1266,7 +1267,9 @@ const MockTestAttempt = () => {
             <div className="section-guidance">
               <p>
                 {currentSection < testData.sections.length - 1 
-                  ? 'You can submit this section early or wait for the timer to complete.'
+                  ? (currentSectionTimeRemaining > 0 
+                      ? `Section can be submitted when timer reaches 0:00:00 (${formatTime(currentSectionTimeRemaining)} remaining)`
+                      : 'Section timer complete. You can now submit this section.')
                   : 'This is the final section. Submit when ready.'}
               </p>
             </div>
