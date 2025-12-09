@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cross-env": "^10.1.0",
     "dompurify": "^3.3.0",
+    "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5",
     "isomorphic-dompurify": "^2.30.0",
     "papaparse": "^5.5.3",
