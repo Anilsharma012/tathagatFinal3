@@ -1,0 +1,232 @@
+There is a frontend page currently showing two sections:
+
+Previous Years' Papers
+
+Topic-Wise Previous Years' Questions
+
+This page currently shows static/hardcoded categories and test cards with a “COMING SOON” overlay.
+
+Strict UI Rule
+
+Do NOT change the UI design.
+Do NOT modify layout, spacing, fonts, colors, card structure, tabs styling, or section headings.
+Only convert the page into a fully dynamic, admin-controlled system while preserving the exact same look and feel.
+
+1) Frontend Navbar Link Requirement
+
+The public frontend Navbar already has a “Download” button.
+This button must link to the same page where these two sections exist.
+Do not change Navbar UI (only fix or ensure the correct route connection).
+
+Use the existing route for this page (for example /mock-test or the current configured route in the project).
+
+Do not rename routes unless absolutely required.
+
+2) Admin Navigation Requirement
+
+Add a new admin-side navigation/button named:
+
+“Download”
+
+This must open an admin management module to control both:
+
+Previous Years' Papers
+
+Topic-Wise Previous Years' Questions
+
+This admin module must be protected with admin authentication.
+
+3) Admin Features (Apply Same System to Both Sections)
+A) Category/Tab Management
+
+Admin should be able to:
+
+Create new categories/tabs
+
+Edit category/tab name
+
+Enable/disable category visibility on frontend
+
+Set category display order
+
+Examples:
+
+Exam categories: CAT, XAT, SNAP, NMAT, MHCET, SRCC
+
+Topic categories: Algebra, Geometry, Arithmetic, Number System
+
+Tabs must render dynamically on frontend from backend.
+
+B) Test Card Management Inside Categories
+
+Admin should be able to:
+
+Add new test entries
+
+Edit test details (title + any meta shown on the existing card UI)
+
+Delete tests
+
+Set test display order
+
+All tests must render on frontend in the same existing card format.
+
+C) “COMING SOON” Status Control
+
+Each test must have a status:
+
+COMING_SOON
+
+PUBLISHED
+
+Frontend rule:
+
+If COMING_SOON → show the existing “COMING SOON” overlay exactly as currently designed
+
+If PUBLISHED → overlay must not appear
+
+Admin must be able to toggle this status anytime.
+
+D) Paper/Content Upload
+
+Admin must be able to upload/attach content to a test:
+
+PDF upload and/or structured question set (based on the existing project’s test engine)
+
+Store file securely (using project’s preferred storage approach)
+
+Save content metadata/reference in database
+
+Admin should be able to mark a test as PUBLISHED only when ready.
+
+4) Frontend Runtime Behavior (Both Sections)
+A) Dynamic Rendering
+
+Replace hardcoded data with API-driven data:
+
+Categories/tabs come from backend
+
+Tests inside categories come from backend
+
+B) Overlay Logic
+
+Show “COMING SOON” overlay only when status = COMING_SOON.
+
+C) Click-to-Attempt Flow
+
+When a user clicks a test card:
+
+If user is not logged in:
+
+Redirect to login
+
+After successful login, return the user back to the same selected test
+
+If user is logged in:
+
+Open the test attempt flow on the same system/format already used in the project
+
+This login-gated attempt flow must work identically for:
+
+Previous Years’ Papers tests
+
+Topic-Wise Previous Years’ Questions tests
+
+5) Backend/API Requirements
+
+Create a clean, scalable structure that supports two types of content:
+
+PREVIOUS_YEAR
+
+TOPIC_WISE
+
+Recommended models/fields:
+
+Category
+
+id
+
+type: PREVIOUS_YEAR | TOPIC_WISE
+
+name
+
+slug (optional)
+
+order
+
+isActive
+
+Test
+
+id
+
+categoryId
+
+type: PREVIOUS_YEAR | TOPIC_WISE
+
+title
+
+meta fields (only those already shown in UI if applicable)
+
+order
+
+status: COMING_SOON | PUBLISHED
+
+content reference:
+
+pdfUrl (optional)
+
+questionSetId (optional)
+
+isActive
+
+Required APIs
+Public APIs
+
+Fetch categories by type
+
+Fetch tests by category
+
+Fetch test details for attempt
+
+Admin APIs (Admin Auth Required)
+
+Create/Update/Delete Category
+
+Create/Update/Delete Test
+
+Upload/Attach content
+
+Toggle status (COMING_SOON/PUBLISHED)
+
+Reorder categories and tests
+
+6) Acceptance Criteria
+
+The frontend Navbar “Download” button opens this page correctly.
+
+Admin can manage everything from Admin → Download.
+
+Admin can add/edit/delete categories for both sections.
+
+Admin can add/edit/delete tests under each category.
+
+Admin can upload papers/content.
+
+Admin can control Coming Soon vs Published per test.
+
+Frontend removes overlay only when test is Published.
+
+Clicking a test forces login first if the user is not authenticated.
+
+The UI remains unchanged.
+
+7) Non-Negotiables
+
+No UI redesign.
+
+No CSS/layout changes.
+
+Keep headings, tabs, and card structure identical.
+
+Only add dynamic data, admin controls, and auth-gated test attempt flow.

@@ -734,6 +734,7 @@ safeUse("/api/bschools", "./routes/BSchoolRoutes");
 safeUse("/api/live-batches", "./routes/liveBatchRoutes");
 safeUse("/api/notifications", "./routes/notificationRoutes");
 safeUse("/api/popup-announcements", "./routes/popupAnnouncementRoutes");
+safeUse("/api/downloads", "./routes/downloadRoutes");
 
 /* -------------------- Production Static (kept your note) -------------------- */
 if (process.env.NODE_ENV === "production") {
