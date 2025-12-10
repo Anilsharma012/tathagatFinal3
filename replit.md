@@ -20,7 +20,7 @@ The platform employs a decoupled frontend and backend architecture.
 - **Course Management:** Supports "Full Course," "Recorded Classes," and "Mock Tests" content types with full CRUD for videos, serial ordering, topic organization, and granular free/paid access control.
 - **Unified Mock Test Management:** Admin interface allows selecting a "Mock Tests" type course, managing test series within it, and adding tests. This integrates course-specific mock tests into a central management system.
 - **Test Configuration:** Admins can configure section-wise duration and question counts for all test types.
-- **Question Management:** Features a robust question builder supporting rich text, image uploads, and bulk CSV uploads with normalization for sections and difficulty levels.
+- **Question Management:** Features a robust question builder supporting rich text, image uploads, and bulk CSV uploads with normalization for sections and difficulty levels. Questions are displayed in section-wise groups (VARC → DILR → QA → GENERAL) with colored headers and accurate per-section counts. Section normalization handles variant names (e.g., 'Quant' → 'QA', 'Verbal' → 'VARC').
 - **Video Access Control:** Database-level filtering ensures only authorized users can access paid video content based on enrollment status.
 - **Partial Updates:** Course update APIs support partial modifications, preventing unintended data loss.
 - **Exam Hierarchy:** Backend infrastructure supports filtering exams by category, year, and slot.
