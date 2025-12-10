@@ -264,7 +264,7 @@ const AddCourse = () => {
                     <FaFileAlt />
                     <span className="adminCourse-action-text">Add Overview</span>
                   </button>
-                  {course.courseType === 'recorded_classes' && (
+                  {(course.courseType === 'recorded_classes' || course.courseType === 'full_course') && (
                     <button
                       className="adminCourse-icon-btn videos"
                       onClick={() => setVideoManagementCourse(course)}
