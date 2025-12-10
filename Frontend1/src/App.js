@@ -117,6 +117,7 @@ import LiveBatchManagement from "./pages/mainAdmin/LiveClasses/LiveBatchManageme
 import BatchManagement from "./pages/mainAdmin/BatchManagement/BatchManagement";
 import BlogManagement from "./pages/mainAdmin/BlogManagement/BlogManagement";
 import DemoVideoManagement from "./pages/mainAdmin/DemoVideoManagement/DemoVideoManagement";
+import DownloadsManagement from "./pages/mainAdmin/DownloadsManagement/DownloadsManagement";
 import ScoreCardManagement from "./pages/mainAdmin/ScoreCardManagement/ScoreCardManagement";
 import SuccessStoryManagement from "./pages/mainAdmin/SuccessStoryManagement/SuccessStoryManagement";
 import ResponseSheetSubmissions from "./pages/mainAdmin/ResponseSheetSubmissions/ResponseSheetSubmissions";
@@ -340,6 +341,15 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <DemoVideoManagement />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/downloads"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <DownloadsManagement />
             </PrivateRoute>
           }
         />

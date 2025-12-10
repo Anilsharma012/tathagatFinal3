@@ -912,3 +912,17 @@ body { overflow-x: hidden; }
   border-color: #9ca3af;
   color: #9ca3af;
 }
+
+/* Loading and Empty states */
+.loading-message,
+.empty-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 16px;
+  font-family: "Manrope", sans-serif;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+}
