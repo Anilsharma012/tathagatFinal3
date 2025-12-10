@@ -12,6 +12,29 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState(null);
   
+  const SECTION_ORDER = ['VARC', 'DILR', 'QA', 'GENERAL'];
+  
+  const normalizeSection = (section) => {
+    if (!section) return 'GENERAL';
+    const sectionUpper = String(section).toUpperCase().trim();
+    if (['VARC', 'DILR', 'QA', 'GENERAL'].includes(sectionUpper)) {
+      return sectionUpper;
+    }
+    if (sectionUpper.includes('QUANT') || sectionUpper.includes('QA') || 
+        sectionUpper === 'Q' || sectionUpper === 'MATHS' || sectionUpper === 'MATH') {
+      return 'QA';
+    }
+    if (sectionUpper.includes('VARC') || sectionUpper.includes('VERBAL') || 
+        sectionUpper.includes('RC') || sectionUpper === 'V') {
+      return 'VARC';
+    }
+    if (sectionUpper.includes('DILR') || sectionUpper.includes('DI') || 
+        sectionUpper.includes('LR') || sectionUpper.includes('LOGIC')) {
+      return 'DILR';
+    }
+    return 'GENERAL';
+  };
+
   // Sanitize HTML content
   const sanitizeHtml = (html) => {
     if (!html) return '';
@@ -129,7 +152,11 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
       setLoading(true);
       const data = await fetchWithErrorHandling(`/api/admin/mock-tests/questions?testPaperId=${testPaperId}`);
       if (data && data.success) {
-        setQuestions(data.questions || []);
+        const normalizedQuestions = (data.questions || []).map(q => ({
+          ...q,
+          section: normalizeSection(q.section)
+        }));
+        setQuestions(normalizedQuestions);
       }
     } catch (error) {
       console.error('Error loading questions:', error);
@@ -233,6 +260,7 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
       
       const questionData = {
         ...formData,
+        section: normalizeSection(formData.section),
         testPaperId,
         sequenceNumber: editingQuestion ? editingQuestion.sequenceNumber : questions.length + 1
       };
@@ -381,7 +409,7 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
         if (fields.length < 3) continue; // Skip invalid lines
         
         const questionText = fields[0]?.replace(/^"|"$/g, '');
-        const section = fields[1]?.toUpperCase() || 'GENERAL';
+        const section = normalizeSection(fields[1]);
         const questionType = fields[2]?.toUpperCase() || 'SINGLE_CORRECT_MCQ';
         const optionA = fields[3]?.replace(/^"|"$/g, '');
         const optionB = fields[4]?.replace(/^"|"$/g, '');
@@ -824,16 +852,23 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
             <p className="no-questions">No questions added yet. Add your first question using the form.</p>
           ) : (
             <div className="questions-list">
-              {['VARC', 'DILR', 'QA', 'GENERAL'].map(section => {
-                const sectionQuestions = questions.filter(q => q.section === section);
+              {SECTION_ORDER.map(sectionName => {
+                const sectionQuestions = questions.filter(q => 
+                  normalizeSection(q.section) === sectionName
+                );
                 if (sectionQuestions.length === 0) return null;
                 
+                const sectionColors = {
+                  VARC: '#e3f2fd',
+                  DILR: '#fff3e0',
+                  QA: '#e8f5e9',
+                  GENERAL: '#f3e5f5'
+                };
+                
                 return (
-                  <div key={section} className="section-group">
+                  <div key={sectionName} className="section-group">
                     <div className="section-header" style={{
-                      backgroundColor: section === 'VARC' ? '#e3f2fd' : 
-                                      section === 'DILR' ? '#fff3e0' : 
-                                      section === 'QA' ? '#e8f5e9' : '#f3e5f5',
+                      backgroundColor: sectionColors[sectionName] || '#f3e5f5',
                       padding: '10px 15px',
                       marginTop: '15px',
                       marginBottom: '10px',
@@ -841,7 +876,7 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
                       fontWeight: 'bold',
                       color: '#333'
                     }}>
-                      {section} ({sectionQuestions.length} questions)
+                      {sectionName} ({sectionQuestions.length} questions)
                     </div>
                     {sectionQuestions.map((question, index) => {
                       const globalIndex = questions.findIndex(q => q._id === question._id);

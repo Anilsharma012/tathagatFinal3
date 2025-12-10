@@ -1,0 +1,66 @@
+You are working on an Admin “Mock Test > Question Builder” page.
+
+Current UI:
+- Left panel: “Add New Question” form with fields including:
+  - Question Type
+  - Section (dropdown: VARC, DILR, QA, General)
+  - Question Text, etc.
+- Right panel: “Questions (N)” list showing existing questions.
+- Currently the right panel appears to show a single combined list, and the section header like “GENERAL (49 questions)” does not dynamically reflect per-section grouping when new questions are added.
+
+Goal:
+Implement section-wise grouping of questions in the right-side list.
+
+Core Requirement:
+When an admin creates/updates a question and selects a Section:
+1) The question must appear under the corresponding Section group on the right panel.
+2) The right panel must display separate section blocks for each section that has at least 1 question.
+
+UI Behavior:
+- Render section headers in the format:
+  “SECTION_NAME (X questions)”
+  Example:
+  - “GENERAL (49 questions)”
+  - “QA (12 questions)”
+  - “VARC (8 questions)”
+  - “DILR (5 questions)”
+- Under each header, list the questions belonging to that section.
+- If a section has 0 questions, do not show that section group.
+- The total count “Questions (N)” should still reflect all questions combined.
+
+Ordering:
+- Section groups should appear in a logical fixed order:
+  VARC → DILR → QA → General
+- Within each section, keep the current ordering logic already used (e.g., newest first or existing sort).
+
+Real-time update:
+- After adding a new question (single add):
+  - The appropriate section group should update immediately (without full page refresh).
+  - The count in the header should increment correctly.
+- After editing a question’s section:
+  - The question should move from the old section group to the new one.
+  - Both groups’ counts should update.
+
+Bulk Upload CSV:
+- If CSV upload supports a “section” field:
+  - Ensure imported questions are grouped correctly by their section in the UI.
+  - Unknown/missing section should default to “General”.
+
+Consistency:
+- Keep the existing question card UI (tags like Q1, TITA/MCQ, difficulty chips, etc.).
+- Only change the list structure to be section-wise grouped.
+
+Acceptance Criteria:
+- Adding a QA question creates/updates a “QA (X questions)” group and shows the question there.
+- Adding a VARC question creates/updates a “VARC (X questions)” group and shows the question there.
+- Counts update accurately for each section and for total.
+- No empty section headers.
+- Editing section reassigns the question to the correct group.
+
+Deliverables:
+- Update data mapping and UI rendering logic to group questions by section.
+- Ensure the feature works for:
+  - Single add
+  - Edit
+  - Delete
+  - Bulk CSV upload
