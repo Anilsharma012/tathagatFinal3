@@ -926,3 +926,95 @@ body { overflow-x: hidden; }
   border-radius: 12px;
   border: 1px dashed #d1d5db;
 }
+
+/* IIM Logos Section */
+.iim-logos-section {
+  background: #f8f9fa;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.iim-section-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #0a0f3c;
+  margin-bottom: 30px;
+  font-family: "Manrope", sans-serif;
+}
+
+.iim-logos-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.iim-logo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 70px;
+}
+
+.iim-logo-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #1e3a5f, #2c5282);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  border: 3px solid #e5e7eb;
+}
+
+.iim-logo-item span {
+  font-size: 10px;
+  color: #374151;
+  font-weight: 500;
+  font-family: "Manrope", sans-serif;
+  text-transform: uppercase;
+}
+
+.iim-a { background: linear-gradient(135deg, #8b0000, #cc0000); }
+.iim-amr { background: linear-gradient(135deg, #1e40af, #3b82f6); }
+.iim-b { background: linear-gradient(135deg, #064e3b, #059669); }
+.iim-bg { background: linear-gradient(135deg, #92400e, #d97706); }
+.iim-c { background: linear-gradient(135deg, #7c2d12, #ea580c); }
+.iim-j { background: linear-gradient(135deg, #1e3a5f, #4a90a4); }
+.iim-k { background: linear-gradient(135deg, #1e40af, #60a5fa); }
+.iim-ko { background: linear-gradient(135deg, #166534, #22c55e); }
+.iim-l { background: linear-gradient(135deg, #7f1d1d, #dc2626); }
+.iim-m { background: linear-gradient(135deg, #1e3a5f, #3b82f6); }
+.iim-n { background: linear-gradient(135deg, #6d28d9, #a78bfa); }
+.iim-r { background: linear-gradient(135deg, #047857, #34d399); }
+.iim-s { background: linear-gradient(135deg, #b45309, #fbbf24); }
+.iim-i { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+.iim-ro { background: linear-gradient(135deg, #be185d, #f472b6); }
+.iim-sr { background: linear-gradient(135deg, #4338ca, #818cf8); }
+.iim-t { background: linear-gradient(135deg, #0e7490, #22d3ee); }
+.iim-u { background: linear-gradient(135deg, #854d0e, #facc15); }
+.iim-v { background: linear-gradient(135deg, #065f46, #10b981); }
+
+@media (max-width: 768px) {
+  .iim-logos-container {
+    gap: 15px;
+  }
+  .iim-logo-circle {
+    width: 50px;
+    height: 50px;
+    font-size: 8px;
+  }
+  .iim-logo-item span {
+    font-size: 8px;
+  }
+  .iim-section-title {
+    font-size: 24px;
+  }
+}

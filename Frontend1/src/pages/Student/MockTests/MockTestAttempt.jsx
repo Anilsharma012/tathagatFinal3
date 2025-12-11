@@ -53,6 +53,8 @@ const MockTestAttempt = () => {
   const [completedSections, setCompletedSections] = useState([]);
   const [showFinalResult, setShowFinalResult] = useState(false);
   const [finalResult, setFinalResult] = useState(null);
+  const [studentInfo, setStudentInfo] = useState({ name: 'Student', email: '', phone: '' });
+  const [showStudentDetails, setShowStudentDetails] = useState(false);
   
   const timerRef = useRef(null);
   const syncIntervalRef = useRef(null);
@@ -64,11 +66,28 @@ const MockTestAttempt = () => {
 
   useEffect(() => {
     fetchTestData();
+    loadStudentInfo();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
     };
   }, []);
+
+  const loadStudentInfo = () => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const userData = JSON.parse(stored);
+        setStudentInfo({
+          name: userData.name || 'Student',
+          email: userData.email || '',
+          phone: userData.phone || userData.mobile || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading student info:', error);
+    }
+  };
 
   useEffect(() => {
     if (sectionStates.length > 0 && testData && !showFinalResult) {
@@ -965,12 +984,12 @@ const MockTestAttempt = () => {
               </span>
             )}
           </div>
-          <div className="candidate-info">
+          <div className="candidate-info" onClick={() => setShowStudentDetails(true)} style={{ cursor: 'pointer' }}>
             <div className="candidate-avatar">
               <span>👤</span>
             </div>
             <div className="candidate-details">
-              <span className="candidate-name">Student</span>
+              <span className="candidate-name">{studentInfo.name}</span>
             </div>
           </div>
         </div>
@@ -1580,6 +1599,42 @@ const MockTestAttempt = () => {
               <button className="result-btn primary" onClick={() => navigate('/student/mock-tests')}>
                 Back to Mock Tests
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStudentDetails && (
+        <div className="student-details-modal-overlay" onClick={() => setShowStudentDetails(false)}>
+          <div className="student-details-modal" onClick={e => e.stopPropagation()}>
+            <div className="student-details-header">
+              <h3>Student Details</h3>
+              <button className="close-btn" onClick={() => setShowStudentDetails(false)}>&times;</button>
+            </div>
+            <div className="student-details-content">
+              <div className="student-avatar-large">
+                <span>👤</span>
+              </div>
+              <div className="student-info-row">
+                <span className="info-label">Name:</span>
+                <span className="info-value">{studentInfo.name}</span>
+              </div>
+              {studentInfo.email && (
+                <div className="student-info-row">
+                  <span className="info-label">Email:</span>
+                  <span className="info-value">{studentInfo.email}</span>
+                </div>
+              )}
+              {studentInfo.phone && (
+                <div className="student-info-row">
+                  <span className="info-label">Phone:</span>
+                  <span className="info-value">{studentInfo.phone}</span>
+                </div>
+              )}
+              <div className="student-info-row">
+                <span className="info-label">Test:</span>
+                <span className="info-value">{testData?.name || 'Mock Test'}</span>
+              </div>
             </div>
           </div>
         </div>

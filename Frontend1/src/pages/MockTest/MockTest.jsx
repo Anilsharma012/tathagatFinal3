@@ -353,6 +353,88 @@ const MockTest = () => {
         </div>
       </div>
 
+      <section className="iim-logos-section">
+        <h2 className="iim-section-title">CAT 2025</h2>
+        <div className="iim-logos-container">
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-a">IIM A</div>
+            <span>AHMEDABAD</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-amr">IIM</div>
+            <span>AMRITSAR</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-b">IIM B</div>
+            <span>BANGALORE</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-bg">IIM BG</div>
+            <span>BODH GAYA</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-c">IIM C</div>
+            <span>CALCUTTA</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-j">IIM J</div>
+            <span>JAMMU</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-k">IIM K</div>
+            <span>KASHIPUR</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-ko">IIM KO</div>
+            <span>KOZHIKODE</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-l">IIM L</div>
+            <span>LUCKNOW</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-m">IIM M</div>
+            <span>MUMBAI</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-n">IIM N</div>
+            <span>NAGPUR</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-r">IIM R</div>
+            <span>RANCHI</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-s">IIM S</div>
+            <span>SAMBALPUR</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-i">IIM I</div>
+            <span>INDORE</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-ro">IIM RO</div>
+            <span>ROHTAK</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-sr">IIM SR</div>
+            <span>SIRMAUR</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-t">IIM T</div>
+            <span>TIRUCHIRAPPALLI</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-u">IIM U</div>
+            <span>UDAIPUR</span>
+          </div>
+          <div className="iim-logo-item">
+            <div className="iim-logo-circle iim-v">IIM V</div>
+            <span>VISAKHAPATNAM</span>
+          </div>
+        </div>
+      </section>
+
       <section className="cat-mock-container">
         <h1 className="page-title">Previous Years' Papers</h1>
 
