@@ -1,0 +1,130 @@
+You are an expert full-stack developer. I already have a frontend page called `course-purchase` (Tathagat style) which is currently static. I want you to convert it into a dynamic, course-wise page that reads data from the admin panel, WITHOUT changing the existing design / layout / CSS classes.
+
+TECH CONTEXT (IMPORTANT):
+- Frontend: React (current page URL example: /course-purchase)
+- There is already an "Add Course" / "Courses" module in the admin panel where courses are created (with fields like course name, price etc.).
+- When a user goes to "Available Courses" and clicks "Enroll Now" on any course, I want them to be redirected to this dynamic course purchase page with that course's content.
+
+YOUR TASKS:
+
+1) ADMIN PANEL – NEW BUTTON + SCREEN
+------------------------------------------------
+a. In the admin panel, add a new menu item / button like: **“Manage Course Purchase Page”** or **“Course Detail Page Content”**.
+
+b. On this screen:
+   - Show a **dropdown to select an existing course** from the already created courses (fetched from the courses collection / table).
+   - After selecting a course, admin should be able to fill/update all content for that course purchase page, in separate fields.
+
+c. Create a proper data model for course purchase page content (can be a separate model or embedded in the Course model). It should include at least the following fields:
+
+   HERO SECTION:
+   - previewVideoUrl (YouTube or any video embed link)
+   - mainTitle (e.g. "CAT 2025 FULL COURSE")
+   - currentPrice
+   - originalPrice (to show as striked price)
+   - keyBullets (array of strings) for the bullet points under price:
+     • Complete CAT preparation material
+     • Live interactive classes
+     • Mock tests and practice sets
+     • Doubt clearing sessions
+     • Performance analysis
+     • Study materials download
+
+   ABOUT & LEARNING SECTION:
+   - aboutTitle (e.g. "About The Course")
+   - aboutDescription (rich text / long text)
+   - learningHeading (e.g. "OR WHAT WILL YOU LEARN??")
+   - learningContent (paragraph or list as required)
+
+   CURRICULUM SECTION:
+   - curriculumSections: array of objects; each object has:
+     • sectionTitle (e.g. "Welcome! Course Introduction", "Foundation Phase – Concept Building", "Application Phase – Practice & Assignments", "iCAT Mock Test Series", "CAT Crash Course – Final Lap")
+     • sectionSubtitle / description (one short line under the title)
+     • optionally a list of lessons/topics if needed
+   - This should map to the existing accordion UI on the frontend, without changing design.
+
+   MATERIAL INCLUDES BOX (RIGHT SIDEBAR):
+   - materialHeading (e.g. "Material Includes")
+   - materialItems: array of bullet strings like:
+     • Certificate of Completion
+     • 444 downloadable resource
+     • Full lifetime access
+     • 1300+ Hours of Videos
+     • 20 Mocks & 45 Sectional Mocks
+
+   REQUIREMENTS BOX (RIGHT SIDEBAR):
+   - requirementsHeading (e.g. "Requirements")
+   - requirementsItems: array of strings (each shown as bullet point, design same as now)
+
+   INSTRUCTOR SECTION:
+   - instructors: array of objects; each object:
+     • name
+     • expertise (e.g. "Quant/LRDI", "Verbal")
+     • imageUrl (for instructor photo card)
+   - Use these fields to populate the existing instructor cards, keeping same layout and styles.
+
+   REVIEWS SECTION:
+   - averageRating (e.g. 4.0)
+   - totalRatings (e.g. 6)
+   - ratingBreakdown: object/array with count for 5,4,3,2,1 stars (used for horizontal bars)
+   - reviews: array of objects; each object includes:
+     • reviewerName
+     • reviewText
+     • rating (1–5)
+     • timeAgo (e.g. "a year ago")
+   - Bind these values to the existing “Our Valuable Reviews” section and the review card design; no UI redesign.
+
+d. Allow admin to:
+   - CREATE content for a course if not present.
+   - UPDATE the existing content for a selected course.
+   - SAVE data to the database (server + API endpoints as needed).
+   Make sure validation is present (required fields, etc.).
+
+2) FRONTEND – DYNAMIC COURSE PURCHASE PAGE
+------------------------------------------------
+a. Convert `course-purchase` into a **dynamic, course-specific route**, for example:
+   - `/course-purchase/:courseId` or `/course-purchase/:slug`
+   Use whatever routing style is already used in the project, but the idea is: each course has its own unique URL that loads its own content.
+
+b. On this page:
+   - Fetch course purchase data from the backend using the courseId/slug.
+   - Bind EVERY piece of text, price, list, image, and video to the fields defined above.
+   - The layout, structure, CSS classes, spacing, colors, typography etc. must remain EXACTLY the same as my current static design (as in my current screenshot). Only the content should be dynamic.
+
+   Specific bindings:
+   - Hero video iframe / video player uses `previewVideoUrl`.
+   - Big title on the right uses `mainTitle`.
+   - Current price and striked price use `currentPrice` and `originalPrice`.
+   - Bullet list below price uses `keyBullets`.
+   - "About The Course" title and paragraph use `aboutTitle` and `aboutDescription`.
+   - Learning heading and content use `learningHeading` and `learningContent`.
+   - Course curriculum accordions are generated from `curriculumSections` array.
+   - “Material Includes” box uses `materialHeading` and `materialItems`.
+   - “Requirements” box uses `requirementsHeading` and `requirementsItems`.
+   - Instructor cards use `instructors` array (image, name, expertise).
+   - Ratings summary and bars use `averageRating`, `totalRatings`, and `ratingBreakdown`.
+   - Individual review card(s) use data from `reviews` array.
+
+c. Handle loading and error states cleanly (spinner or simple “Loading…” text), but do NOT break the main design.
+
+3) ENROLL NOW → REDIRECT FLOW
+------------------------------------------------
+a. On the **Available Courses** page, for every course card:
+   - The “Enroll Now” button should redirect the user to that course’s purchase page using its unique id/slug.
+   - Example: clicking “Enroll Now” on CAT 2025 should route to `/course-purchase/cat-2025-full-course` (or the correct dynamic URL).
+
+b. Ensure:
+   - If a course has no purchase content configured yet, show a simple message like “Course details coming soon” but keep the skeleton design.
+   - Otherwise always render the full dynamic content.
+
+4) GENERAL RULES
+------------------------------------------------
+- DO NOT change existing styles, design, layout, or class names more than absolutely necessary. The page should look visually identical to my current static `course-purchase` design.
+- Keep the code clean, modular, and well-structured.
+- Comment the important parts explaining:
+  • Where admin is saving data
+  • Which API endpoints are used
+  • How the frontend fetches course-wise content
+- After implementing everything, briefly explain:
+  • How admin can create/update content for a course purchase page
+  • How a user goes from Available Courses → Enroll Now → Dynamic course purchase page.
