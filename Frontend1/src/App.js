@@ -120,6 +120,7 @@ import DemoVideoManagement from "./pages/mainAdmin/DemoVideoManagement/DemoVideo
 import DownloadsManagement from "./pages/mainAdmin/DownloadsManagement/DownloadsManagement";
 import ScoreCardManagement from "./pages/mainAdmin/ScoreCardManagement/ScoreCardManagement";
 import SuccessStoryManagement from "./pages/mainAdmin/SuccessStoryManagement/SuccessStoryManagement";
+import TopPerformerManagement from "./pages/mainAdmin/TopPerformerManagement/TopPerformerManagement";
 import ResponseSheetSubmissions from "./pages/mainAdmin/ResponseSheetSubmissions/ResponseSheetSubmissions";
 import TeacherLiveClasses from "./pages/MainSubAdmin/LiveClasses/TeacherLiveClasses";
 import StudentLiveClasses from "./pages/Student/LiveClasses/StudentLiveClasses";
@@ -368,6 +369,15 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <SuccessStoryManagement />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/top-performers"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <TopPerformerManagement />
             </PrivateRoute>
           }
         />

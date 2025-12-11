@@ -5,16 +5,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Chatbox from "../../components/Chat/Chatbox";
 import axios from "axios";
 
-const API_BASE = '/api/downloads';
+const API_BASE = "/api/downloads";
+const PERFORMERS_API = "/api/top-performers";
 
 const MockTest = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [categories, setCategories] = useState({ PREVIOUS_YEAR: [], TOPIC_WISE: [] });
+  const [categories, setCategories] = useState({
+    PREVIOUS_YEAR: [],
+    TOPIC_WISE: [],
+  });
   const [previousYearTests, setPreviousYearTests] = useState([]);
   const [topicWiseTests, setTopicWiseTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
+  const [topPerformers, setTopPerformers] = useState([]);
 
   const [activeTab, setActiveTab] = useState("quant");
   const [activeCat, setActiveCat] = useState("all");
@@ -23,7 +28,19 @@ const MockTest = () => {
   useEffect(() => {
     fetchCategories();
     fetchTests();
+    fetchTopPerformers();
   }, []);
+
+  const fetchTopPerformers = async () => {
+    try {
+      const response = await axios.get(`${PERFORMERS_API}/public`);
+      if (response.data.success) {
+        setTopPerformers(response.data.performers);
+      }
+    } catch (error) {
+      console.error("Error fetching top performers:", error);
+    }
+  };
 
   useEffect(() => {
     if (categories.TOPIC_WISE.length > 0 && !topicFilter) {
@@ -38,7 +55,7 @@ const MockTest = () => {
         setCategories(response.data.categories);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -48,11 +65,11 @@ const MockTest = () => {
       const response = await axios.get(`${API_BASE}/public/tests`);
       if (response.data.success) {
         const tests = response.data.tests;
-        setPreviousYearTests(tests.filter(t => t.type === 'PREVIOUS_YEAR'));
-        setTopicWiseTests(tests.filter(t => t.type === 'TOPIC_WISE'));
+        setPreviousYearTests(tests.filter((t) => t.type === "PREVIOUS_YEAR"));
+        setTopicWiseTests(tests.filter((t) => t.type === "TOPIC_WISE"));
       }
     } catch (error) {
-      console.error('Error fetching tests:', error);
+      console.error("Error fetching tests:", error);
     } finally {
       setLoadingTests(false);
     }
@@ -60,27 +77,34 @@ const MockTest = () => {
 
   const examFilteredTests = useMemo(() => {
     if (activeCat === "all") return previousYearTests;
-    return previousYearTests.filter((t) => t.categoryId?._id === activeCat || t.categoryId === activeCat);
+    return previousYearTests.filter(
+      (t) => t.categoryId?._id === activeCat || t.categoryId === activeCat,
+    );
   }, [activeCat, previousYearTests]);
 
   const topicFilteredTests = useMemo(() => {
     if (!topicFilter) return topicWiseTests;
-    return topicWiseTests.filter((t) => t.categoryId?._id === topicFilter || t.categoryId === topicFilter);
+    return topicWiseTests.filter(
+      (t) => t.categoryId?._id === topicFilter || t.categoryId === topicFilter,
+    );
   }, [topicFilter, topicWiseTests]);
 
   const handleAttemptTest = (test) => {
-    if (test.status === 'COMING_SOON') return;
-    
-    const token = localStorage.getItem('token') || localStorage.getItem('studentToken');
+    if (test.status === "COMING_SOON") return;
+
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("studentToken");
     if (!token) {
-      navigate('/Login', { state: { from: location.pathname, testId: test._id } });
+      navigate("/Login", {
+        state: { from: location.pathname, testId: test._id },
+      });
       return;
     }
-    
+
     if (test.pdfUrl) {
-      window.open(test.pdfUrl, '_blank');
+      window.open(test.pdfUrl, "_blank");
     } else {
-      navigate('/instruction', { state: { testId: test._id } });
+      navigate("/instruction", { state: { testId: test._id } });
     }
   };
 
@@ -353,7 +377,7 @@ const MockTest = () => {
         </div>
       </div>
 
-      <section className="iim-logos-section">
+      {/* <section className="iim-logos-section">
         <h2 className="iim-section-title">CAT 2025</h2>
         <div className="iim-logos-container">
           <div className="iim-logo-item">
@@ -433,7 +457,54 @@ const MockTest = () => {
             <span>VISAKHAPATNAM</span>
           </div>
         </div>
-      </section>
+      </section> */}
+
+      {topPerformers.length > 0 && (
+        <section className="best-results-section">
+          <div className="best-results-header">
+            <h2 className="best-results-title">Best Results in the Industry</h2>
+            <div className="best-results-stats">
+              <div className="stat-item">
+                <span className="stat-number">1200+</span>
+                <span className="stat-label">99%ilers</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">8400+</span>
+                <span className="stat-label">95%ilers</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">90000+</span>
+                <span className="stat-label">IIM Calls</span>
+              </div>
+            </div>
+          </div>
+          <div className="best-results-cards">
+            {topPerformers.map((performer) => (
+              <div key={performer._id} className="performer-card">
+                <div className="performer-image">
+                  {performer.photoUrl ? (
+                    <img 
+                      src={`/uploads/top-performers/${performer.photoUrl}`}
+                      alt={performer.name}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '';
+                        e.target.style.display = 'none';
+                        e.target.parentElement.classList.add('no-image');
+                      }}
+                    />
+                  ) : (
+                    <div className="performer-placeholder">
+                      {performer.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="performer-percentile">{performer.percentile}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="cat-mock-container">
         <h1 className="page-title">Previous Years' Papers</h1>
@@ -467,9 +538,9 @@ const MockTest = () => {
             examFilteredTests.map((test) => (
               <div
                 key={test._id}
-                className={`test-card ${test.status === 'COMING_SOON' ? "is-soon" : ""}`}
+                className={`test-card ${test.status === "COMING_SOON" ? "is-soon" : ""}`}
               >
-                {test.status === 'COMING_SOON' && (
+                {test.status === "COMING_SOON" && (
                   <div
                     className="soon-overlay"
                     role="status"
@@ -489,9 +560,13 @@ const MockTest = () => {
                     <button
                       className="attempt-btn"
                       onClick={() => handleAttemptTest(test)}
-                      disabled={test.status === 'COMING_SOON'}
-                      aria-disabled={test.status === 'COMING_SOON'}
-                      title={test.status === 'COMING_SOON' ? "Coming soon" : "Attempt Now"}
+                      disabled={test.status === "COMING_SOON"}
+                      aria-disabled={test.status === "COMING_SOON"}
+                      title={
+                        test.status === "COMING_SOON"
+                          ? "Coming soon"
+                          : "Attempt Now"
+                      }
                     >
                       {test.pdfUrl ? "Download" : "Attempt Now"}
                     </button>
@@ -505,7 +580,7 @@ const MockTest = () => {
                     <span>{test.durationMinutes} Minutes</span>
                   </div>
 
-                  <div className="footer">{test.language || 'English'}</div>
+                  <div className="footer">{test.language || "English"}</div>
                 </div>
               </div>
             ))
@@ -778,14 +853,16 @@ const MockTest = () => {
           {loadingTests ? (
             <div className="loading-message">Loading tests...</div>
           ) : topicFilteredTests.length === 0 ? (
-            <div className="empty-message">No topic-wise tests available yet.</div>
+            <div className="empty-message">
+              No topic-wise tests available yet.
+            </div>
           ) : (
             topicFilteredTests.map((test) => (
               <div
                 key={test._id}
-                className={`test-card ${test.status === 'COMING_SOON' ? "is-soon" : ""}`}
+                className={`test-card ${test.status === "COMING_SOON" ? "is-soon" : ""}`}
               >
-                {test.status === 'COMING_SOON' && (
+                {test.status === "COMING_SOON" && (
                   <div
                     className="soon-overlay"
                     role="status"
@@ -804,9 +881,13 @@ const MockTest = () => {
                     <button
                       className="attempt-btn"
                       onClick={() => handleAttemptTest(test)}
-                      disabled={test.status === 'COMING_SOON'}
-                      aria-disabled={test.status === 'COMING_SOON'}
-                      title={test.status === 'COMING_SOON' ? "Coming soon" : "Attempt Now"}
+                      disabled={test.status === "COMING_SOON"}
+                      aria-disabled={test.status === "COMING_SOON"}
+                      title={
+                        test.status === "COMING_SOON"
+                          ? "Coming soon"
+                          : "Attempt Now"
+                      }
                     >
                       {test.pdfUrl ? "Download" : "Attempt Now"}
                     </button>
@@ -818,7 +899,7 @@ const MockTest = () => {
                     <span>{test.totalMarks} Marks</span>
                     <span>{test.durationMinutes} Minutes</span>
                   </div>
-                  <div className="footer">{test.language || 'English'}</div>
+                  <div className="footer">{test.language || "English"}</div>
                 </div>
               </div>
             ))
@@ -979,7 +1060,10 @@ const MockTest = () => {
               access to expert faculty, extensive study materials, and
               personalized mentoring.
             </p>
-            <button className="cta-button" onClick={() => navigate("/course-details")}>
+            <button
+              className="cta-button"
+              onClick={() => navigate("/course-details")}
+            >
               Explore Our Courses
             </button>
           </div>
