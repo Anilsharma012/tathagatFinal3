@@ -126,7 +126,7 @@ const Mycourse = () => {
                     <button onClick={() => setPreviewCourse(item)} className="preview-btn">
                       👁️ Preview
                     </button>
-                    <button onClick={() => navigate("/course-purchase", { state: item })}>Enroll Now</button>
+                    <button onClick={() => navigate(`/course-purchase/${item._id}`, { state: item })}>Enroll Now</button>
                   </div>
                 </div>
               </div>

@@ -947,8 +947,8 @@ const loadMyCourses = async () => {
         }
       }
 
-      // Navigate to course purchase page
-      navigate('/course-purchase', {
+      // Navigate to course purchase page with dynamic route
+      navigate(`/course-purchase/${course._id}`, {
         state: {
           ...course,
           price: course.price || 30000,
@@ -967,7 +967,7 @@ const loadMyCourses = async () => {
     } catch (error) {
       console.error('Error checking enrollment:', error);
       // If there's an error, still allow to proceed to purchase
-      navigate('/course-purchase', {
+      navigate(`/course-purchase/${course._id}`, {
         state: {
           ...course,
           price: course.price || 30000,

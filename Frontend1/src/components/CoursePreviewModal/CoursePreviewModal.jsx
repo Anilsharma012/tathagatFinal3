@@ -35,7 +35,7 @@ const CoursePreviewModal = ({ course, onClose, isEnrolled }) => {
       setSelectedVideo(video);
     } else if (!isEnrolled) {
       // Navigate to buy page for paid videos
-      navigate('/course-purchase', { state: course });
+      navigate(`/course-purchase/${course._id}`, { state: course });
     } else {
       setSelectedVideo(video);
     }
@@ -379,7 +379,7 @@ const CoursePreviewModal = ({ course, onClose, isEnrolled }) => {
           {!isEnrolled && (
             <button 
               className="enroll-btn" 
-              onClick={() => navigate('/course-purchase', { state: course })}
+              onClick={() => navigate(`/course-purchase/${course._id}`, { state: course })}
             >
               Enroll Now - ₹{course.price}
             </button>
