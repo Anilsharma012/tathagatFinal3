@@ -326,11 +326,17 @@ const CoursePurchase = () => {
     ? pageContent.instructors 
     : defaultInstructors;
 
-  const displayPrice = heroSection.currentPrice || course?.price || 30000;
-  const displayOldPrice = heroSection.originalPrice || course?.oldPrice || 120000;
+  const defaultPrice = course?.price || 30000;
+  const defaultOldPrice = course?.oldPrice || 120000;
+  const displayPrice = (heroSection.currentPrice && heroSection.currentPrice > 0) 
+    ? heroSection.currentPrice 
+    : defaultPrice;
+  const displayOldPrice = (heroSection.originalPrice && heroSection.originalPrice > 0) 
+    ? heroSection.originalPrice 
+    : defaultOldPrice;
   const displayTitle = heroSection.mainTitle || course?.name || "CAT 2025 Full Course IIM ABC Practice Batch";
-  const displayBullets = heroSection.keyBullets?.length > 0 
-    ? heroSection.keyBullets 
+  const displayBullets = heroSection.keyBullets?.filter(b => b && b.trim())?.length > 0 
+    ? heroSection.keyBullets.filter(b => b && b.trim()) 
     : course?.features || [
         "Complete CAT preparation material",
         "Live interactive classes",
@@ -341,6 +347,19 @@ const CoursePurchase = () => {
       ];
 
   const videoUrl = heroSection.previewVideoUrl || "https://www.youtube.com/embed/aDXkJwqAiP4?si=gtkt5zJpNyAy7LBS";
+  
+  const displayInfoGrid = {
+    instructorName: infoGrid.instructorName || "Kumar Abhishek",
+    category: infoGrid.category || "CAT",
+    studentsEnrolled: (infoGrid.studentsEnrolled && infoGrid.studentsEnrolled > 0) ? infoGrid.studentsEnrolled : 200,
+    reviewScore: infoGrid.reviewScore || "4.8 (Google)"
+  };
+  
+  const displayRating = {
+    averageRating: (reviewsSection.averageRating && reviewsSection.averageRating > 0) ? reviewsSection.averageRating : 4.0,
+    totalRatings: (reviewsSection.totalRatings && reviewsSection.totalRatings > 0) ? reviewsSection.totalRatings : 6,
+    ratingBreakdown: reviewsSection.ratingBreakdown || { fiveStar: 5, fourStar: 1, threeStar: 0, twoStar: 0, oneStar: 0 }
+  };
 
   if (loading) {
     return (
@@ -373,28 +392,28 @@ const CoursePurchase = () => {
               <span className="icon">👨‍🏫</span>
               <div>
                 <div className="label">Instructor</div>
-                <div className="value">{infoGrid.instructorName || "Kumar Abhishek"}</div>
+                <div className="value">{displayInfoGrid.instructorName}</div>
               </div>
             </div>
             <div className="info-item">
               <span className="icon">📚</span>
               <div>
                 <div className="label">Category</div>
-                <div className="value">{infoGrid.category || "CAT"}</div>
+                <div className="value">{displayInfoGrid.category}</div>
               </div>
             </div>
             <div className="info-item">
               <span className="icon">👥</span>
               <div>
                 <div className="label">Students Enrolled</div>
-                <div className="value">{infoGrid.studentsEnrolled || 200}</div>
+                <div className="value">{displayInfoGrid.studentsEnrolled}</div>
               </div>
             </div>
             <div className="info-item">
               <span className="icon">⭐</span>
               <div>
                 <div className="label">Reviews</div>
-                <div className="value">{infoGrid.reviewScore || "4.8 (Google)"}</div>
+                <div className="value">{displayInfoGrid.reviewScore}</div>
               </div>
             </div>
           </div>
@@ -479,18 +498,16 @@ const CoursePurchase = () => {
             <div className="review-layout">
               <div className="rating-summary">
                 <div>
-                  <div className="rating-score">{reviewsSection.averageRating || 4.0}</div>
+                  <div className="rating-score">{displayRating.averageRating}</div>
                   <div className="rating-stars">★★★★★</div>
-                  <p className="total-rating">Total {reviewsSection.totalRatings || 6} Ratings</p>
+                  <p className="total-rating">Total {displayRating.totalRatings} Ratings</p>
                 </div>
 
                 <div className="rating-bars">
                   {[5, 4, 3, 2, 1].map((star, index) => {
-                    const breakdown = reviewsSection.ratingBreakdown || {};
                     const starKeys = ['fiveStar', 'fourStar', 'threeStar', 'twoStar', 'oneStar'];
-                    const count = breakdown[starKeys[index]] || (star === 5 ? 5 : star === 4 ? 1 : 0);
-                    const total = reviewsSection.totalRatings || 6;
-                    const percentage = total > 0 ? (count / total) * 100 : 0;
+                    const count = displayRating.ratingBreakdown[starKeys[index]] || 0;
+                    const percentage = displayRating.totalRatings > 0 ? (count / displayRating.totalRatings) * 100 : 0;
 
                     return (
                       <div className="bar-line" key={index}>
