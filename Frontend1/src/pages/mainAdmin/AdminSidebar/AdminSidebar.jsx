@@ -69,6 +69,9 @@ const AdminSidebar = () => {
         <NavLink to="/admin/top-performers" className="admin-link">
           <FaStar className="admin-icon" /> Best Results
         </NavLink>
+        <NavLink to="/admin/course-purchase-content" className="admin-link">
+          <FaFileAlt className="admin-icon" /> Course Page Content
+        </NavLink>
 
         <div className="admin-group-title">Analytics</div>
         <NavLink to="/admin/evaluate-answers" className="admin-link">Evaluate Answers (OCR)</NavLink>
