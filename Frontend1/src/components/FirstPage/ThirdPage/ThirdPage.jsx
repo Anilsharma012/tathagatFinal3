@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import "./ThirdPage.css";
 import image1 from "../../../images/Toppers/MUDIT RASTOGI.jpg";
 import image2 from "../../../images/Toppers/UDAI.jpg";
@@ -19,33 +20,53 @@ const statsData = [
   { label: "IIM Calls", value: 90000 },
 ];
 
+const defaultStudents = [
+  { name: "MUDIT RUSTAGI", image: image1, percentile: "99.99 %ILE" },
+  { name: "LUV SAXENA", image: image3, percentile: "99.98 %ILE" },
+  { name: "ADITYA DANG", image: image6, percentile: "99.41 %ILE" },
+  { name: "HARSHIT BHALLA", image: image5, percentile: "99.33 %ILE" },
+  { name: "KUSHAGRA", image: image4, percentile: "99.25 %ILE" },
+  { name: "UDAI BAIRARIA", image: image2, percentile: "99 %ILE" },
+  { name: "AYUSH AGGARWAL", image: image7, percentile: "99.29 %ILE" },
+  { name: "SHIVAM SHEKHAR", image: image8, percentile: "99.86 %ILE" },
+  { name: "DEEKSHA LAMBA", image: image9, percentile: "99.25 %ILE" },
+];
+
 const ThirdPage = () => {
   const [counts, setCounts] = useState(statsData.map(() => 0));
+  const [topPerformers, setTopPerformers] = useState([]);
   const navigate = useNavigate();
 
-  // NEW: ref for the horizontal scroll container
   const scrollRef = useRef(null);
 
-  // NEW: helper to scroll left/right
   const scrollByAmount = (dir = 1) => {
     const el = scrollRef.current;
     if (!el) return;
-    // Scroll ~90% of visible width (at least 300px), smooth
     const amount = Math.max(300, Math.floor(el.clientWidth * 0.9));
     el.scrollBy({ left: dir * amount, behavior: "smooth" });
   };
 
-  const students = [
-    { name: "MUDIT RUSTAGI", image: image1, percentile: "99.99 %ILE" },
-    { name: "LUV SAXENA", image: image3, percentile: "99.98 %ILE" },
-    { name: "ADITYA DANG", image: image6, percentile: "99.41 %ILE" },
-    { name: "HARSHIT BHALLA", image: image5, percentile: "99.33 %ILE" },
-    { name: "KUSHAGRA", image: image4, percentile: "99.25 %ILE" },
-    { name: "UDAI BAIRARIA", image: image2, percentile: "99 %ILE" },
-    { name: "AYUSH AGGARWAL", image: image7, percentile: "99.29 %ILE" },
-    { name: "SHIVAM SHEKHAR", image: image8, percentile: "99.86 %ILE" },
-    { name: "DEEKSHA LAMBA", image: image9, percentile: "99.25 %ILE" },
-  ];
+  useEffect(() => {
+    const fetchTopPerformers = async () => {
+      try {
+        const res = await axios.get('/api/top-performers/public');
+        if (res.data.success && Array.isArray(res.data.performers) && res.data.performers.length > 0) {
+          setTopPerformers(res.data.performers);
+        }
+      } catch (error) {
+        console.log('Using default students data');
+      }
+    };
+    fetchTopPerformers();
+  }, []);
+
+  const students = topPerformers.length > 0 
+    ? topPerformers.map(p => ({
+        name: p.name,
+        image: `/uploads/top-performers/${p.photoUrl}`,
+        percentile: p.percentile
+      }))
+    : defaultStudents;
 
   useEffect(() => {
     const interval = setInterval(() => {

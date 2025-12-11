@@ -6,7 +6,6 @@ import Chatbox from "../../components/Chat/Chatbox";
 import axios from "axios";
 
 const API_BASE = "/api/downloads";
-const PERFORMERS_API = "/api/top-performers";
 
 const MockTest = () => {
   const navigate = useNavigate();
@@ -19,7 +18,6 @@ const MockTest = () => {
   const [previousYearTests, setPreviousYearTests] = useState([]);
   const [topicWiseTests, setTopicWiseTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
-  const [topPerformers, setTopPerformers] = useState([]);
 
   const [activeTab, setActiveTab] = useState("quant");
   const [activeCat, setActiveCat] = useState("all");
@@ -28,19 +26,7 @@ const MockTest = () => {
   useEffect(() => {
     fetchCategories();
     fetchTests();
-    fetchTopPerformers();
   }, []);
-
-  const fetchTopPerformers = async () => {
-    try {
-      const response = await axios.get(`${PERFORMERS_API}/public`);
-      if (response.data.success) {
-        setTopPerformers(response.data.performers);
-      }
-    } catch (error) {
-      console.error("Error fetching top performers:", error);
-    }
-  };
 
   useEffect(() => {
     if (categories.TOPIC_WISE.length > 0 && !topicFilter) {
@@ -459,52 +445,6 @@ const MockTest = () => {
         </div>
       </section> */}
 
-      {topPerformers.length > 0 && (
-        <section className="best-results-section">
-          <div className="best-results-header">
-            <h2 className="best-results-title">Best Results in the Industry</h2>
-            <div className="best-results-stats">
-              <div className="stat-item">
-                <span className="stat-number">1200+</span>
-                <span className="stat-label">99%ilers</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">8400+</span>
-                <span className="stat-label">95%ilers</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">90000+</span>
-                <span className="stat-label">IIM Calls</span>
-              </div>
-            </div>
-          </div>
-          <div className="best-results-cards">
-            {topPerformers.map((performer) => (
-              <div key={performer._id} className="performer-card">
-                <div className="performer-image">
-                  {performer.photoUrl ? (
-                    <img 
-                      src={`/uploads/top-performers/${performer.photoUrl}`}
-                      alt={performer.name}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '';
-                        e.target.style.display = 'none';
-                        e.target.parentElement.classList.add('no-image');
-                      }}
-                    />
-                  ) : (
-                    <div className="performer-placeholder">
-                      {performer.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div className="performer-percentile">{performer.percentile}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="cat-mock-container">
         <h1 className="page-title">Previous Years' Papers</h1>
