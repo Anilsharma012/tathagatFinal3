@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const TopPerformerController = require('../controllers/TopPerformerController');
-const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
+const { authMiddleware, adminAuth } = require('../middleware/authMiddleware');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -32,12 +32,12 @@ const upload = multer({
 
 router.get('/public', TopPerformerController.getPublic);
 
-router.get('/admin', authMiddleware, adminMiddleware, TopPerformerController.getAll);
-router.get('/admin/:id', authMiddleware, adminMiddleware, TopPerformerController.getById);
-router.post('/admin', authMiddleware, adminMiddleware, upload.single('photo'), TopPerformerController.create);
-router.put('/admin/:id', authMiddleware, adminMiddleware, upload.single('photo'), TopPerformerController.update);
-router.delete('/admin/:id', authMiddleware, adminMiddleware, TopPerformerController.delete);
-router.patch('/admin/:id/toggle', authMiddleware, adminMiddleware, TopPerformerController.toggleStatus);
-router.post('/admin/reorder', authMiddleware, adminMiddleware, TopPerformerController.reorder);
+router.get('/admin', authMiddleware, TopPerformerController.getAll);
+router.get('/admin/:id', authMiddleware, TopPerformerController.getById);
+router.post('/admin', authMiddleware, upload.single('photo'), TopPerformerController.create);
+router.put('/admin/:id', authMiddleware, upload.single('photo'), TopPerformerController.update);
+router.delete('/admin/:id', authMiddleware, TopPerformerController.delete);
+router.patch('/admin/:id/toggle', authMiddleware, TopPerformerController.toggleStatus);
+router.post('/admin/reorder', authMiddleware, TopPerformerController.reorder);
 
 module.exports = router;

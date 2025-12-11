@@ -2,10 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './TopPerformerManagement.css';
 
-const API_BASE = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3001' 
-  : '';
-
 const TopPerformerManagement = () => {
   const [performers, setPerformers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +25,7 @@ const TopPerformerManagement = () => {
   const fetchPerformers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/top-performers/admin`, {
+      const res = await axios.get(`/api/top-performers/admin`, {
         headers: getAuthHeaders()
       });
       if (res.data.success) {
@@ -63,7 +59,7 @@ const TopPerformerManagement = () => {
       isActive: performer.isActive
     });
     setSelectedFile(null);
-    setPreviewUrl(performer.photoUrl ? `${API_BASE}/uploads/top-performers/${performer.photoUrl}` : '');
+    setPreviewUrl(performer.photoUrl ? `/uploads/top-performers/${performer.photoUrl}` : '');
     setShowModal(true);
   };
 
@@ -91,13 +87,13 @@ const TopPerformerManagement = () => {
 
       if (editingPerformer) {
         await axios.put(
-          `${API_BASE}/api/top-performers/admin/${editingPerformer._id}`,
+          `/api/top-performers/admin/${editingPerformer._id}`,
           formDataObj,
           { headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' } }
         );
       } else {
         await axios.post(
-          `${API_BASE}/api/top-performers/admin`,
+          `/api/top-performers/admin`,
           formDataObj,
           { headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' } }
         );
@@ -117,7 +113,7 @@ const TopPerformerManagement = () => {
     if (!window.confirm('Are you sure you want to delete this performer?')) return;
     
     try {
-      await axios.delete(`${API_BASE}/api/top-performers/admin/${id}`, {
+      await axios.delete(`/api/top-performers/admin/${id}`, {
         headers: getAuthHeaders()
       });
       fetchPerformers();
@@ -129,7 +125,7 @@ const TopPerformerManagement = () => {
 
   const handleToggleStatus = async (id) => {
     try {
-      await axios.patch(`${API_BASE}/api/top-performers/admin/${id}/toggle`, {}, {
+      await axios.patch(`/api/top-performers/admin/${id}/toggle`, {}, {
         headers: getAuthHeaders()
       });
       fetchPerformers();
@@ -156,7 +152,7 @@ const TopPerformerManagement = () => {
     setPerformers(newOrder);
     try {
       await axios.post(
-        `${API_BASE}/api/top-performers/admin/reorder`,
+        `/api/top-performers/admin/reorder`,
         { orderedIds: newOrder.map(p => p._id) },
         { headers: getAuthHeaders() }
       );
@@ -219,7 +215,7 @@ const TopPerformerManagement = () => {
                   <td>
                     {performer.photoUrl ? (
                       <img 
-                        src={`${API_BASE}/uploads/top-performers/${performer.photoUrl}`} 
+                        src={`/uploads/top-performers/${performer.photoUrl}`} 
                         alt={performer.name}
                         className="performer-thumb"
                       />
