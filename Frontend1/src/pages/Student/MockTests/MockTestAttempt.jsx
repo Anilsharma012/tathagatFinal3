@@ -57,6 +57,9 @@ const MockTestAttempt = () => {
   const [finalResult, setFinalResult] = useState(null);
   const [studentInfo, setStudentInfo] = useState({ name: 'John Smith', email: '', phone: '' });
   const [showStudentDetails, setShowStudentDetails] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showExamSummary, setShowExamSummary] = useState(false);
+  const [allSectionsStats, setAllSectionsStats] = useState([]);
   
   const timerRef = useRef(null);
   const syncIntervalRef = useRef(null);
@@ -539,39 +542,121 @@ const MockTestAttempt = () => {
 
     let answered = 0;
     let markedCount = 0;
-    let visited = visitedQuestions.size;
+    let answeredAndMarked = 0;
+    let visitedCount = 0;
 
     sectionQuestions.forEach((question, localIndex) => {
       const questionId = question?._id || question;
       const response = responses[questionId];
+      const isMarked = markedForReview.has(localIndex);
+      const isVisited = visitedQuestions.has(localIndex);
+      const hasAnswer = response && (typeof response === 'string' ? response.trim() !== '' : true);
 
-      if (markedForReview.has(localIndex)) {
+      if (isVisited) visitedCount++;
+      
+      if (hasAnswer && isMarked) {
+        answeredAndMarked++;
+        answered++;
         markedCount++;
-      }
-
-      if (response && response.trim && response.trim() !== '') {
+      } else if (hasAnswer) {
         answered++;
-      } else if (response) {
-        answered++;
+      } else if (isMarked) {
+        markedCount++;
       }
     });
 
-    const notAnswered = sectionQuestions.length - answered;
-    const notVisited = Math.max(0, sectionQuestions.length - visited);
+    const notAnswered = visitedCount - answered;
+    const notVisited = sectionQuestions.length - visitedCount;
 
     return {
       sectionName: section.name,
       totalQuestions: sectionQuestions.length,
-      answered,
-      notAnswered,
-      markedForReview: markedCount,
-      visited: Math.min(visited, sectionQuestions.length),
-      notVisited,
+      answered: answered - answeredAndMarked,
+      notAnswered: Math.max(0, notAnswered),
+      markedForReview: markedCount - answeredAndMarked,
+      answeredAndMarked,
+      notVisited: Math.max(0, notVisited),
       correct: 0,
       incorrect: 0,
       score: answered * 3,
       maxScore: sectionQuestions.length * 3
     };
+  };
+
+  const calculateAllSectionsStats = () => {
+    if (!testData?.sections) return [];
+    
+    return testData.sections.map((section, index) => {
+      const sectionQuestions = section.questions || [];
+      let answered = 0;
+      let markedCount = 0;
+      let answeredAndMarked = 0;
+      let visitedCount = 0;
+
+      sectionQuestions.forEach((question, localIndex) => {
+        const questionId = question?._id || question;
+        const response = responses[questionId];
+        const isMarked = markedForReview.has(localIndex);
+        const isVisited = visitedQuestions.has(localIndex);
+        const hasAnswer = response && (typeof response === 'string' ? response.trim() !== '' : true);
+
+        if (index === currentSection && isVisited) visitedCount++;
+        else if (index < currentSection) visitedCount = sectionQuestions.length;
+        
+        if (hasAnswer && isMarked) {
+          answeredAndMarked++;
+          answered++;
+        } else if (hasAnswer) {
+          answered++;
+        } else if (isMarked) {
+          markedCount++;
+        }
+      });
+
+      const notAnswered = visitedCount - answered;
+      const notVisited = sectionQuestions.length - visitedCount;
+
+      let status = 'yet_to_attempt';
+      if (index < currentSection) status = 'completed';
+      else if (index === currentSection) status = 'current';
+
+      return {
+        sectionName: section.name,
+        totalQuestions: sectionQuestions.length,
+        answered: answered - answeredAndMarked,
+        notAnswered: Math.max(0, notAnswered),
+        markedForReview: markedCount,
+        answeredAndMarked,
+        notVisited: Math.max(0, notVisited),
+        status
+      };
+    });
+  };
+
+  const handleSubmitClick = () => {
+    const stats = calculateAllSectionsStats();
+    setAllSectionsStats(stats);
+    setShowExamSummary(true);
+  };
+
+  const confirmSectionSubmit = () => {
+    setShowExamSummary(false);
+    handleNextSection();
+  };
+
+  const confirmFinalSubmit = () => {
+    setShowExamSummary(false);
+    setShowSubmitConfirm(true);
+  };
+
+  const cancelSubmit = () => {
+    setShowExamSummary(false);
+    setShowSubmitConfirm(false);
+  };
+
+  const proceedWithFinalSubmit = () => {
+    setShowSubmitConfirm(false);
+    handleSubmitTest();
   };
 
   const handleNextSection = async () => {
@@ -1064,18 +1149,22 @@ const MockTestAttempt = () => {
           </div>
 
           <div className="bottom-action-bar">
-            <button className="action-btn mark-review" onClick={handleMarkForReview}>
-              Mark for Review & Next
-            </button>
-            <button className="action-btn clear-response" onClick={handleClearResponse}>
-              Clear Response
-            </button>
-            <button className="action-btn save-next" onClick={handleSaveAndNext}>
-              Save & Next
-            </button>
-            <button className="action-btn submit-btn" onClick={handleSubmitTest}>
-              Submit
-            </button>
+            <div className="left-actions">
+              <button className="action-btn mark-review" onClick={handleMarkForReview}>
+                Mark for Review & Next
+              </button>
+              <button className="action-btn clear-response" onClick={handleClearResponse}>
+                Clear Response
+              </button>
+            </div>
+            <div className="right-actions">
+              <button className="action-btn save-next" onClick={handleSaveAndNext}>
+                Save & Next
+              </button>
+              <button className="action-btn submit-btn" onClick={handleSubmitClick}>
+                Submit
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1323,6 +1412,86 @@ const MockTestAttempt = () => {
             <div className="section-result-actions">
               <button className="continue-btn" onClick={proceedToNextSection}>
                 {currentSection < testData.sections.length - 1 ? 'Continue to Next Section' : 'Submit Test'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExamSummary && (
+        <div className="modal-overlay">
+          <div className="exam-summary-modal">
+            <div className="exam-summary-header">
+              <h2>Exam Summary</h2>
+            </div>
+            <div className="exam-summary-content">
+              {allSectionsStats.map((section, index) => (
+                <div key={index} className={`section-summary-block ${section.status}`}>
+                  <div className="section-summary-title">
+                    <strong>{section.sectionName}</strong>
+                    <span className="section-status-label">
+                      {section.status === 'current' ? '( Current Group )' : 
+                       section.status === 'completed' ? '( Attempted Group ; View not allowed; Edit not allowed)' : 
+                       '( Yet to attempt )'}
+                    </span>
+                  </div>
+                  <table className="summary-table">
+                    <thead>
+                      <tr>
+                        <th>Section Name</th>
+                        <th>No. of Questions</th>
+                        <th>Answered</th>
+                        <th>Not Answered</th>
+                        <th>Marked for Review</th>
+                        <th>Answered & Marked for Review (will also be evaluated)</th>
+                        <th>Not Visited</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{section.sectionName}</td>
+                        <td>{section.totalQuestions}</td>
+                        <td>{section.answered}</td>
+                        <td>{section.notAnswered}</td>
+                        <td>{section.markedForReview}</td>
+                        <td>{section.answeredAndMarked}</td>
+                        <td>{section.notVisited}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+              
+              <div className="exam-summary-warning">
+                <p>Are you sure to submit this Group? Click 'Yes' to proceed; Click 'No' to go back.</p>
+                <p className="warning-note">Dear Candidate, Once the Group is submitted, you cannot revisit and edit your responses.</p>
+              </div>
+            </div>
+            <div className="exam-summary-actions">
+              <button className="summary-btn yes-btn" onClick={currentSection < testData.sections.length - 1 ? confirmSectionSubmit : confirmFinalSubmit}>
+                Yes
+              </button>
+              <button className="summary-btn no-btn" onClick={cancelSubmit}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSubmitConfirm && (
+        <div className="modal-overlay">
+          <div className="submit-confirm-modal">
+            <div className="submit-confirm-content">
+              <p className="submit-warning">Dear Candidate, Thank you. Please note that your Exam is about to be submitted. Click on 'OK' to proceed further.</p>
+              <p className="submit-question">Are you sure to submit the exam?</p>
+            </div>
+            <div className="submit-confirm-actions">
+              <button className="confirm-btn ok-btn" onClick={proceedWithFinalSubmit}>
+                OK
+              </button>
+              <button className="confirm-btn cancel-btn" onClick={cancelSubmit}>
+                Cancel
               </button>
             </div>
           </div>
