@@ -7,12 +7,8 @@ const MockTestTerms = () => {
   const navigate = useNavigate();
   const [testDetails, setTestDetails] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [declarations, setDeclarations] = useState({
-    readInstructions: false,
-    noElectronicDevices: false,
-    noExternalAid: false,
-    completeTest: false
-  });
+  const [declarationChecked, setDeclarationChecked] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
     fetchTestDetails();
@@ -51,20 +47,9 @@ const MockTestTerms = () => {
     }
   };
 
-  const handleDeclarationChange = (key) => {
-    setDeclarations(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  const allDeclarationsChecked = Object.values(declarations).every(Boolean);
-
-  const [isStarting, setIsStarting] = useState(false);
-
   const handleDevLogin = async () => {
     try {
-      console.log('🔍 Attempting development login...');
+      console.log('Attempting development login...');
       const response = await fetch('/api/dev/login', {
         method: 'POST',
         headers: {
@@ -72,78 +57,37 @@ const MockTestTerms = () => {
         }
       });
 
-      console.log('Response status:', response.status);
-
       let data;
-      let parseSuccess = false;
-
       try {
         data = await response.json();
-        parseSuccess = true;
-        console.log('Response data:', data);
       } catch (parseError) {
         console.error('Failed to parse dev login response:', parseError);
-        parseSuccess = false;
-        data = { success: false, message: 'Invalid response from server' };
+        return false;
       }
 
-      if (response.ok && parseSuccess && data.success && data.token) {
+      if (response.ok && data.success && data.token) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        console.log('✅ Development user logged in successfully');
-        console.log('Token stored:', data.token.substring(0, 20) + '...');
-        alert('Development user logged in successfully! You can now start the test.');
+        console.log('Development user logged in successfully');
         return true;
       } else {
-        const errorMessage = parseSuccess && data.message ? data.message : 'Development login failed';
-        console.error('❌ Dev login failed:', errorMessage);
-        alert('Development login failed: ' + errorMessage);
+        console.error('Dev login failed:', data.message);
         return false;
       }
     } catch (error) {
-      console.error('❌ Dev login error:', error);
-      alert('Development login error: ' + error.message);
+      console.error('Dev login error:', error);
       return false;
     }
   };
 
-  const handleTestToken = async () => {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      if (!authToken) {
-        alert('No token found. Please login first.');
-        return;
-      }
-
-      const response = await fetch('/api/dev/verify-token', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      console.log('Token verification result:', data);
-
-      if (data.success) {
-        alert('✅ Token is valid! User: ' + data.user.name);
-      } else {
-        alert('❌ Token is invalid: ' + data.message);
-      }
-    } catch (error) {
-      console.error('Token test error:', error);
-      alert('Token test failed: ' + error.message);
-    }
-  };
-
-  const handleContinue = async () => {
-    if (!allDeclarationsChecked) {
-      alert('Please agree to all declarations before continuing.');
+  const handleStartTest = async () => {
+    if (!declarationChecked) {
+      alert('Please accept the declaration before starting the test.');
       return;
     }
 
     if (isStarting) {
-      return; // Prevent double clicks
+      return;
     }
 
     setIsStarting(true);
@@ -213,6 +157,19 @@ const MockTestTerms = () => {
     }
   };
 
+  const handlePrevious = () => {
+    navigate(`/student/mock-test/${testId}/instructions`);
+  };
+
+  const getUserName = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user.name || 'John Smith';
+    } catch {
+      return 'John Smith';
+    }
+  };
+
   if (loading) {
     return (
       <div className="cat-terms-page">
@@ -239,238 +196,114 @@ const MockTestTerms = () => {
 
   return (
     <div className="cat-terms-page">
-      {/* CAT Style Header */}
       <div className="cat-header">
         <div className="cat-header-top">
           <div className="cat-logos">
-            <div className="logo-item">CAT</div>
-            <div className="logo-item">2024</div>
-            <div className="logo-item">IIM</div>
-            <div className="logo-item">TATHAGAT</div>
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Anna_University_Logo.svg/1200px-Anna_University_Logo.svg.png" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
           </div>
-          <div className="cat-title">
-            <h1>COMMON ADMISSION TEST</h1>
-            <h2>Subject Specific Instructions</h2>
+          <div className="cat-title-center">
+            <span className="cat-2025">CAT 2025</span>
           </div>
+          <div className="cat-logos">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/IIM_Kozhikode_Logo.svg/1200px-IIM_Kozhikode_Logo.svg.png" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
+          </div>
+        </div>
+        <div className="cat-header-bar">
+          <span>Other Important Instructions</span>
         </div>
       </div>
 
-      {/* Main Content Container */}
       <div className="cat-content">
         <div className="cat-main-panel">
-          {/* Left Panel - Terms Content */}
           <div className="cat-terms-panel">
             <div className="terms-content">
-              <div className="login-section">
-                <h3>1. Login</h3>
-                <p>
-                  Enter your registration number and password following instructions provided by CAT by the Registration.
-                </p>
-              </div>
+              <h3 className="section-title">Section Specific Information:</h3>
+              
+              <ol className="instruction-list">
+                <li>
+                  The number of items on the test are as follows:
+                  <div className="sections-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Section</th>
+                          <th>No. of Items</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Verbal Ability and Reading Comprehension (VARC)</td>
+                          <td>24</td>
+                        </tr>
+                        <tr>
+                          <td>Data Interpretation and Logical Reasoning (DILR)</td>
+                          <td>22</td>
+                        </tr>
+                        <tr>
+                          <td>Quantitative Ability (QA)</td>
+                          <td>22</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </li>
+                <li>
+                  In the <em>Data Interpretation and Logical Reasoning</em> section, each problem is based on situations or scenarios and has either four or five sub-questions.
+                </li>
+                <li>
+                  For <em>Reading Comprehension</em>, each passage consists of a group of four sub-questions.
+                </li>
+              </ol>
 
-              <div className="registration-section">
-                <h3>2. Go through the various symbols used in the test and understand their meaning before you start the test.</h3>
-              </div>
-
-              <div className="question-section">
-                <h3>3. The question paper consists of 3 Sections.</h3>
-                
-                <div className="sections-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Section</th>
-                        <th>Subject</th>
-                        <th>No. of Questions</th>
-                        <th>Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>I</td>
-                        <td>Verbal Ability and Reading Comprehension (VARC)</td>
-                        <td>{testDetails.sections?.find(s => s.name === 'VARC')?.totalQuestions || 24}</td>
-                        <td>60 minutes</td>
-                      </tr>
-                      <tr>
-                        <td>II</td>
-                        <td>Data Interpretation and Logical Reasoning (DILR)</td>
-                        <td>{testDetails.sections?.find(s => s.name === 'DILR')?.totalQuestions || 20}</td>
-                        <td>60 minutes</td>
-                      </tr>
-                      <tr>
-                        <td>III</td>
-                        <td>Quantitative Ability (QA)</td>
-                        <td>{testDetails.sections?.find(s => s.name === 'QA')?.totalQuestions || 22}</td>
-                        <td>60 minutes</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="marking-section">
-                <h3>4. The Data Interpretation and Logical Reasoning (DILR) section contains 20 questions, with at least some grouping of questions, and you are free as number of sub-questions. Similarly, the Reading Comprehension, such passages consists of a group of four questions. However, within each group, they may vary. You may see questions classified based on four different difficulty levels - easy, easy-medium, medium, and hard. You will find 20 different types of questions and solutions or techniques and are they are number of sub-questions.</h3>
-              </div>
-
-              <div className="pwd-section">
-                <h3>5. For a Non-MCQ, a candidate will be given 3 different marks for a correct answer, and a 1 point mark for an attempted question. There will be no negative mark for a wrong answer or an Non-MCQ. You will find 20 choice the correct one for each question. However, the choice will be marked automatically only. Each section. Each candidate can attempt all questions. You have to choose the correct one.</h3>
-              </div>
-
-              <div className="mcq-section">
-                <h3>6. At the time of starting the test, all computer hardware and software offered to you are in working condition.</h3>
-              </div>
-
-              <div className="navigation-section">
-                <h3>7. Procedure for changing your response:</h3>
-                <p>To deselect your chosen answer, click on the question number in the question palette and click on the "Clear Response" button.</p>
-                <p>To change your chosen answer, click on the question number in the question palette and click on the new choice of choice and then click on the "Save & Next" or "Mark for Review & Next" button.</p>
-                <p>To save your changed answer, you must click on the "Save & Next" or "Mark for Review & Next" button.</p>
-              </div>
-
-              <div className="navigation-section">
-                <h3>8. Navigating through Sections:</h3>
-                <p>At the end of the exam allotted time for sections A, you click on the "Next Section" button. This feature is provided for you to see the entire question paper of a particular section.</p>
-                <ul>
-                  <li>In the event of you do not click on the "Submit Section" after completing all 20 minute magnifying glass icons at the top of the screen. You can click on the "Question Palette" button (This feature is provided for you to see the entire question paper of the section)</li>
-                  <li>Zoom is enabled at 2 levels from the default zoom level, which will be useful for you to access that you may have to scroll down to view the full question and options in some cases.</li>
+              <div className="declaration-section">
+                <label className="declaration-checkbox">
+                  <input 
+                    type="checkbox" 
+                    checked={declarationChecked}
+                    onChange={() => setDeclarationChecked(!declarationChecked)}
+                  />
+                  <span className="checkbox-custom"></span>
+                  <span className="declaration-title">Declaration by the Candidate:</span>
+                </label>
+                <ul className="declaration-list">
+                  <li>I have read and understood all the above instructions.</li>
+                  <li>I have also read and understood the instructions provided on the admit card and the CAT website and will follow them accordingly.</li>
+                  <li>I declare that I am not wearing/carrying/in possession of any electronic communication gadgets or any prohibited material in the examination hall.</li>
                 </ul>
               </div>
+            </div>
 
-              <div className="device-section">
-                <h3>9. I will not declare, publish, transmit, record, store or convey or store of the contents of the CAT in any Information transfer in whole or in part should in any way, verbal or written, electronically or mechanically for any purpose. I am expected not to take any material, any knowledge that you by the Monitoring and Training Services Section and CAT Information transfer is strictly prohibited, and I will be subject to appropriate legal action during the examination.</h3>
-              </div>
+            <div className="bottom-buttons">
+              <button className="cat-btn-previous" onClick={handlePrevious}>
+                <span className="arrow">{'<'}</span> Previous
+              </button>
+              <button 
+                className={`cat-btn-begin ${!declarationChecked || isStarting ? 'disabled' : ''}`}
+                onClick={handleStartTest}
+                disabled={!declarationChecked || isStarting}
+              >
+                {isStarting ? 'Starting...' : 'I am ready to begin'}
+              </button>
             </div>
           </div>
 
-          {/* Right Panel - Profile & Declarations */}
           <div className="cat-profile-panel">
             <div className="profile-section">
-              <div className="profile-image">
-                <div className="profile-avatar">
-                  <div className="avatar-placeholder">
-                    <span>👤</span>
-                  </div>
+              <div className="profile-avatar">
+                <div className="avatar-circle">
+                  <svg viewBox="0 0 100 100" className="avatar-svg">
+                    <circle cx="50" cy="35" r="22" fill="#4a90a4"/>
+                    <ellipse cx="50" cy="85" rx="35" ry="25" fill="#4a90a4"/>
+                  </svg>
                 </div>
               </div>
-              <div className="profile-info">
-                <h4>{(() => {
-                  try {
-                    const user = JSON.parse(localStorage.getItem('user') || '{}');
-                    return user.name || 'Test Candidate';
-                  } catch {
-                    return 'Test Candidate';
-                  }
-                })()}</h4>
-                <p>Candidate</p>
-                <small style={{fontSize: '11px', color: '#666'}}>
-                  Auth: {localStorage.getItem('authToken') ? '✅ Logged In' : '❌ Not Logged In'}
-                </small>
-              </div>
-            </div>
-
-            <div className="declarations-section">
-              <h4>Declaration by a Candidate:</h4>
-              
-              <div className="declaration-item">
-                <label className="cat-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={declarations.readInstructions}
-                    onChange={() => handleDeclarationChange('readInstructions')}
-                  />
-                  <span className="checkmark"></span>
-                  <span className="checkbox-text">
-                    I have read and understood clearly the Instructions given in the sheet and I am satisfied that all my questions regarding all the instructions, have been taken to the satisfied and/or disciplinary action taken against which may include cancelling my first focus after conducting.
-                  </span>
-                </label>
-              </div>
-
-              <div className="declaration-item">
-                <label className="cat-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={declarations.noElectronicDevices}
-                    onChange={() => handleDeclarationChange('noElectronicDevices')}
-                  />
-                  <span className="checkmark"></span>
-                  <span className="checkbox-text">
-                    I confirm that at the start of the test, all computer hardware and software offered to you are in working condition.
-                  </span>
-                </label>
-              </div>
-
-              <div className="declaration-item">
-                <label className="cat-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={declarations.noExternalAid}
-                    onChange={() => handleDeclarationChange('noExternalAid')}
-                  />
-                  <span className="checkmark"></span>
-                  <span className="checkbox-text">
-                    I will not disclose, publish, reproduce, transmit, store or facilitate transmission and storage of the contents of the CAT in any form or by any means, verbal or written, electronically or mechanically for any purpose.
-                  </span>
-                </label>
-              </div>
-
-              <div className="declaration-item">
-                <label className="cat-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={declarations.completeTest}
-                    onChange={() => handleDeclarationChange('completeTest')}
-                  />
-                  <span className="checkmark"></span>
-                  <span className="checkbox-text">
-                    I am expected not to attempt to take any information from the content of the CAT by any means. I understand that if I do any such activities during or after the examination, I will be subjected to appropriate legal action.
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <div className="action-buttons">
-              <button
-                className="cat-btn cat-btn-back"
-                onClick={() => navigate(-1)}
-              >
-                Previous
-              </button>
-
-              {/* Development Buttons */}
-              {(!localStorage.getItem('authToken') || localStorage.getItem('authToken') === 'null') ? (
-                <button
-                  className="cat-btn cat-btn-dev"
-                  onClick={handleDevLogin}
-                  style={{
-                    backgroundColor: '#2196F3',
-                    color: 'white',
-                    margin: '0 5px'
-                  }}
-                >
-                  Dev Login
-                </button>
-              ) : (
-                <button
-                  className="cat-btn cat-btn-test"
-                  onClick={handleTestToken}
-                  style={{
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    margin: '0 5px'
-                  }}
-                >
-                  Test Token
-                </button>
-              )}
-
-              <button
-                className={`cat-btn cat-btn-continue ${!allDeclarationsChecked || isStarting ? 'disabled' : ''}`}
-                onClick={handleContinue}
-                disabled={!allDeclarationsChecked || isStarting}
-              >
-                {isStarting ? 'Starting Test...' : 'Continue →'}
-              </button>
+              <div className="profile-name">{getUserName()}</div>
             </div>
           </div>
         </div>
