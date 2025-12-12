@@ -1,81 +1,376 @@
 import React, { useEffect, useState } from 'react';
-import http from '../../../utils/http';
-import '../../../components/LiveClasses/liveClasses.css';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import './StudentReports.css';
 
-const key = 'tests:reports:v1';
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const StudentReports = () => {
-  const [items, setItems] = useState([]);
-  const [offline, setOffline] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(null);
+  const [attempts, setAttempts] = useState([]);
+  const [performanceTrend, setPerformanceTrend] = useState([]);
+  const [sectionAnalysis, setSectionAnalysis] = useState([]);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  useEffect(()=>{ try { setItems(JSON.parse(sessionStorage.getItem(key))||[]); } catch {}; refresh(); }, []);
+  useEffect(() => {
+    fetchReportsData();
+  }, []);
 
-  const refresh = async () => {
+  const fetchReportsData = async () => {
     try {
-      const r = await http.get('/tests/reports', { params: { role: 'student' } });
-      const items = r.data?.items || [];
-      setItems(items);
-      setOffline(false);
-      try { sessionStorage.setItem(key, JSON.stringify(items)); } catch {}
-    } catch {
-      setOffline(true);
+      setLoading(true);
+      const authToken = localStorage.getItem('authToken');
+      
+      const [summaryRes, sectionRes] = await Promise.all([
+        fetch('/api/mock-tests/reports/summary', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        }),
+        fetch('/api/mock-tests/reports/section-analysis', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+      ]);
+
+      const summaryData = await summaryRes.json();
+      const sectionData = await sectionRes.json();
+
+      if (summaryData.success) {
+        setSummary(summaryData.summary);
+        setAttempts(summaryData.attempts);
+        setPerformanceTrend(summaryData.performanceTrend);
+      }
+
+      if (sectionData.success) {
+        setSectionAnalysis(sectionData.analysis);
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const fetchLeaderboard = async (testId, testName) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/mock-tests/reports/${testId}/leaderboard`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLeaderboard(data);
+        setSelectedTest({ id: testId, name: testName });
+        setShowLeaderboard(true);
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    }
+  };
+
+  const trendChartData = {
+    labels: performanceTrend.map(p => p.testName),
+    datasets: [{
+      label: 'Score',
+      data: performanceTrend.map(p => p.score),
+      fill: true,
+      backgroundColor: 'rgba(45, 140, 255, 0.1)',
+      borderColor: '#2d8cff',
+      tension: 0.4,
+      pointBackgroundColor: '#2d8cff',
+      pointRadius: 5
+    }]
+  };
+
+  const sectionChartData = {
+    labels: sectionAnalysis.map(s => s.section),
+    datasets: [{
+      label: 'Average Score',
+      data: sectionAnalysis.map(s => parseFloat(s.averageScore)),
+      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+      borderWidth: 0
+    }]
+  };
+
+  const accuracyChartData = {
+    labels: sectionAnalysis.map(s => s.section),
+    datasets: [{
+      label: 'Accuracy %',
+      data: sectionAnalysis.map(s => parseFloat(s.averageAccuracy)),
+      backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)'],
+      borderColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+      borderWidth: 2
+    }]
+  };
+
+  if (loading) {
+    return (
+      <div className="reports-container">
+        <div className="loading-state">Loading your reports...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="lc-container">
-      {offline && <div className="lc-banner">Offline — showing cached reports.</div>}
-      <div className="lc-card">
-        <div className="lc-header" style={{marginBottom:8}}>
-          <div className="lc-title">Test Reports</div>
-          <div className="lc-actions"><button className="lc-btn" onClick={refresh}>Refresh</button></div>
-        </div>
-        <table className="lc-table">
-          <thead><tr><th>Test</th><th>Date</th><th>Score</th><th>Accuracy</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            {items.map((it,idx)=> (
-              <tr key={idx}>
-                <td>{it.testName || it.testId}</td>
-                <td>{new Date(it.date || Date.now()).toLocaleString()}</td>
-                <td>{it.score}</td>
-                <td>{it.accuracy}%</td>
-                <td>{it.status}</td>
-                <td>
-                  <button className="lc-btn" onClick={async()=>{
-                    try {
-                      const id = it._id || it.reportId;
-                      const r = await http.get(`/tests/reports/${id}/pdf`, { responseType:'blob' });
-                      const blob = r.data instanceof Blob ? r.data : new Blob([r.data], { type: 'application/pdf' });
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a'); a.href=url; a.download=`${(it.testId||'report')}-${(it.studentId||'me')}.pdf`; document.body.appendChild(a); a.click();
-                      setTimeout(()=>{ window.URL.revokeObjectURL(url); document.body.removeChild(a); },0);
-                    } catch { alert('Failed to download'); }
-                  }}>PDF</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="reports-container">
+      <div className="reports-header">
+        <h1>Analysis & Reports</h1>
+        <p>Track your mock test performance and compare with top students</p>
       </div>
-      {/* Simple chart */}
-      <div className="lc-card lc-section">
-        <div className="lc-title">Your Score vs Avg (last 5)</div>
-        <div style={{display:'flex',gap:8,alignItems:'flex-end',height:120}}>
-          {items.slice(0,5).map((it,idx)=>{
-            const h = Math.max(4, Math.min(100, it.score));
-            const avg = Math.max(4, Math.min(100, it.avgScore || it.score));
-            return (
-              <div key={idx} style={{display:'grid',gap:4}}>
-                <div style={{display:'flex',gap:4,alignItems:'flex-end'}}>
-                  <div style={{width:20,background:'#2d8cff',height:h}} title={`You: ${h}`}></div>
-                  <div style={{width:20,background:'#a3c4ff',height:avg}} title={`Avg: ${avg}`}></div>
-                </div>
-                <div className="lc-muted" style={{maxWidth:40,fontSize:10}}>{it.testName}</div>
+
+      <div className="stats-cards-row">
+        <div className="stat-card blue">
+          <div className="stat-icon">
+            <span>📝</span>
+          </div>
+          <div className="stat-info">
+            <h3>{summary?.totalAttempts || 0}</h3>
+            <p>Tests Taken</p>
+          </div>
+        </div>
+        <div className="stat-card green">
+          <div className="stat-icon">
+            <span>📊</span>
+          </div>
+          <div className="stat-info">
+            <h3>{summary?.averageScore || 0}</h3>
+            <p>Average Score</p>
+          </div>
+        </div>
+        <div className="stat-card orange">
+          <div className="stat-icon">
+            <span>🏆</span>
+          </div>
+          <div className="stat-info">
+            <h3>{summary?.bestScore || 0}</h3>
+            <p>Best Score</p>
+          </div>
+        </div>
+        <div className="stat-card purple">
+          <div className="stat-icon">
+            <span>⏱️</span>
+          </div>
+          <div className="stat-info">
+            <h3>{summary?.averageTimeMinutes || 0} min</h3>
+            <p>Avg. Time</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="charts-row">
+        <div className="chart-card">
+          <h3>Performance Trend</h3>
+          {performanceTrend.length > 0 ? (
+            <Line 
+              data={trendChartData} 
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, max: 200 }
+                }
+              }}
+            />
+          ) : (
+            <div className="empty-chart">No data available yet</div>
+          )}
+        </div>
+        <div className="chart-card">
+          <h3>Section-wise Performance</h3>
+          {sectionAnalysis.length > 0 ? (
+            <Doughnut 
+              data={sectionChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' }
+                }
+              }}
+            />
+          ) : (
+            <div className="empty-chart">No data available yet</div>
+          )}
+        </div>
+        <div className="chart-card">
+          <h3>Section Accuracy</h3>
+          {sectionAnalysis.length > 0 ? (
+            <Bar 
+              data={accuracyChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, max: 100 }
+                }
+              }}
+            />
+          ) : (
+            <div className="empty-chart">No data available yet</div>
+          )}
+        </div>
+      </div>
+
+      <div className="section-stats-row">
+        {sectionAnalysis.map(section => (
+          <div key={section.section} className={`section-stat-card ${section.section.toLowerCase()}`}>
+            <h4>{section.section}</h4>
+            <div className="section-metrics">
+              <div className="metric">
+                <span className="value">{section.averageScore}</span>
+                <span className="label">Avg Score</span>
               </div>
-            );
-          })}
-        </div>
+              <div className="metric">
+                <span className="value">{section.averageAccuracy}%</span>
+                <span className="label">Accuracy</span>
+              </div>
+              <div className="metric">
+                <span className="value">{section.averageTimeMinutes}m</span>
+                <span className="label">Avg Time</span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
+
+      <div className="attempts-section">
+        <h2>Your Test Attempts</h2>
+        {attempts.length === 0 ? (
+          <div className="empty-state">
+            <p>You haven't taken any mock tests yet.</p>
+            <a href="/student/mock-tests" className="start-test-btn">Start a Mock Test</a>
+          </div>
+        ) : (
+          <div className="attempts-table-container">
+            <table className="attempts-table">
+              <thead>
+                <tr>
+                  <th>Test Name</th>
+                  <th>Score</th>
+                  <th>Time Taken</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attempts.map(attempt => (
+                  <tr key={attempt._id}>
+                    <td>
+                      <div className="test-name-cell">
+                        <span className="test-name">{attempt.testName}</span>
+                        {attempt.seriesName && <span className="series-name">{attempt.seriesName}</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="score-badge">{attempt.score}/{attempt.maxScore}</span>
+                    </td>
+                    <td>{attempt.timeTakenMinutes} min</td>
+                    <td>{new Date(attempt.completedAt).toLocaleDateString()}</td>
+                    <td>
+                      <button 
+                        className="action-btn leaderboard-btn"
+                        onClick={() => fetchLeaderboard(attempt.testId, attempt.testName)}
+                      >
+                        Leaderboard
+                      </button>
+                      <a 
+                        href={`/student/mock-test/review/${attempt._id}`}
+                        className="action-btn review-btn"
+                      >
+                        Review
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {showLeaderboard && leaderboard && (
+        <div className="modal-overlay" onClick={() => setShowLeaderboard(false)}>
+          <div className="leaderboard-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Top 10 - {selectedTest?.name}</h2>
+              <button onClick={() => setShowLeaderboard(false)}>x</button>
+            </div>
+            <div className="modal-content">
+              <div className="leaderboard-stats">
+                <div className="lb-stat">
+                  <span className="lb-value">{leaderboard.totalParticipants}</span>
+                  <span className="lb-label">Total Participants</span>
+                </div>
+                {leaderboard.currentUserRank && (
+                  <div className="lb-stat highlight">
+                    <span className="lb-value">#{leaderboard.currentUserRank}</span>
+                    <span className="lb-label">Your Rank</span>
+                  </div>
+                )}
+                {leaderboard.currentUserScore !== null && (
+                  <div className="lb-stat">
+                    <span className="lb-value">{leaderboard.currentUserScore}</span>
+                    <span className="lb-label">Your Score</span>
+                  </div>
+                )}
+              </div>
+              <table className="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Student</th>
+                    <th>Score</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.topTen.map(student => (
+                    <tr key={student.rank} className={student.isCurrentUser ? 'current-user' : ''}>
+                      <td>
+                        <span className={`rank-badge rank-${student.rank}`}>
+                          {student.rank <= 3 ? ['🥇', '🥈', '🥉'][student.rank - 1] : `#${student.rank}`}
+                        </span>
+                      </td>
+                      <td>
+                        {student.studentName}
+                        {student.isCurrentUser && <span className="you-tag">(You)</span>}
+                      </td>
+                      <td className="score-cell">{student.score}</td>
+                      <td>{student.timeTakenMinutes} min</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

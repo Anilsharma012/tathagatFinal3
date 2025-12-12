@@ -2081,6 +2081,195 @@ const getAttemptReview = async (req, res) => {
   }
 };
 
+// Get student's mock test reports summary
+const getStudentReportsSummary = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log(`📊 Fetching reports summary for user: ${userId}`);
+
+    const attempts = await MockTestAttempt.find({ 
+      userId, 
+      status: 'COMPLETED' 
+    })
+    .populate('testPaperId', 'title testNumber')
+    .populate('seriesId', 'title')
+    .sort({ completedAt: -1 });
+
+    if (attempts.length === 0) {
+      return res.json({
+        success: true,
+        summary: {
+          totalAttempts: 0,
+          averageScore: 0,
+          bestScore: 0,
+          averagePercentile: 0,
+          averageTimeMinutes: 0
+        },
+        attempts: [],
+        performanceTrend: []
+      });
+    }
+
+    const scores = attempts.map(a => a.totalScore || 0);
+    const percentiles = attempts.filter(a => a.percentile).map(a => a.percentile);
+    const times = attempts.map(a => Math.floor((a.totalTimeTakenSeconds || 0) / 60));
+
+    const summary = {
+      totalAttempts: attempts.length,
+      averageScore: scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : 0,
+      bestScore: Math.max(...scores),
+      averagePercentile: percentiles.length > 0 ? (percentiles.reduce((a, b) => a + b, 0) / percentiles.length).toFixed(2) : 0,
+      averageTimeMinutes: times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0
+    };
+
+    const formattedAttempts = attempts.map(attempt => ({
+      _id: attempt._id,
+      testName: attempt.testPaperId?.title || 'Unknown Test',
+      testId: attempt.testPaperId?._id,
+      seriesName: attempt.seriesId?.title,
+      score: attempt.totalScore || 0,
+      maxScore: attempt.totalMaxScore || 150,
+      percentile: attempt.percentile || 0,
+      rank: attempt.rank || 0,
+      timeTakenMinutes: Math.floor((attempt.totalTimeTakenSeconds || 0) / 60),
+      completedAt: attempt.completedAt,
+      sectionWiseStats: attempt.sectionWiseStats || []
+    }));
+
+    const performanceTrend = attempts.slice(0, 10).reverse().map(a => ({
+      testName: a.testPaperId?.title?.substring(0, 15) || 'Test',
+      score: a.totalScore || 0,
+      date: a.completedAt
+    }));
+
+    res.json({
+      success: true,
+      summary,
+      attempts: formattedAttempts,
+      performanceTrend
+    });
+  } catch (error) {
+    console.error('❌ Error fetching reports summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch reports summary',
+      error: error.message
+    });
+  }
+};
+
+// Get leaderboard for a specific test
+const getTestLeaderboard = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const userId = req.user.id;
+    console.log(`🏆 Fetching leaderboard for test: ${testId}`);
+
+    const allAttempts = await MockTestAttempt.find({
+      testPaperId: testId,
+      status: 'COMPLETED'
+    })
+    .populate('userId', 'name email')
+    .sort({ totalScore: -1 })
+    .limit(100);
+
+    const uniqueAttempts = [];
+    const seenUsers = new Set();
+    for (const attempt of allAttempts) {
+      const uId = attempt.userId?._id?.toString();
+      if (uId && !seenUsers.has(uId)) {
+        seenUsers.add(uId);
+        uniqueAttempts.push(attempt);
+      }
+    }
+
+    const topTen = uniqueAttempts.slice(0, 10).map((attempt, index) => ({
+      rank: index + 1,
+      studentName: attempt.userId?.name || 'Anonymous',
+      score: attempt.totalScore || 0,
+      timeTakenMinutes: Math.floor((attempt.totalTimeTakenSeconds || 0) / 60),
+      completedAt: attempt.completedAt,
+      isCurrentUser: attempt.userId?._id?.toString() === userId
+    }));
+
+    const userAttempt = uniqueAttempts.find(a => a.userId?._id?.toString() === userId);
+    let userRank = null;
+    if (userAttempt) {
+      userRank = uniqueAttempts.findIndex(a => a.userId?._id?.toString() === userId) + 1;
+    }
+
+    res.json({
+      success: true,
+      testId,
+      totalParticipants: uniqueAttempts.length,
+      topTen,
+      currentUserRank: userRank,
+      currentUserScore: userAttempt?.totalScore || null
+    });
+  } catch (error) {
+    console.error('❌ Error fetching leaderboard:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch leaderboard',
+      error: error.message
+    });
+  }
+};
+
+// Get section-wise performance comparison
+const getSectionWiseAnalysis = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log(`📈 Fetching section-wise analysis for user: ${userId}`);
+
+    const attempts = await MockTestAttempt.find({
+      userId,
+      status: 'COMPLETED'
+    }).sort({ completedAt: -1 }).limit(10);
+
+    const sectionAverages = { VARC: [], DILR: [], QA: [] };
+    
+    attempts.forEach(attempt => {
+      (attempt.sectionWiseStats || []).forEach(stat => {
+        const section = stat.section?.toUpperCase();
+        if (sectionAverages[section]) {
+          sectionAverages[section].push({
+            score: stat.score || 0,
+            accuracy: stat.accuracy || 0,
+            timeSpent: stat.timeSpent || 0
+          });
+        }
+      });
+    });
+
+    const analysis = Object.entries(sectionAverages).map(([section, stats]) => ({
+      section,
+      averageScore: stats.length > 0 
+        ? (stats.reduce((a, b) => a + b.score, 0) / stats.length).toFixed(2) 
+        : 0,
+      averageAccuracy: stats.length > 0 
+        ? (stats.reduce((a, b) => a + b.accuracy, 0) / stats.length).toFixed(2) 
+        : 0,
+      averageTimeMinutes: stats.length > 0 
+        ? Math.round(stats.reduce((a, b) => a + b.timeSpent, 0) / stats.length / 60) 
+        : 0,
+      attempts: stats.length
+    }));
+
+    res.json({
+      success: true,
+      analysis
+    });
+  } catch (error) {
+    console.error('❌ Error fetching section analysis:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch section analysis',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getPublishedSeries,
   getTestsInSeries,
@@ -2093,5 +2282,8 @@ module.exports = {
   submitTest,
   getTestHistory,
   getMockTestTree,
-  getAttemptReview
+  getAttemptReview,
+  getStudentReportsSummary,
+  getTestLeaderboard,
+  getSectionWiseAnalysis
 };

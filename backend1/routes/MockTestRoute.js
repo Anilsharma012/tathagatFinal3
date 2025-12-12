@@ -12,7 +12,10 @@ const {
   submitTest,
   getTestHistory,
   getMockTestTree,
-  getAttemptReview
+  getAttemptReview,
+  getStudentReportsSummary,
+  getTestLeaderboard,
+  getSectionWiseAnalysis
 } = require('../controllers/MockTestController');
 const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
 
@@ -35,5 +38,10 @@ router.post('/attempt/:attemptId/transition-section', authMiddleware, transition
 router.post('/attempt/:attemptId/submit', authMiddleware, submitTest);
 router.get('/attempt/:attemptId/review', authMiddleware, getAttemptReview);
 router.get('/history', authMiddleware, getTestHistory);
+
+// Reports and analytics routes
+router.get('/reports/summary', authMiddleware, getStudentReportsSummary);
+router.get('/reports/:testId/leaderboard', authMiddleware, getTestLeaderboard);
+router.get('/reports/section-analysis', authMiddleware, getSectionWiseAnalysis);
 
 module.exports = router;
