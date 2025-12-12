@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import './MockTestAttempt.css';
+import CandidateFeedbackForm from './CandidateFeedbackForm';
 
 const MockTestAttempt = () => {
   const { testId, attemptId } = useParams();
@@ -60,6 +61,7 @@ const MockTestAttempt = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showExamSummary, setShowExamSummary] = useState(false);
   const [allSectionsStats, setAllSectionsStats] = useState([]);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   
   const timerRef = useRef(null);
   const syncIntervalRef = useRef(null);
@@ -780,13 +782,40 @@ const MockTestAttempt = () => {
         const result = await response.json();
         if (result.success) {
           setFinalResult(result.result);
-          setShowFinalResult(true);
+          setShowFeedbackForm(true);
         }
       }
     } catch (error) {
       console.error('Error submitting test:', error);
       alert('Failed to submit test. Please try again.');
     }
+  };
+
+  const handleFeedbackSubmit = async (feedbackResponses) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      await fetch('/api/mock-test-feedback/submit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          attemptId: currentAttemptIdRef.current,
+          testId,
+          responses: feedbackResponses
+        })
+      });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    }
+    setShowFeedbackForm(false);
+    setShowFinalResult(true);
+  };
+
+  const handleFeedbackSkip = () => {
+    setShowFeedbackForm(false);
+    setShowFinalResult(true);
   };
 
   const getCurrentQuestion = () => {
@@ -951,6 +980,44 @@ const MockTestAttempt = () => {
         <h2>Error</h2>
         <p>{loadingError || 'Failed to load test data'}</p>
         <button onClick={() => navigate('/student/dashboard')}>Go to Dashboard</button>
+      </div>
+    );
+  }
+
+  if (showFeedbackForm) {
+    return (
+      <div className="cat-exam-interface feedback-page">
+        <div className="cat-header">
+          <div className="cat-header-top">
+            <div className="cat-logos">
+              <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Anna_University_Logo.svg/1200px-Anna_University_Logo.svg.png" alt="IIM" className="iim-logo" />
+              <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
+              <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
+              <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
+            </div>
+            <div className="cat-title-center">
+              <span className="cat-2025">CAT 2025</span>
+            </div>
+            <div className="cat-logos">
+              <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/IIM_Kozhikode_Logo.svg/1200px-IIM_Kozhikode_Logo.svg.png" alt="IIM" className="iim-logo" />
+              <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
+              <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
+              <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
+            </div>
+          </div>
+        </div>
+        <div className="feedback-form-wrapper">
+          <div className="feedback-student-info">
+            <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Student" className="student-avatar" />
+            <span className="student-name-display">{studentInfo.name}</span>
+          </div>
+          <CandidateFeedbackForm
+            onSubmit={handleFeedbackSubmit}
+            onSkip={handleFeedbackSkip}
+            studentName={studentInfo.name}
+            testTitle={testData?.title}
+          />
+        </div>
       </div>
     );
   }

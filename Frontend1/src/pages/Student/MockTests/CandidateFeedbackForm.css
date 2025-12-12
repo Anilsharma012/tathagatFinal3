@@ -1,0 +1,263 @@
+.feedback-form-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
+  font-family: Arial, sans-serif;
+}
+
+.feedback-header {
+  background: #0066cc;
+  color: white;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.feedback-content {
+  padding: 20px 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feedback-intro {
+  background: white;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+}
+
+.feedback-intro p {
+  margin: 8px 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rating-scale-legend {
+  display: flex;
+  gap: 30px;
+  padding: 15px 20px;
+  background: white;
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.scale-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.scale-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.scale-badge.blue { background: #3498db; }
+.scale-badge.green { background: #27ae60; }
+.scale-badge.yellow { background: #f39c12; }
+.scale-badge.red { background: #e74c3c; }
+
+.questions-table {
+  background: white;
+  border: 1px solid #ddd;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 60px 1fr 200px;
+  background: #e8f4fc;
+  border-bottom: 2px solid #0066cc;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.table-header .col-sno,
+.table-header .col-question {
+  padding: 12px 15px;
+  color: #333;
+}
+
+.table-header .col-response {
+  padding: 8px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.response-numbers {
+  display: flex;
+  gap: 25px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #666;
+}
+
+.question-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 200px;
+  border-bottom: 1px solid #eee;
+}
+
+.question-row:hover {
+  background: #f9f9f9;
+}
+
+.question-row.main-question {
+  background: #f5f5f5;
+}
+
+.question-row.sub-question .col-sno {
+  padding-left: 25px;
+}
+
+.col-sno {
+  padding: 12px 15px;
+  font-weight: 500;
+  color: #333;
+  font-size: 13px;
+}
+
+.col-question {
+  padding: 12px 15px;
+  color: #333;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.col-response {
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rating-options {
+  display: flex;
+  gap: 25px;
+}
+
+.rating-option {
+  cursor: pointer;
+  position: relative;
+}
+
+.rating-option input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.radio-circle {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #999;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.rating-option input:checked + .radio-circle {
+  border-color: #0066cc;
+  background: #0066cc;
+}
+
+.rating-option:hover .radio-circle {
+  border-color: #0066cc;
+}
+
+.text-response {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.text-input {
+  width: 150px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #0066cc;
+}
+
+.feedback-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px 0;
+}
+
+.submit-feedback-btn {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 12px 40px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-feedback-btn:hover {
+  background: #0055aa;
+}
+
+.submit-feedback-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.skip-feedback-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 40px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skip-feedback-btn:hover {
+  background: #5a6268;
+}
+
+.skip-feedback-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .table-header,
+  .question-row {
+    grid-template-columns: 40px 1fr 150px;
+  }
+  
+  .rating-options {
+    gap: 15px;
+  }
+  
+  .response-numbers {
+    gap: 15px;
+  }
+  
+  .rating-scale-legend {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
