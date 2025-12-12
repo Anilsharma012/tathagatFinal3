@@ -41,7 +41,7 @@ The platform employs a decoupled frontend and backend architecture.
 - **Backend:** Node.js/Express API server, using MongoDB Atlas for data storage.
 - **Frontend:** React application.
 - **Deployment:** Configured for VM deployment, running unified development scripts.
-- **Authentication:** JWT-based authentication secures API endpoints.
+- **Authentication:** JWT-based authentication secures API endpoints. Auto-login detection redirects already logged-in users directly to dashboard without re-entering OTP. Token verification endpoint at `/api/auth/verify-token` validates existing sessions.
 - **API Proxying:** Frontend proxies all `/api` requests to the backend.
 
 ## External Dependencies

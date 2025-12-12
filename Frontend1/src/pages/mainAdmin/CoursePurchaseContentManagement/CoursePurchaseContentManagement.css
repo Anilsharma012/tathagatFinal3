@@ -69,7 +69,7 @@
 .content-form {
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .form-section {
@@ -266,21 +266,38 @@
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .course-selector select {
     max-width: 100%;
     width: 100%;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .rating-breakdown-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
+}
+
+
+/* 🔥 FIX: Input + Textarea text always clearly visible */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  color: #fff !important;
+  /* White text for dark backgrounds */
+  background-color: #0B1147 !important;
+  /* Your field background color */
+}
+
+/* Placeholder text visible */
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #d4d4d4 !important;
 }

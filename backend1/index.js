@@ -652,6 +652,41 @@ app.get("/api/dev-payment/my-courses", async (_req, res) => {
 /* -------------------- Multer Upload -------------------- */
 // Upload route is now handled by ./routes/UploadRoute.js with proper authentication and validation
 
+/* -------------------- Token Verification Endpoint -------------------- */
+app.get("/api/auth/verify-token", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ valid: false, message: "No token provided" });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const jwt = require('jsonwebtoken');
+    const User = require('./models/UserSchema');
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id || decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ valid: false, message: "User not found" });
+    }
+    
+    console.log("✅ Token verified for user:", user.email || user.phone);
+    res.json({ 
+      valid: true, 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        phone: user.phone 
+      } 
+    });
+  } catch (error) {
+    console.log("❌ Token verification failed:", error.message);
+    res.status(401).json({ valid: false, message: "Invalid or expired token" });
+  }
+});
+
 /* -------------------- Routes (safe mount, no cuts, de-dup) -------------------- */
 const mounted = new Set();
 

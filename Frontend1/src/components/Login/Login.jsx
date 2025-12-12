@@ -16,11 +16,48 @@ const Login = ({ onClose, setUser }) => {
   const [otpError, setOtpError] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const navigate = useNavigate();
 
   const emailOtpRefs = useRef([]);
   const phoneOtpRefs = useRef([]);
+
+  useEffect(() => {
+    const checkExistingLogin = async () => {
+      const token = localStorage.getItem("authToken");
+      const user = localStorage.getItem("user");
+      
+      if (token && user) {
+        try {
+          const response = await axios.get("/api/auth/verify-token", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (response.data.valid) {
+            console.log("✅ User already logged in, redirecting to dashboard");
+            setToastMessage("Already logged in! Redirecting...");
+            
+            if (onClose && typeof onClose === 'function') {
+              onClose();
+            }
+            
+            setTimeout(() => {
+              handlePostLoginRedirect("/student/dashboard");
+            }, 500);
+            return;
+          }
+        } catch (error) {
+          console.log("Token verification failed, showing login form");
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("user");
+        }
+      }
+      setIsCheckingAuth(false);
+    };
+    
+    checkExistingLogin();
+  }, []);
 
   // Demo login function
   const handleDemoLogin = async () => {
@@ -233,6 +270,19 @@ const Login = ({ onClose, setUser }) => {
     const refs = type === "email" ? emailOtpRefs : phoneOtpRefs;
     if (value && index < 5) refs.current[index + 1].focus();
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="tllogin-fullscreen-wrapper">
+        <div className="tllogin-popup" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', marginBottom: '10px' }}>Loading...</div>
+            <p>Checking login status...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tllogin-fullscreen-wrapper">
