@@ -13,6 +13,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
+import http from '../../../utils/http';
 import './StudentReports.css';
 
 ChartJS.register(
@@ -45,28 +46,20 @@ const StudentReports = () => {
   const fetchReportsData = async () => {
     try {
       setLoading(true);
-      const authToken = localStorage.getItem('authToken');
       
       const [summaryRes, sectionRes] = await Promise.all([
-        fetch('/api/mock-tests/reports/summary', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        }),
-        fetch('/api/mock-tests/reports/section-analysis', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        })
+        http.get('/mock-tests/reports/summary'),
+        http.get('/mock-tests/reports/section-analysis')
       ]);
 
-      const summaryData = await summaryRes.json();
-      const sectionData = await sectionRes.json();
-
-      if (summaryData.success) {
-        setSummary(summaryData.summary);
-        setAttempts(summaryData.attempts);
-        setPerformanceTrend(summaryData.performanceTrend);
+      if (summaryRes.data?.success) {
+        setSummary(summaryRes.data.summary);
+        setAttempts(summaryRes.data.attempts);
+        setPerformanceTrend(summaryRes.data.performanceTrend);
       }
 
-      if (sectionData.success) {
-        setSectionAnalysis(sectionData.analysis);
+      if (sectionRes.data?.success) {
+        setSectionAnalysis(sectionRes.data.analysis);
       }
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -77,13 +70,9 @@ const StudentReports = () => {
 
   const fetchLeaderboard = async (testId, testName) => {
     try {
-      const authToken = localStorage.getItem('authToken');
-      const response = await fetch(`/api/mock-tests/reports/${testId}/leaderboard`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setLeaderboard(data);
+      const response = await http.get(`/mock-tests/reports/${testId}/leaderboard`);
+      if (response.data?.success) {
+        setLeaderboard(response.data);
         setSelectedTest({ id: testId, name: testName });
         setShowLeaderboard(true);
       }
