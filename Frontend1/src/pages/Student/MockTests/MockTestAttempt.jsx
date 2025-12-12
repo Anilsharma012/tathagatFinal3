@@ -40,6 +40,8 @@ const MockTestAttempt = () => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [showScratchPad, setShowScratchPad] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showQuestionPaper, setShowQuestionPaper] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [calculatorValue, setCalculatorValue] = useState('0');
   const [calculatorExpression, setCalculatorExpression] = useState('');
   const [calculatorMemory, setCalculatorMemory] = useState(0);
@@ -53,7 +55,7 @@ const MockTestAttempt = () => {
   const [completedSections, setCompletedSections] = useState([]);
   const [showFinalResult, setShowFinalResult] = useState(false);
   const [finalResult, setFinalResult] = useState(null);
-  const [studentInfo, setStudentInfo] = useState({ name: 'Student', email: '', phone: '' });
+  const [studentInfo, setStudentInfo] = useState({ name: 'John Smith', email: '', phone: '' });
   const [showStudentDetails, setShowStudentDetails] = useState(false);
   
   const timerRef = useRef(null);
@@ -79,7 +81,7 @@ const MockTestAttempt = () => {
       if (stored) {
         const userData = JSON.parse(stored);
         setStudentInfo({
-          name: userData.name || 'Student',
+          name: userData.name || 'John Smith',
           email: userData.email || '',
           phone: userData.phone || userData.mobile || ''
         });
@@ -160,10 +162,7 @@ const MockTestAttempt = () => {
       
       const currentQuestionData = testData?.sections?.[currentSection]?.questions?.[currentQuestion];
       
-      // Build responses with proper markedForReview state
-      // We need to map question indices to question IDs to check markedForReview
       const responsesWithReviewState = Object.entries(responses).map(([questionId, selectedAnswer]) => {
-        // Find which question index this questionId corresponds to
         let isMarked = false;
         if (testData?.sections) {
           testData.sections.forEach((section, sectionIdx) => {
@@ -207,12 +206,9 @@ const MockTestAttempt = () => {
         setLastSyncTime(new Date());
         setSyncError(null);
         
-        // CRITICAL: Merge server-validated section states to prevent time manipulation
-        // Server is the source of truth for remaining time and locked status
         if (syncResult.sectionStates && Array.isArray(syncResult.sectionStates)) {
           setSectionStates(prevStates => {
             return syncResult.sectionStates.map((serverState, idx) => {
-              // Always use server-validated remaining time and lock status
               return {
                 ...serverState,
                 remainingSeconds: serverState.remainingSeconds,
@@ -356,7 +352,6 @@ const MockTestAttempt = () => {
   const handleSectionTimeUp = async () => {
     const sectionName = testData?.sections?.[currentSection]?.name || 'Current section';
     
-    // IMMEDIATELY notify server to lock this section (prevents manipulation by pausing JS)
     try {
       const authToken = localStorage.getItem('authToken');
       if (authToken && currentAttemptIdRef.current) {
@@ -426,12 +421,11 @@ const MockTestAttempt = () => {
 
   const formatTime = (seconds) => {
     if (seconds === undefined || seconds === null || isNaN(seconds)) {
-      return '00:00:00';
+      return '00:00';
     }
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getCurrentSectionTime = () => {
@@ -455,11 +449,9 @@ const MockTestAttempt = () => {
 
   const canNavigateToSection = (sectionIndex) => {
     if (sectionIndex === currentSection) return true;
-    
     if (sectionIndex < currentSection) {
       return !isSectionLocked(sectionIndex);
     }
-    
     return false;
   };
 
@@ -475,7 +467,6 @@ const MockTestAttempt = () => {
         ...prev,
         [questionId]: answer
       }));
-      
       saveResponse(questionId, answer);
     }
   };
@@ -510,6 +501,7 @@ const MockTestAttempt = () => {
       }
       return newSet;
     });
+    handleNextQuestion();
   };
 
   const handleClearResponse = () => {
@@ -535,6 +527,10 @@ const MockTestAttempt = () => {
     if (currentQuestion > 0) {
       handleQuestionSelect(currentQuestion - 1);
     }
+  };
+
+  const handleSaveAndNext = () => {
+    handleNextQuestion();
   };
 
   const calculateSectionResult = (sectionIndex) => {
@@ -662,94 +658,157 @@ const MockTestAttempt = () => {
         }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        // Use detailed results from backend if available
-        if (data.results) {
-          setFinalResult({
-            sections: data.results.sections,
-            totalScore: data.results.totalScore,
-            totalQuestions: data.results.totalQuestions,
-            totalAnswered: data.results.totalAnswered,
-            totalCorrect: data.results.totalCorrect,
-            totalIncorrect: data.results.totalIncorrect,
-            totalNotAnswered: data.results.totalNotAnswered,
-            positiveMarks: data.results.positiveMarks,
-            negativeMarks: data.results.negativeMarks,
-            percentage: parseFloat(data.results.percentage),
-            attemptId: data.attemptId
-          });
-        } else {
-          // Fallback to client-side calculation
-          const allSections = [...completedSections];
-          if (!allSections.find(s => s.sectionName === testData.sections[currentSection].name)) {
-            allSections.push(calculateSectionResult(currentSection));
-          }
-
-          const combinedResult = {
-            sections: allSections,
-            totalScore: allSections.reduce((sum, section) => sum + section.score, 0),
-            maxTotalScore: allSections.reduce((sum, section) => sum + section.maxScore, 0),
-            totalAnswered: allSections.reduce((sum, section) => sum + section.answered, 0),
-            totalQuestions: allSections.reduce((sum, section) => sum + section.totalQuestions, 0),
-            percentage: 0,
-            backendScore: data.score
-          };
-          combinedResult.percentage = (combinedResult.totalScore / combinedResult.maxTotalScore) * 100;
-          setFinalResult(combinedResult);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setFinalResult(result.result);
+          setShowFinalResult(true);
         }
-        setShowFinalResult(true);
       }
     } catch (error) {
       console.error('Error submitting test:', error);
+      alert('Failed to submit test. Please try again.');
     }
   };
 
   const getCurrentQuestion = () => {
-    if (!testData?.sections?.[currentSection]?.questions) {
-      return null;
-    }
-    return testData.sections[currentSection].questions[currentQuestion];
+    return testData?.sections[currentSection]?.questions?.[currentQuestion];
   };
 
   const getQuestionStatus = (questionIndex) => {
-    const question = testData?.sections[currentSection]?.questions[questionIndex];
+    const question = testData?.sections[currentSection]?.questions?.[questionIndex];
     const questionId = question?._id;
     const isAnswered = questionId && responses[questionId];
     const isMarked = markedForReview.has(questionIndex);
     const isVisited = visitedQuestions.has(questionIndex);
 
     if (isAnswered && isMarked) return 'answered-marked';
-    if (isAnswered) return 'answered';
     if (isMarked) return 'marked';
+    if (isAnswered) return 'answered';
     if (isVisited) return 'visited';
     return 'not-visited';
   };
 
+  const getSectionQuestionCounts = (sectionIndex) => {
+    const section = testData?.sections?.[sectionIndex];
+    if (!section) return { answered: 0, total: 0 };
+    
+    let answered = 0;
+    section.questions?.forEach(q => {
+      if (responses[q._id]) answered++;
+    });
+    
+    return { answered, total: section.questions?.length || 0 };
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 2));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.75));
+  };
+
+  const handleCalculatorInput = (value) => {
+    switch (value) {
+      case 'C':
+        setCalculatorValue('0');
+        setCalculatorExpression('');
+        break;
+      case '←':
+        setCalculatorValue(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
+        break;
+      case '+/-':
+        setCalculatorValue(prev => prev.startsWith('-') ? prev.slice(1) : '-' + prev);
+        break;
+      case 'sqrt':
+        try {
+          const num = parseFloat(calculatorValue);
+          setCalculatorValue(Math.sqrt(num).toString());
+        } catch {
+          setCalculatorValue('Error');
+        }
+        break;
+      case '1/x':
+        try {
+          const num = parseFloat(calculatorValue);
+          setCalculatorValue((1 / num).toString());
+        } catch {
+          setCalculatorValue('Error');
+        }
+        break;
+      case '%':
+        try {
+          const num = parseFloat(calculatorValue);
+          setCalculatorValue((num / 100).toString());
+        } catch {
+          setCalculatorValue('Error');
+        }
+        break;
+      case 'MC':
+        setCalculatorMemory(0);
+        break;
+      case 'MR':
+        setCalculatorValue(calculatorMemory.toString());
+        break;
+      case 'MS':
+        setCalculatorMemory(parseFloat(calculatorValue) || 0);
+        break;
+      case 'M+':
+        setCalculatorMemory(prev => prev + (parseFloat(calculatorValue) || 0));
+        break;
+      case 'M-':
+        setCalculatorMemory(prev => prev - (parseFloat(calculatorValue) || 0));
+        break;
+      case '=':
+        try {
+          const expr = calculatorExpression + calculatorValue;
+          const sanitizedExpr = expr.replace(/[^0-9+\-*/.()]/g, '');
+          const result = eval(sanitizedExpr);
+          setCalculatorValue(result.toString());
+          setCalculatorExpression('');
+        } catch {
+          setCalculatorValue('Error');
+        }
+        break;
+      case '+':
+      case '-':
+      case '*':
+      case '/':
+        setCalculatorExpression(prev => prev + calculatorValue + value);
+        setCalculatorValue('0');
+        break;
+      case '.':
+        if (!calculatorValue.includes('.')) {
+          setCalculatorValue(prev => prev + '.');
+        }
+        break;
+      default:
+        if (/[0-9]/.test(value)) {
+          setCalculatorValue(prev => prev === '0' ? value : prev + value);
+        }
+    }
+  };
+
   const startDrawing = (e) => {
-    if (!drawingMode) return;
     setIsDrawing(true);
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
     ctx.beginPath();
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   };
 
   const draw = (e) => {
-    if (!isDrawing || !drawingMode) return;
+    if (!isDrawing) return;
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#000';
+    const rect = canvas.getBoundingClientRect();
     ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
     ctx.stroke();
   };
 
   const stopDrawing = () => {
-    if (!drawingMode) return;
     setIsDrawing(false);
   };
 
@@ -759,271 +818,139 @@ const MockTestAttempt = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  const [pendingOperator, setPendingOperator] = useState(null);
-  const [previousValue, setPreviousValue] = useState(null);
-
-  const handleCalculatorInput = (value) => {
-    if (value === 'C') {
-      setCalculatorValue('0');
-      setCalculatorExpression('');
-      setPendingOperator(null);
-      setPreviousValue(null);
-    } else if (value === '=') {
-      try {
-        if (pendingOperator && previousValue !== null) {
-          const prev = parseFloat(previousValue);
-          const curr = parseFloat(calculatorValue);
-          let result;
-          switch (pendingOperator) {
-            case '+': result = prev + curr; break;
-            case '-': result = prev - curr; break;
-            case '×': case '*': result = prev * curr; break;
-            case '÷': case '/': 
-              if (curr === 0) { 
-                setCalculatorValue('Error');
-                setPendingOperator(null);
-                setPreviousValue(null);
-                setCalculatorExpression('');
-                return; 
-              }
-              result = prev / curr; 
-              break;
-            default: result = curr;
-          }
-          if (isNaN(result) || !isFinite(result)) {
-            setCalculatorValue('Error');
-            setPendingOperator(null);
-            setPreviousValue(null);
-            setCalculatorExpression('');
-          } else {
-            setCalculatorExpression(`${previousValue} ${pendingOperator} ${calculatorValue} =`);
-            setCalculatorValue(result.toString());
-            setPendingOperator(null);
-            setPreviousValue(null);
-          }
-        }
-      } catch {
-        setCalculatorValue('Error');
-        setPendingOperator(null);
-        setPreviousValue(null);
-        setCalculatorExpression('');
-      }
-    } else if (value === '←') {
-      setCalculatorValue(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
-    } else if (value === '+/-') {
-      setCalculatorValue(prev => {
-        if (prev === '0' || prev === 'Error') return prev;
-        return prev.startsWith('-') ? prev.slice(1) : '-' + prev;
-      });
-    } else if (value === 'sqrt') {
-      const num = parseFloat(calculatorValue);
-      if (isNaN(num) || num < 0) {
-        setCalculatorValue('Error');
-        setPendingOperator(null);
-        setPreviousValue(null);
-        setCalculatorExpression('');
-      } else {
-        const result = Math.sqrt(num);
-        setCalculatorExpression(`√(${calculatorValue})`);
-        setCalculatorValue(result.toString());
-        setPendingOperator(null);
-        setPreviousValue(null);
-      }
-    } else if (value === '%') {
-      const num = parseFloat(calculatorValue);
-      if (isNaN(num)) {
-        setCalculatorValue('Error');
-        setPendingOperator(null);
-        setPreviousValue(null);
-        setCalculatorExpression('');
-      } else {
-        setCalculatorValue((num / 100).toString());
-      }
-    } else if (value === '1/x') {
-      const num = parseFloat(calculatorValue);
-      if (isNaN(num) || num === 0) {
-        setCalculatorValue('Error');
-        setPendingOperator(null);
-        setPreviousValue(null);
-        setCalculatorExpression('');
-      } else {
-        setCalculatorExpression(`1/(${calculatorValue})`);
-        setCalculatorValue((1 / num).toString());
-        setPendingOperator(null);
-        setPreviousValue(null);
-      }
-    } else if (value === 'MC') {
-      setCalculatorMemory(0);
-    } else if (value === 'MR') {
-      setCalculatorValue(calculatorMemory.toString());
-    } else if (value === 'MS') {
-      const num = parseFloat(calculatorValue);
-      if (!isNaN(num) && isFinite(num)) {
-        setCalculatorMemory(num);
-      }
-    } else if (value === 'M+') {
-      const num = parseFloat(calculatorValue);
-      if (!isNaN(num) && isFinite(num)) {
-        setCalculatorMemory(prev => prev + num);
-      }
-    } else if (value === 'M-') {
-      const num = parseFloat(calculatorValue);
-      if (!isNaN(num) && isFinite(num)) {
-        setCalculatorMemory(prev => prev - num);
-      }
-    } else if (['+', '-', '×', '÷', '*', '/'].includes(value)) {
-      if (calculatorValue === 'Error') {
-        return;
-      }
-      if (pendingOperator && previousValue !== null) {
-        const prev = parseFloat(previousValue);
-        const curr = parseFloat(calculatorValue);
-        let result;
-        switch (pendingOperator) {
-          case '+': result = prev + curr; break;
-          case '-': result = prev - curr; break;
-          case '×': case '*': result = prev * curr; break;
-          case '÷': case '/': result = curr === 0 ? NaN : prev / curr; break;
-          default: result = curr;
-        }
-        if (isNaN(result) || !isFinite(result)) {
-          setCalculatorValue('Error');
-          setPendingOperator(null);
-          setPreviousValue(null);
-          setCalculatorExpression('');
-          return;
-        }
-        const op = value === '*' ? '×' : value === '/' ? '÷' : value;
-        setCalculatorExpression(`${result} ${op}`);
-        setPreviousValue(result.toString());
-        setCalculatorValue('0');
-        setPendingOperator(op);
-      } else {
-        const op = value === '*' ? '×' : value === '/' ? '÷' : value;
-        setCalculatorExpression(`${calculatorValue} ${op}`);
-        setPreviousValue(calculatorValue);
-        setCalculatorValue('0');
-        setPendingOperator(op);
-      }
-    } else {
-      setCalculatorValue(prev => prev === '0' || prev === 'Error' ? value : prev + value);
-    }
-  };
-
   if (loading) {
     return (
       <div className="cat-exam-loading">
         <div className="loading-spinner"></div>
-        <p>Loading your test...</p>
-        {isResuming && <p className="resume-notice">Resuming your previous session...</p>}
+        <p>{isResuming ? 'Resuming your test...' : 'Loading test...'}</p>
       </div>
     );
   }
 
-  if (loadingError) {
+  if (loadingError || !testData) {
     return (
       <div className="cat-exam-error">
-        <h3>Unable to Load Test</h3>
-        <p>{loadingError}</p>
-        <div className="error-actions">
-          <button onClick={() => window.location.reload()}>
-            Try Again
-          </button>
-          <button onClick={() => navigate('/student/mock-tests')}>
-            Back to Mock Tests
+        <h2>Error</h2>
+        <p>{loadingError || 'Failed to load test data'}</p>
+        <button onClick={() => navigate('/student/dashboard')}>Go to Dashboard</button>
+      </div>
+    );
+  }
+
+  if (showFinalResult && finalResult) {
+    return (
+      <div className="cat-final-result">
+        <div className="result-container">
+          <h2>Test Completed!</h2>
+          <div className="result-summary">
+            <div className="result-card">
+              <h3>Total Score</h3>
+              <p className="score">{finalResult.totalScore || 0}</p>
+            </div>
+            <div className="result-card">
+              <h3>Correct Answers</h3>
+              <p className="correct">{finalResult.correct || 0}</p>
+            </div>
+            <div className="result-card">
+              <h3>Incorrect Answers</h3>
+              <p className="incorrect">{finalResult.incorrect || 0}</p>
+            </div>
+            <div className="result-card">
+              <h3>Unattempted</h3>
+              <p className="unattempted">{finalResult.unattempted || 0}</p>
+            </div>
+          </div>
+          <button className="dashboard-btn" onClick={() => navigate('/student/dashboard')}>
+            Go to Dashboard
           </button>
         </div>
-      </div>
-    );
-  }
-
-  if (!testData) {
-    return (
-      <div className="cat-exam-error">
-        <h3>Test not found</h3>
-        <button onClick={() => navigate('/student/mock-tests')}>
-          Back to Mock Tests
-        </button>
       </div>
     );
   }
 
   const currentQuestionData = getCurrentQuestion();
   const totalQuestions = testData?.sections[currentSection]?.questions?.length || 0;
-  const currentSectionTimeRemaining = getCurrentSectionTime();
   const isCurrentSectionLocked = isSectionLocked(currentSection);
+  const currentSectionTimeRemaining = getCurrentSectionTime();
 
   return (
-    <div className="cat-exam-interface">
-      <div className="cat-exam-header">
-        <div className="exam-header-left">
+    <div className="cat-exam-interface" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left', width: `${100 / zoomLevel}%`, height: `${100 / zoomLevel}vh` }}>
+      <div className="cat-header">
+        <div className="cat-header-top">
           <div className="cat-logos">
-            <span className="logo-item">CAT</span>
-            <span className="logo-item">2024</span>
-            <span className="logo-separator">|</span>
-            <span className="logo-item">IIM</span>
-            <span className="logo-item">AHMEDABAD</span>
-            <span className="logo-item">BANGALORE</span>
-            <span className="logo-item">CALCUTTA</span>
-            <span className="logo-item">KOZHIKODE</span>
-            <span className="logo-item">LUCKNOW</span>
-            <span className="logo-item">INDORE</span>
-            <span className="logo-item">TATHAGAT</span>
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Anna_University_Logo.svg/1200px-Anna_University_Logo.svg.png" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
+          </div>
+          <div className="cat-title-center">
+            <span className="cat-2025">CAT 2025</span>
+          </div>
+          <div className="cat-logos">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/IIM_Kozhikode_Logo.svg/1200px-IIM_Kozhikode_Logo.svg.png" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
           </div>
         </div>
-        <div className="exam-header-right">
-          <div className="sync-status">
-            {lastSyncTime && (
-              <span className="sync-indicator success" title={`Last saved: ${lastSyncTime.toLocaleTimeString()}`}>
-                Saved
-              </span>
-            )}
-            {syncError && (
-              <span className="sync-indicator error" title={syncError}>
-                Not saved
-              </span>
-            )}
-          </div>
-          <div className="candidate-info" onClick={() => setShowStudentDetails(true)} style={{ cursor: 'pointer' }}>
-            <div className="candidate-avatar">
-              <span>👤</span>
-            </div>
-            <div className="candidate-details">
-              <span className="candidate-name">{studentInfo.name}</span>
-            </div>
+        <div className="cat-header-bar">
+          <span className="exam-title">CAT 2025 Mock Exam</span>
+          <div className="header-tools">
+            <button className="header-tool-btn" onClick={() => { handleZoomOut(); handleZoomIn(); }}>
+              <span className="tool-icon">🔍</span> Screen Magnifier
+            </button>
+            <button className="header-tool-btn" onClick={() => setShowInstructions(true)}>
+              <span className="tool-icon">ℹ️</span> Instructions
+            </button>
+            <button className="header-tool-btn" onClick={() => setShowQuestionPaper(true)}>
+              <span className="tool-icon">📄</span> Question Paper
+            </button>
           </div>
         </div>
       </div>
 
       <div className="cat-exam-content">
         <div className="cat-question-panel">
-          <div className="question-header">
-            <div className="section-info">
-              <h3>Section {currentSection + 1}: {testData.sections[currentSection].name}</h3>
-              <span>Question No. {currentQuestion + 1}</span>
-              {isCurrentSectionLocked && (
-                <span className="section-locked-badge">Section Completed</span>
-              )}
-            </div>
-            <div className="question-navigation">
-              <button 
-                className="nav-btn"
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestion === 0 || isCurrentSectionLocked}
-              >
-                Previous
-              </button>
-              <button 
-                className="nav-btn"
-                onClick={handleNextQuestion}
-                disabled={currentQuestion === totalQuestions - 1 || isCurrentSectionLocked}
-              >
-                Next
-              </button>
+          <div className="section-tabs-row">
+            <button className="nav-arrow" onClick={handlePreviousQuestion} disabled={currentQuestion === 0}>◀</button>
+            {testData.sections.map((section, index) => {
+              const counts = getSectionQuestionCounts(index);
+              return (
+                <button
+                  key={index}
+                  className={`section-tab-btn ${currentSection === index ? 'active' : ''}`}
+                  onClick={() => {
+                    if (canNavigateToSection(index) && !isSectionLocked(index)) {
+                      setCurrentSection(index);
+                      setCurrentQuestion(0);
+                      setVisitedQuestions(new Set([0]));
+                    }
+                  }}
+                >
+                  {section.name} <span className="section-count">{counts.total}</span>
+                </button>
+              );
+            })}
+            <button className="nav-arrow" onClick={handleNextQuestion} disabled={currentQuestion === totalQuestions - 1}>▶</button>
+            <div className="timer-display">
+              Time Left : <span className="timer-value">{formatTime(currentSectionTimeRemaining)}</span>
             </div>
           </div>
 
-          <div className="question-content">
+          <div className="sections-label-row">
+            <span className="sections-label">Sections</span>
+            <div className="current-section-badge">{testData.sections[currentSection].name}</div>
+          </div>
+
+          <div className="marks-info-row">
+            <span>Marks for correct answer: 3</span>
+            <span className="separator">|</span>
+            <span>Negative Marks: 1</span>
+          </div>
+
+          <div className="question-content-area" style={{ fontSize: `${14 * zoomLevel}px` }}>
+            <div className="question-number">Question No. {currentQuestion + 1}</div>
+            
             <div className="question-text">
               {currentQuestionData?.questionText ? (
                 <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentQuestionData.questionText) }} />
@@ -1048,7 +975,7 @@ const MockTestAttempt = () => {
                       const isSelected = responses[questionId] === optionKey;
 
                       return (
-                        <label key={optionKey} className={`option-label ${isSelected ? 'selected' : ''} ${isCurrentSectionLocked ? 'disabled' : ''}`}>
+                        <label key={optionKey} className={`option-label ${isSelected ? 'selected' : ''}`}>
                           <input
                             type="radio"
                             name={`question-${questionId}`}
@@ -1057,7 +984,7 @@ const MockTestAttempt = () => {
                             onChange={() => handleAnswerSelect(optionKey)}
                             disabled={isCurrentSectionLocked}
                           />
-                          <span className="option-indicator">{optionKey}</span>
+                          <span className="radio-circle"></span>
                           <span className="option-text">
                             <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(optionText) }} />
                           </span>
@@ -1076,7 +1003,7 @@ const MockTestAttempt = () => {
                         const isSelected = responses[questionId] === optionLabel;
 
                         return (
-                          <label key={index} className={`option-label ${isSelected ? 'selected' : ''} ${isCurrentSectionLocked ? 'disabled' : ''}`}>
+                          <label key={index} className={`option-label ${isSelected ? 'selected' : ''}`}>
                             <input
                               type="radio"
                               name={`question-${questionId}`}
@@ -1085,7 +1012,7 @@ const MockTestAttempt = () => {
                               onChange={() => handleAnswerSelect(optionLabel)}
                               disabled={isCurrentSectionLocked}
                             />
-                            <span className="option-indicator">{optionLabel}</span>
+                            <span className="radio-circle"></span>
                             <span className="option-text">
                               <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(optionText) }} />
                             </span>
@@ -1098,7 +1025,7 @@ const MockTestAttempt = () => {
                       const isSelected = responses[questionId] === optionLabel || responses[questionId] === optionText;
 
                       return (
-                        <label key={index} className={`option-label ${isSelected ? 'selected' : ''} ${isCurrentSectionLocked ? 'disabled' : ''}`}>
+                        <label key={index} className={`option-label ${isSelected ? 'selected' : ''}`}>
                           <input
                             type="radio"
                             name={`question-${questionId}`}
@@ -1107,13 +1034,10 @@ const MockTestAttempt = () => {
                             onChange={() => handleAnswerSelect(optionLabel)}
                             disabled={isCurrentSectionLocked}
                           />
-                          <span className="option-indicator">{optionLabel}</span>
+                          <span className="radio-circle"></span>
                           <span className="option-text">
                             <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(optionText) }} />
                           </span>
-                          {typeof option === 'object' && option.optionImage && (
-                            <img src={option.optionImage} alt="option" className="option-image" />
-                          )}
                         </label>
                       );
                     });
@@ -1127,178 +1051,88 @@ const MockTestAttempt = () => {
             </div>
           </div>
 
-          <div className="question-actions">
-            <button 
-              className="action-btn secondary" 
-              onClick={handleClearResponse}
-              disabled={isCurrentSectionLocked}
-            >
-              Clear Response
-            </button>
-            <button 
-              className={`action-btn ${markedForReview.has(currentQuestion) ? 'marked' : 'secondary'}`}
-              onClick={handleMarkForReview}
-              disabled={isCurrentSectionLocked}
-            >
-              {markedForReview.has(currentQuestion) ? 'Unmark for Review' : 'Mark for Review & Next'}
-            </button>
-            <button 
-              className="action-btn primary" 
-              onClick={handleNextQuestion}
-              disabled={isCurrentSectionLocked}
-            >
-              Save & Next
-            </button>
+          <div className="bottom-action-bar">
+            <div className="left-actions">
+              <button className="action-btn mark-review" onClick={handleMarkForReview}>
+                Mark for Review & Next
+              </button>
+              <button className="action-btn clear-response" onClick={handleClearResponse}>
+                Clear Response
+              </button>
+            </div>
+            <div className="right-actions">
+              <button className="action-btn save-next" onClick={handleSaveAndNext}>
+                Save & Next
+              </button>
+              <button className="action-btn submit-btn" onClick={handleSubmitTest}>
+                Submit
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="cat-sidebar-panel">
-          <div className="timer-section">
-            <div className="timer-item">
-              <span className="timer-label">Total Time Left</span>
-              <span className="timer-value">{formatTime(getTotalTimeRemaining())}</span>
+          <div className="profile-section">
+            <div className="profile-avatar">
+              <svg viewBox="0 0 100 100" className="avatar-svg">
+                <circle cx="50" cy="35" r="22" fill="#4a90a4"/>
+                <ellipse cx="50" cy="85" rx="35" ry="25" fill="#4a90a4"/>
+              </svg>
             </div>
-            <div className={`timer-item section-timer ${currentSectionTimeRemaining < 300 ? 'warning' : ''} ${currentSectionTimeRemaining < 60 ? 'critical' : ''}`}>
-              <span className="timer-label">Section Time</span>
-              <span className="timer-value">{formatTime(currentSectionTimeRemaining)}</span>
+            <div className="profile-name">{studentInfo.name}</div>
+          </div>
+
+          <div className="question-legend">
+            <div className="legend-row">
+              <div className="legend-item">
+                <span className="legend-box answered">{Object.keys(responses).length}</span>
+                <span className="legend-text">Answ...</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-box not-answered">{totalQuestions - Object.keys(responses).filter(id => testData.sections[currentSection].questions.some(q => q._id === id)).length}</span>
+                <span className="legend-text">Not Answered</span>
+              </div>
+            </div>
+            <div className="legend-row">
+              <div className="legend-item">
+                <span className="legend-box not-visited">{totalQuestions - visitedQuestions.size}</span>
+                <span className="legend-text">Not Visited</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-box marked">{markedForReview.size}</span>
+                <span className="legend-text">Marked for Review</span>
+              </div>
+            </div>
+            <div className="legend-row full-width">
+              <div className="legend-item">
+                <span className="legend-box answered-marked">0</span>
+                <span className="legend-text">Answered & Marked for Review (will also be evaluated)</span>
+              </div>
             </div>
           </div>
 
-          {currentSectionTimeRemaining < 300 && currentSectionTimeRemaining > 0 && (
-            <div className="time-warning-banner">
-              {currentSectionTimeRemaining < 60 
-                ? 'Less than 1 minute remaining in this section!' 
-                : `${Math.ceil(currentSectionTimeRemaining / 60)} minutes remaining in this section`}
-            </div>
-          )}
-
-          <div className="tools-section">
-            <button 
-              className="tool-btn"
-              onClick={() => setShowInstructions(true)}
-            >
-              Instructions
-            </button>
-            <button 
-              className="tool-btn"
-              onClick={() => setShowCalculator(!showCalculator)}
-            >
-              Calculator
-            </button>
-            <button 
-              className="tool-btn"
-              onClick={() => setShowScratchPad(!showScratchPad)}
-            >
-              Scratch Pad
-            </button>
-          </div>
-
-          <div className="status-legend">
-            <h4>Question Status</h4>
-            <div className="legend-items">
-              <div className="legend-item">
-                <span className="status-indicator answered"></span>
-                <span>Answered</span>
-              </div>
-              <div className="legend-item">
-                <span className="status-indicator not-answered"></span>
-                <span>Not Answered</span>
-              </div>
-              <div className="legend-item">
-                <span className="status-indicator marked"></span>
-                <span>Marked for Review</span>
-              </div>
-              <div className="legend-item">
-                <span className="status-indicator answered-marked"></span>
-                <span>Answered & Marked</span>
-              </div>
-              <div className="legend-item">
-                <span className="status-indicator visited"></span>
-                <span>Not Visited</span>
-              </div>
-            </div>
-          </div>
+          <div className="section-name-bar">{testData.sections[currentSection].name}</div>
 
           <div className="question-palette">
-            <h4>Choose a Question</h4>
+            <div className="palette-title">Choose a Question</div>
             <div className="palette-grid">
-              {testData.sections[currentSection]?.questions?.length > 0 ? (
-                testData.sections[currentSection].questions.map((_, index) => (
-                  <button
-                    key={index}
-                    className={`palette-btn ${getQuestionStatus(index)} ${currentQuestion === index ? 'current' : ''}`}
-                    onClick={() => handleQuestionSelect(index)}
-                    disabled={isCurrentSectionLocked}
-                  >
-                    {index + 1}
-                  </button>
-                ))
-              ) : (
-                <p>No questions available for this section</p>
-              )}
-            </div>
-          </div>
-
-          <div className="section-navigation">
-            <div className="section-tabs">
-              {testData.sections.map((section, index) => {
-                const isLocked = isSectionLocked(index);
-                const canNavigate = canNavigateToSection(index);
-                
-                return (
-                  <button
-                    key={index}
-                    className={`section-tab ${currentSection === index ? 'active' : ''} ${isLocked ? 'locked' : ''} ${!canNavigate ? 'disabled' : ''}`}
-                    onClick={() => {
-                      if (canNavigate && !isLocked) {
-                        setCurrentSection(index);
-                        setCurrentQuestion(0);
-                        setVisitedQuestions(new Set([0]));
-                      }
-                    }}
-                    disabled={!canNavigate || (isLocked && index !== currentSection)}
-                    title={isLocked ? 'Section completed' : (index > currentSection ? 'Complete current section first' : section.name)}
-                  >
-                    {section.name}
-                    {isLocked && <span className="lock-icon">Completed</span>}
-                  </button>
-                );
-              })}
-            </div>
-            
-            <div className="section-actions">
-              {currentSection < testData.sections.length - 1 ? (
-                <button 
-                  className="section-btn primary" 
-                  onClick={handleNextSection}
-                  disabled={isCurrentSectionLocked || currentSectionTimeRemaining > 0}
-                  title={currentSectionTimeRemaining > 0 ? `Wait for section timer to complete (${formatTime(currentSectionTimeRemaining)} remaining)` : ''}
+              {testData.sections[currentSection]?.questions?.map((_, index) => (
+                <button
+                  key={index}
+                  className={`palette-btn ${getQuestionStatus(index)} ${currentQuestion === index ? 'current' : ''}`}
+                  onClick={() => handleQuestionSelect(index)}
                 >
-                  Submit Section & Continue
+                  {index + 1}
                 </button>
-              ) : (
-                <button className="section-btn danger" onClick={handleSubmitTest}>
-                  Submit Test
-                </button>
-              )}
-            </div>
-            
-            <div className="section-guidance">
-              <p>
-                {currentSection < testData.sections.length - 1 
-                  ? (currentSectionTimeRemaining > 0 
-                      ? `Section can be submitted when timer reaches 0:00:00 (${formatTime(currentSectionTimeRemaining)} remaining)`
-                      : 'Section timer complete. You can now submit this section.')
-                  : 'This is the final section. Submit when ready.'}
-              </p>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
       {showCalculator && (
-        <div className="modal-overlay">
-          <div className="calculator-modal scientific">
+        <div className="modal-overlay" onClick={() => setShowCalculator(false)}>
+          <div className="calculator-modal" onClick={(e) => e.stopPropagation()}>
             <div className="calculator-header">
               <h4>Calculator</h4>
               <button onClick={() => setShowCalculator(false)}>×</button>
@@ -1315,33 +1149,31 @@ const MockTestAttempt = () => {
                 <div className="calculator-row">
                   <button className="calc-btn function-red" onClick={() => handleCalculatorInput('←')}>←</button>
                   <button className="calc-btn function-red" onClick={() => handleCalculatorInput('C')}>C</button>
-                  <button className="calc-btn function-red" onClick={() => handleCalculatorInput('+/-')}>+/-</button>
-                  <button className="calc-btn function" onClick={() => handleCalculatorInput('sqrt')}>sqrt</button>
+                  <button className="calc-btn function" onClick={() => handleCalculatorInput('+/-')}>+/-</button>
+                  <button className="calc-btn function" onClick={() => handleCalculatorInput('sqrt')}>√</button>
                 </div>
-                <div className="calculator-main">
-                  <div className="calculator-numpad">
-                    <div className="calculator-row">
-                      {['7', '8', '9', '/', '%'].map((btn) => (
-                        <button key={btn} className={`calc-btn ${['/', '%'].includes(btn) ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
-                      ))}
-                    </div>
-                    <div className="calculator-row">
-                      {['4', '5', '6', '*', '1/x'].map((btn) => (
-                        <button key={btn} className={`calc-btn ${['*', '1/x'].includes(btn) ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
-                      ))}
-                    </div>
-                    <div className="calculator-row">
-                      {['1', '2', '3', '-'].map((btn) => (
-                        <button key={btn} className={`calc-btn ${btn === '-' ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
-                      ))}
-                      <button className="calc-btn equals tall" onClick={() => handleCalculatorInput('=')}>=</button>
-                    </div>
-                    <div className="calculator-row">
-                      <button className="calc-btn number wide" onClick={() => handleCalculatorInput('0')}>0</button>
-                      <button className="calc-btn number" onClick={() => handleCalculatorInput('.')}>.</button>
-                      <button className="calc-btn operator" onClick={() => handleCalculatorInput('+')}>+</button>
-                    </div>
-                  </div>
+                <div className="calculator-row">
+                  {['7', '8', '9', '/'].map((btn) => (
+                    <button key={btn} className={`calc-btn ${btn === '/' ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
+                  ))}
+                  <button className="calc-btn operator" onClick={() => handleCalculatorInput('%')}>%</button>
+                </div>
+                <div className="calculator-row">
+                  {['4', '5', '6', '*'].map((btn) => (
+                    <button key={btn} className={`calc-btn ${btn === '*' ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn === '*' ? '×' : btn}</button>
+                  ))}
+                  <button className="calc-btn operator" onClick={() => handleCalculatorInput('1/x')}>1/x</button>
+                </div>
+                <div className="calculator-row">
+                  {['1', '2', '3', '-'].map((btn) => (
+                    <button key={btn} className={`calc-btn ${btn === '-' ? 'operator' : 'number'}`} onClick={() => handleCalculatorInput(btn)}>{btn}</button>
+                  ))}
+                  <button className="calc-btn equals" rowSpan="2" onClick={() => handleCalculatorInput('=')}>=</button>
+                </div>
+                <div className="calculator-row">
+                  <button className="calc-btn number wide" onClick={() => handleCalculatorInput('0')}>0</button>
+                  <button className="calc-btn number" onClick={() => handleCalculatorInput('.')}>.</button>
+                  <button className="calc-btn operator" onClick={() => handleCalculatorInput('+')}>+</button>
                 </div>
               </div>
             </div>
@@ -1350,27 +1182,16 @@ const MockTestAttempt = () => {
       )}
 
       {showScratchPad && (
-        <div className="modal-overlay">
-          <div className="scratchpad-modal">
+        <div className="modal-overlay" onClick={() => setShowScratchPad(false)}>
+          <div className="scratchpad-modal" onClick={(e) => e.stopPropagation()}>
             <div className="scratchpad-header">
               <h4>Scratch Pad</h4>
               <div className="scratchpad-controls">
-                <button
-                  className={`mode-btn ${!drawingMode ? 'active' : ''}`}
-                  onClick={() => setDrawingMode(false)}
-                >
-                  Text
-                </button>
-                <button
-                  className={`mode-btn ${drawingMode ? 'active' : ''}`}
-                  onClick={() => setDrawingMode(true)}
-                >
-                  Draw
-                </button>
+                <button className={`mode-btn ${!drawingMode ? 'active' : ''}`} onClick={() => setDrawingMode(false)}>Text</button>
+                <button className={`mode-btn ${drawingMode ? 'active' : ''}`} onClick={() => setDrawingMode(true)}>Draw</button>
               </div>
               <button onClick={() => setShowScratchPad(false)}>×</button>
             </div>
-
             {drawingMode ? (
               <canvas
                 ref={canvasRef}
@@ -1387,10 +1208,9 @@ const MockTestAttempt = () => {
                 className="scratchpad-textarea"
                 value={scratchPadContent}
                 onChange={(e) => setScratchPadContent(e.target.value)}
-                placeholder="Use this space for your rough work..."
+                placeholder="Use this space for rough work..."
               />
             )}
-
             <div className="scratchpad-actions">
               {drawingMode ? (
                 <button onClick={clearCanvas}>Clear Drawing</button>
@@ -1403,40 +1223,44 @@ const MockTestAttempt = () => {
       )}
 
       {showInstructions && (
-        <div className="modal-overlay">
-          <div className="instructions-modal">
+        <div className="modal-overlay" onClick={() => setShowInstructions(false)}>
+          <div className="instructions-modal" onClick={(e) => e.stopPropagation()}>
             <div className="instructions-header">
               <h4>Test Instructions</h4>
               <button onClick={() => setShowInstructions(false)}>×</button>
             </div>
             <div className="instructions-content">
-              <div className="instruction-section">
-                <h5>Section-wise Time Management</h5>
-                <ul>
-                  <li>Each section has its own time limit that cannot be extended.</li>
-                  <li>When section time expires, you will automatically move to the next section.</li>
-                  <li>You cannot return to a section once its time has expired.</li>
-                  <li>You may submit a section early if you finish before time expires.</li>
-                </ul>
-              </div>
-              <div className="instruction-section">
-                <h5>Progress Saving</h5>
-                <ul>
-                  <li>Your progress is automatically saved every few seconds.</li>
-                  <li>If you lose connection, you can resume from where you left off.</li>
-                  <li>Look for the "Saved" indicator in the top right corner.</li>
-                </ul>
-              </div>
-              {Array.isArray(testData.instructions) && testData.instructions.length > 0 && (
-                <div className="instruction-section">
-                  <h5>Additional Instructions</h5>
-                  {testData.instructions.map((instruction, index) => (
-                    <p key={index}>
-                      {typeof instruction === 'object' ? JSON.stringify(instruction) : String(instruction)}
-                    </p>
-                  ))}
+              <h5>General Instructions:</h5>
+              <ol>
+                <li>The total duration of the test is 120 minutes (40 minutes per section).</li>
+                <li>The test contains 3 sections: VARC, DILR, and QA.</li>
+                <li>Each section is timed separately. You cannot go back to a previous section.</li>
+                <li>For MCQs: +3 marks for correct answer, -1 for incorrect.</li>
+                <li>For Non-MCQs: +3 marks for correct answer, 0 for incorrect.</li>
+                <li>Use the calculator and scratch pad tools as needed.</li>
+                <li>Your progress is saved automatically every few seconds.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQuestionPaper && (
+        <div className="modal-overlay" onClick={() => setShowQuestionPaper(false)}>
+          <div className="question-paper-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="question-paper-header">
+              <h4>Question Paper - {testData.sections[currentSection].name}</h4>
+              <button onClick={() => setShowQuestionPaper(false)}>×</button>
+            </div>
+            <div className="question-paper-content">
+              {testData.sections[currentSection]?.questions?.map((q, index) => (
+                <div key={index} className="question-paper-item" onClick={() => { handleQuestionSelect(index); setShowQuestionPaper(false); }}>
+                  <div className="qp-number">Q{index + 1}</div>
+                  <div className="qp-status">
+                    <span className={`status-dot ${getQuestionStatus(index)}`}></span>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -1451,12 +1275,10 @@ const MockTestAttempt = () => {
             <div className="section-locked-content">
               <div className="time-up-icon">⏰</div>
               <p>{lockedSectionInfo.message}</p>
-              <p className="section-locked-note">
-                Your answers for this section have been saved. You cannot return to this section.
-              </p>
+              <p className="section-locked-note">Your answers have been saved. You cannot return to this section.</p>
             </div>
             <div className="section-locked-actions">
-              <button className="section-btn primary" onClick={handleSectionLockedContinue}>
+              <button className="continue-btn" onClick={handleSectionLockedContinue}>
                 {currentSection < testData.sections.length - 1 ? 'Continue to Next Section' : 'View Results'}
               </button>
             </div>
@@ -1471,174 +1293,36 @@ const MockTestAttempt = () => {
               <h3>Section Complete - {currentSectionResult.sectionName}</h3>
             </div>
             <div className="section-result-content">
-              <div className="result-summary">
-                <div className="result-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Total Questions:</span>
-                    <span className="stat-value">{currentSectionResult.totalQuestions}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Answered:</span>
-                    <span className="stat-value answered">{currentSectionResult.answered}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Not Answered:</span>
-                    <span className="stat-value not-answered">{currentSectionResult.notAnswered}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Marked for Review:</span>
-                    <span className="stat-value marked">{currentSectionResult.markedForReview}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Not Visited:</span>
-                    <span className="stat-value not-visited">{currentSectionResult.notVisited}</span>
-                  </div>
-                </div>
-
-                <div className="score-summary">
-                  <h4>Section Performance</h4>
-                  <div className="score-item">
-                    <span>Attempted: {currentSectionResult.answered} questions</span>
-                  </div>
-                  <div className="score-item">
-                    <span>Percentage: {((currentSectionResult.answered / currentSectionResult.totalQuestions) * 100).toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="section-transition-note">
-                <p><strong>Note:</strong> Once you proceed, you cannot return to this section.</p>
+              <div className="result-stats">
+                <div className="stat-item"><span>Total Questions:</span><span>{currentSectionResult.totalQuestions}</span></div>
+                <div className="stat-item"><span>Answered:</span><span className="answered">{currentSectionResult.answered}</span></div>
+                <div className="stat-item"><span>Not Answered:</span><span className="not-answered">{currentSectionResult.notAnswered}</span></div>
+                <div className="stat-item"><span>Marked for Review:</span><span className="marked">{currentSectionResult.markedForReview}</span></div>
               </div>
             </div>
             <div className="section-result-actions">
-              {currentSection < testData?.sections?.length - 1 ? (
-                <button className="result-btn primary" onClick={proceedToNextSection}>
-                  Continue to Next Section
-                </button>
-              ) : (
-                <button className="result-btn primary" onClick={proceedToNextSection}>
-                  Continue to Submit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showFinalResult && finalResult && (
-        <div className="modal-overlay">
-          <div className="final-result-modal">
-            <div className="final-result-header">
-              <h3>Test Complete - Final Results</h3>
-            </div>
-            <div className="final-result-content">
-              <div className="overall-summary">
-                <div className="overall-stats">
-                  <div className="big-stat">
-                    <span className="big-stat-label">Overall Score</span>
-                    <span className="big-stat-value">{finalResult.totalScore}</span>
-                    <span className="big-stat-percentage">
-                      {finalResult.positiveMarks && finalResult.negativeMarks !== undefined 
-                        ? `+${finalResult.positiveMarks} / -${finalResult.negativeMarks}`
-                        : `${finalResult.percentage?.toFixed(1) || 0}%`}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="score-breakdown">
-                  <div className="breakdown-item correct">
-                    <span className="breakdown-label">Correct</span>
-                    <span className="breakdown-value">{finalResult.totalCorrect || 0}</span>
-                  </div>
-                  <div className="breakdown-item incorrect">
-                    <span className="breakdown-label">Incorrect</span>
-                    <span className="breakdown-value">{finalResult.totalIncorrect || 0}</span>
-                  </div>
-                  <div className="breakdown-item unanswered">
-                    <span className="breakdown-label">Unanswered</span>
-                    <span className="breakdown-value">{finalResult.totalNotAnswered || (finalResult.totalQuestions - finalResult.totalAnswered)}</span>
-                  </div>
-                </div>
-
-                <div className="section-wise-results">
-                  <h4>Section-wise Performance</h4>
-                  <table className="results-table">
-                    <thead>
-                      <tr>
-                        <th>Section</th>
-                        <th>Questions</th>
-                        <th>Correct</th>
-                        <th>Incorrect</th>
-                        <th>Not Answered</th>
-                        <th>Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {finalResult.sections.map((section, index) => (
-                        <tr key={index}>
-                          <td className="section-name">{section.sectionName}</td>
-                          <td>{section.totalQuestions}</td>
-                          <td className="correct">{section.correct || 0}</td>
-                          <td className="incorrect">{section.incorrect || 0}</td>
-                          <td className="not-answered">{section.notAnswered || 0}</td>
-                          <td className="score">{section.score || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div className="final-result-actions">
-              <button 
-                className="result-btn secondary" 
-                onClick={() => navigate(`/student/mock-test/review/${finalResult.attemptId || currentAttemptIdRef.current}`)}
-              >
-                View Detailed Review
-              </button>
-              <button className="result-btn primary" onClick={() => navigate('/student/mock-tests')}>
-                Back to Mock Tests
+              <button className="continue-btn" onClick={proceedToNextSection}>
+                {currentSection < testData.sections.length - 1 ? 'Continue to Next Section' : 'Submit Test'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {showStudentDetails && (
-        <div className="student-details-modal-overlay" onClick={() => setShowStudentDetails(false)}>
-          <div className="student-details-modal" onClick={e => e.stopPropagation()}>
-            <div className="student-details-header">
-              <h3>Student Details</h3>
-              <button className="close-btn" onClick={() => setShowStudentDetails(false)}>&times;</button>
-            </div>
-            <div className="student-details-content">
-              <div className="student-avatar-large">
-                <span>👤</span>
-              </div>
-              <div className="student-info-row">
-                <span className="info-label">Name:</span>
-                <span className="info-value">{studentInfo.name}</span>
-              </div>
-              {studentInfo.email && (
-                <div className="student-info-row">
-                  <span className="info-label">Email:</span>
-                  <span className="info-value">{studentInfo.email}</span>
-                </div>
-              )}
-              {studentInfo.phone && (
-                <div className="student-info-row">
-                  <span className="info-label">Phone:</span>
-                  <span className="info-value">{studentInfo.phone}</span>
-                </div>
-              )}
-              <div className="student-info-row">
-                <span className="info-label">Test:</span>
-                <span className="info-value">{testData?.name || 'Mock Test'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="floating-tools">
+        <button className="floating-tool-btn" onClick={() => setShowCalculator(true)} title="Calculator">
+          🔢
+        </button>
+        <button className="floating-tool-btn" onClick={() => setShowScratchPad(true)} title="Scratch Pad">
+          📝
+        </button>
+        <button className="floating-tool-btn zoom" onClick={handleZoomIn} title="Zoom In">
+          +
+        </button>
+        <button className="floating-tool-btn zoom" onClick={handleZoomOut} title="Zoom Out">
+          -
+        </button>
+      </div>
     </div>
   );
 };
