@@ -9,7 +9,7 @@ const MockTestInstructions = () => {
   const [loading, setLoading] = useState(true);
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => {  
     fetchTestDetails();
   }, [testId]);
 
