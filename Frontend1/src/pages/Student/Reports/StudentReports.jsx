@@ -46,16 +46,21 @@ const StudentReports = () => {
   const fetchReportsData = async () => {
     try {
       setLoading(true);
+      console.log('📊 StudentReports: Fetching reports data...');
       
       const [summaryRes, sectionRes] = await Promise.all([
         http.get('/mock-tests/reports/summary'),
         http.get('/mock-tests/reports/section-analysis')
       ]);
 
+      console.log('📊 Summary response:', summaryRes.data);
+      console.log('📊 Section response:', sectionRes.data);
+
       if (summaryRes.data?.success) {
         setSummary(summaryRes.data.summary);
         setAttempts(summaryRes.data.attempts);
         setPerformanceTrend(summaryRes.data.performanceTrend);
+        console.log('📊 Set summary:', summaryRes.data.summary);
       }
 
       if (sectionRes.data?.success) {
@@ -65,6 +70,7 @@ const StudentReports = () => {
       console.error('Error fetching reports:', error);
     } finally {
       setLoading(false);
+      console.log('📊 Finished loading reports');
     }
   };
 

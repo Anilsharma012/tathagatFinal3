@@ -809,13 +809,11 @@ const MockTestAttempt = () => {
     } catch (error) {
       console.error('Error submitting feedback:', error);
     }
-    setShowFeedbackForm(false);
-    setShowFinalResult(true);
+    navigate('/student/reports');
   };
 
   const handleFeedbackSkip = () => {
-    setShowFeedbackForm(false);
-    setShowFinalResult(true);
+    navigate('/student/reports');
   };
 
   const getCurrentQuestion = () => {

@@ -2087,6 +2087,10 @@ const getStudentReportsSummary = async (req, res) => {
     const userId = req.user.id;
     console.log(`📊 Fetching reports summary for user: ${userId}`);
 
+    const allAttempts = await MockTestAttempt.find({ userId });
+    console.log(`📊 Total attempts for user: ${allAttempts.length}`);
+    allAttempts.forEach(a => console.log(`  - Attempt ${a._id}: status=${a.status}, testPaperId=${a.testPaperId}`));
+
     const attempts = await MockTestAttempt.find({ 
       userId, 
       status: 'COMPLETED' 
@@ -2094,6 +2098,8 @@ const getStudentReportsSummary = async (req, res) => {
     .populate('testPaperId', 'title testNumber')
     .populate('seriesId', 'title')
     .sort({ completedAt: -1 });
+    
+    console.log(`📊 Completed attempts: ${attempts.length}`);
 
     if (attempts.length === 0) {
       return res.json({

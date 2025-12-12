@@ -9,6 +9,14 @@ if (typeof window !== 'undefined' && !window.__API_BASE_LOGGED_CLIENT__) {
 export const http = axios.create({ baseURL: API_BASE, withCredentials: true, timeout: 20000 });
 
 const resolveToken = () => {
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isStudentRoute = currentPath.startsWith('/student') || currentPath.startsWith('/mock-test');
+  
+  if (isStudentRoute) {
+    const studentToken = localStorage.getItem('authToken') || localStorage.getItem('token');
+    if (studentToken) return studentToken;
+  }
+  
   const fromLocal = localStorage.getItem('adminToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
   const fromSession = sessionStorage.getItem('token');
   const fromWindow = typeof window !== 'undefined' ? window.__TOKEN__ : null;

@@ -33,7 +33,9 @@ const authMiddleware = async (req, res, next) => {
         const token = authHeader.split(" ")[1];
 
         // In development mode, check for admin token shortcut - but NOT for student routes
-        const isStudentRoute = req.path.includes('/student/') || req.path.startsWith('/student');
+        const isStudentRoute = req.path.includes('/student/') || req.path.startsWith('/student') || 
+                               req.path.includes('/reports/') || req.path.includes('/attempt/') ||
+                               req.baseUrl?.includes('/mock-tests');
         if (process.env.NODE_ENV === 'development' && token.includes('admin') && !isStudentRoute) {
           console.log('🔧 Development admin token detected, using admin user');
           req.user = {
