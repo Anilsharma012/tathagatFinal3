@@ -1024,16 +1024,25 @@ const MockTestAttempt = () => {
         <div className="cat-header-bar">
           <span className="exam-title">CAT 2025 Mock Exam</span>
           <div className="header-tools">
-            <div className="magnifier-controls">
-              <button className="magnifier-btn" onClick={handleZoomOut} title="Zoom Out">−</button>
-              <span className="magnifier-label">🔍 {Math.round(zoomLevel * 100)}%</span>
-              <button className="magnifier-btn" onClick={handleZoomIn} title="Zoom In">+</button>
+            <button className="header-tool-btn screen-magnifier-btn" onClick={() => {}}>
+              <span className="tool-icon-circle orange">🔍</span> Screen Magnifier
+            </button>
+            <div className="magnifier-popup">
+              <button className="mag-icon-btn" onClick={() => setZoomLevel(1)} title="Reset">
+                <span className="mag-reset-icon">▶</span>
+              </button>
+              <button className="mag-icon-btn" onClick={handleZoomIn} title="Zoom In">
+                <span className="mag-zoom-icon">🔍+</span>
+              </button>
+              <button className="mag-icon-btn" onClick={handleZoomOut} title="Zoom Out">
+                <span className="mag-zoom-icon">🔍-</span>
+              </button>
             </div>
             <button className="header-tool-btn" onClick={() => setShowInstructions(true)}>
-              <span className="tool-icon">ℹ️</span> Instructions
+              <span className="tool-icon-circle blue">ℹ️</span> Instructions
             </button>
             <button className="header-tool-btn" onClick={() => setShowQuestionPaper(true)}>
-              <span className="tool-icon">📄</span> Question Paper
+              <span className="tool-icon-circle blue">📄</span> Question Paper
             </button>
           </div>
         </div>
@@ -1377,30 +1386,43 @@ const MockTestAttempt = () => {
 
       {showQuestionPaper && (
         <div className="modal-overlay" onClick={() => setShowQuestionPaper(false)}>
-          <div className="question-paper-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="question-paper-header">
-              <h4>Question Paper - {testData.sections[currentSection].name}</h4>
-              <button onClick={() => setShowQuestionPaper(false)}>×</button>
+          <div className="question-paper-modal cat-qp-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="question-paper-header cat-qp-header">
+              <span>Question Paper</span>
+              <button onClick={() => setShowQuestionPaper(false)}>Close ×</button>
             </div>
-            <div className="question-paper-content">
+            <div className="question-paper-content cat-qp-content">
               {testData.sections[currentSection]?.questions?.map((q, index) => (
-                <div key={index} className="question-paper-item" onClick={() => { handleQuestionSelect(index); setShowQuestionPaper(false); }}>
-                  <div className="qp-header">
-                    <span className="qp-number">Q{index + 1}</span>
-                    <span className={`qp-status-badge ${getQuestionStatus(index)}`}>
-                      {getQuestionStatus(index) === 'answered' ? 'Answered' : 
-                       getQuestionStatus(index) === 'marked' ? 'Marked' :
-                       getQuestionStatus(index) === 'answered-marked' ? 'Ans+Marked' :
-                       getQuestionStatus(index) === 'visited' ? 'Not Answered' : 'Not Visited'}
-                    </span>
+                <div key={index} className="cat-qp-question-block">
+                  <div className="cat-qp-question-header">
+                    <span className="cat-qp-qnum">Q.{index + 1})</span>
+                    <div className="cat-qp-question-text" dangerouslySetInnerHTML={{ __html: sanitizeHtml(q?.questionText || `Question ${index + 1}`) }} />
                   </div>
-                  <div className="qp-text">
-                    {q?.questionText ? (
-                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(q.questionText.substring(0, 150) + (q.questionText.length > 150 ? '...' : '')) }} />
-                    ) : (
-                      <span>Question {index + 1}</span>
-                    )}
+                  <div className="cat-qp-marks-info">
+                    <span>Marks for correct answer: <strong className="green-text">3</strong></span>
+                    <span> ; Negative Marks: <strong className="red-text">1</strong></span>
                   </div>
+                  {q?.options && (
+                    <div className="cat-qp-options">
+                      {typeof q.options === 'object' && !Array.isArray(q.options) ? (
+                        ['A', 'B', 'C', 'D'].map((key, optIndex) => (
+                          q.options[key] && (
+                            <div key={key} className="cat-qp-option">
+                              <span className="cat-qp-option-num">{optIndex + 1}</span>
+                              <div className="cat-qp-option-text" dangerouslySetInnerHTML={{ __html: sanitizeHtml(q.options[key]) }} />
+                            </div>
+                          )
+                        ))
+                      ) : Array.isArray(q.options) ? (
+                        q.options.map((opt, optIndex) => (
+                          <div key={optIndex} className="cat-qp-option">
+                            <span className="cat-qp-option-num">{optIndex + 1}</span>
+                            <div className="cat-qp-option-text" dangerouslySetInnerHTML={{ __html: sanitizeHtml(typeof opt === 'string' ? opt : opt?.text || '') }} />
+                          </div>
+                        ))
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1453,54 +1475,60 @@ const MockTestAttempt = () => {
 
       {showExamSummary && (
         <div className="modal-overlay">
-          <div className="exam-summary-modal">
-            <div className="exam-summary-header">
+          <div className="exam-summary-modal cat-exam-summary">
+            <div className="exam-summary-header cat-summary-header">
               <h2>Exam Summary</h2>
             </div>
-            <div className="exam-summary-content">
+            <div className="exam-summary-content cat-summary-content">
               {allSectionsStats.map((section, index) => (
-                <div key={index} className={`section-summary-block ${section.status}`}>
-                  <div className="section-summary-title">
-                    <strong>{section.sectionName}</strong>
-                    <span className="section-status-label">
-                      {section.status === 'current' ? '( Current Group )' : 
-                       section.status === 'completed' ? '( Attempted Group ; View not allowed; Edit not allowed)' : 
-                       '( Yet to attempt )'}
-                    </span>
-                  </div>
-                  <table className="summary-table">
-                    <thead>
-                      <tr>
-                        <th>Section Name</th>
-                        <th>No. of Questions</th>
-                        <th>Answered</th>
-                        <th>Not Answered</th>
-                        <th>Marked for Review</th>
-                        <th>Answered & Marked for Review (will also be evaluated)</th>
-                        <th>Not Visited</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>{section.sectionName}</td>
-                        <td>{section.totalQuestions}</td>
-                        <td>{section.answered}</td>
-                        <td>{section.notAnswered}</td>
-                        <td>{section.markedForReview}</td>
-                        <td>{section.answeredAndMarked}</td>
-                        <td>{section.notVisited}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div key={index} className={`section-summary-block cat-section-block ${section.status}`}>
+                  {section.status === 'yet_to_attempt' ? (
+                    <div className="cat-section-yet-to-attempt">
+                      <strong>{section.sectionName}</strong> : ( Yet to attempt )
+                    </div>
+                  ) : (
+                    <>
+                      <div className={`cat-section-header ${section.status === 'current' ? 'current-header' : 'completed-header'}`}>
+                        <strong>{section.sectionName}</strong> : 
+                        <span className="section-status-text">
+                          {section.status === 'current' ? ' ( Current Group )' : ' ( Attempted Group ; View not allowed; Edit not allowed)'}
+                        </span>
+                      </div>
+                      <table className="summary-table cat-summary-table">
+                        <thead>
+                          <tr>
+                            <th>Section Name</th>
+                            <th>No. of Questions</th>
+                            <th>Answered</th>
+                            <th>Not Answered</th>
+                            <th>Marked for Review</th>
+                            <th>Answered & Marked for Review (will also be evaluated)</th>
+                            <th>Not Visited</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>{section.sectionName}</td>
+                            <td>{section.totalQuestions}</td>
+                            <td>{section.answered}</td>
+                            <td>{section.notAnswered}</td>
+                            <td>{section.markedForReview}</td>
+                            <td>{section.answeredAndMarked}</td>
+                            <td>{section.notVisited}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               ))}
               
-              <div className="exam-summary-warning">
+              <div className="exam-summary-warning cat-summary-warning">
                 <p>Are you sure to submit this Group? Click 'Yes' to proceed; Click 'No' to go back.</p>
                 <p className="warning-note">Dear Candidate, Once the Group is submitted, you cannot revisit and edit your responses.</p>
               </div>
             </div>
-            <div className="exam-summary-actions">
+            <div className="exam-summary-actions cat-summary-actions">
               <button className="summary-btn yes-btn" onClick={currentSection < testData.sections.length - 1 ? confirmSectionSubmit : confirmFinalSubmit}>
                 Yes
               </button>
