@@ -876,6 +876,16 @@ const MockTestAttempt = () => {
   return (
     <div className="cat-exam-interface" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left', width: `${100 / zoomLevel}%`, height: `${100 / zoomLevel}vh` }}>
       <div className="cat-header">
+        <div className="timer-top-bar">
+          <div className="timer-left">
+            <span className="timer-label-text">Time Left:</span>
+            <span className="timer-value-large">{formatTime(currentSectionTimeRemaining)}</span>
+          </div>
+          <div className="timer-right">
+            <span className="total-time-label">Total:</span>
+            <span className="total-time-value">{formatTime(getTotalTimeRemaining())}</span>
+          </div>
+        </div>
         <div className="cat-header-top">
           <div className="cat-logos">
             <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Anna_University_Logo.svg/1200px-Anna_University_Logo.svg.png" alt="IIM" className="iim-logo" />
@@ -896,9 +906,11 @@ const MockTestAttempt = () => {
         <div className="cat-header-bar">
           <span className="exam-title">CAT 2025 Mock Exam</span>
           <div className="header-tools">
-            <button className="header-tool-btn" onClick={() => { handleZoomOut(); handleZoomIn(); }}>
-              <span className="tool-icon">🔍</span> Screen Magnifier
-            </button>
+            <div className="magnifier-controls">
+              <button className="magnifier-btn" onClick={handleZoomOut} title="Zoom Out">−</button>
+              <span className="magnifier-label">🔍 {Math.round(zoomLevel * 100)}%</span>
+              <button className="magnifier-btn" onClick={handleZoomIn} title="Zoom In">+</button>
+            </div>
             <button className="header-tool-btn" onClick={() => setShowInstructions(true)}>
               <span className="tool-icon">ℹ️</span> Instructions
             </button>
@@ -1052,22 +1064,18 @@ const MockTestAttempt = () => {
           </div>
 
           <div className="bottom-action-bar">
-            <div className="left-actions">
-              <button className="action-btn mark-review" onClick={handleMarkForReview}>
-                Mark for Review & Next
-              </button>
-              <button className="action-btn clear-response" onClick={handleClearResponse}>
-                Clear Response
-              </button>
-            </div>
-            <div className="right-actions">
-              <button className="action-btn save-next" onClick={handleSaveAndNext}>
-                Save & Next
-              </button>
-              <button className="action-btn submit-btn" onClick={handleSubmitTest}>
-                Submit
-              </button>
-            </div>
+            <button className="action-btn mark-review" onClick={handleMarkForReview}>
+              Mark for Review & Next
+            </button>
+            <button className="action-btn clear-response" onClick={handleClearResponse}>
+              Clear Response
+            </button>
+            <button className="action-btn save-next" onClick={handleSaveAndNext}>
+              Save & Next
+            </button>
+            <button className="action-btn submit-btn" onClick={handleSubmitTest}>
+              Submit
+            </button>
           </div>
         </div>
 
@@ -1255,9 +1263,21 @@ const MockTestAttempt = () => {
             <div className="question-paper-content">
               {testData.sections[currentSection]?.questions?.map((q, index) => (
                 <div key={index} className="question-paper-item" onClick={() => { handleQuestionSelect(index); setShowQuestionPaper(false); }}>
-                  <div className="qp-number">Q{index + 1}</div>
-                  <div className="qp-status">
-                    <span className={`status-dot ${getQuestionStatus(index)}`}></span>
+                  <div className="qp-header">
+                    <span className="qp-number">Q{index + 1}</span>
+                    <span className={`qp-status-badge ${getQuestionStatus(index)}`}>
+                      {getQuestionStatus(index) === 'answered' ? 'Answered' : 
+                       getQuestionStatus(index) === 'marked' ? 'Marked' :
+                       getQuestionStatus(index) === 'answered-marked' ? 'Ans+Marked' :
+                       getQuestionStatus(index) === 'visited' ? 'Not Answered' : 'Not Visited'}
+                    </span>
+                  </div>
+                  <div className="qp-text">
+                    {q?.questionText ? (
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(q.questionText.substring(0, 150) + (q.questionText.length > 150 ? '...' : '')) }} />
+                    ) : (
+                      <span>Question {index + 1}</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1310,17 +1330,40 @@ const MockTestAttempt = () => {
       )}
 
       <div className="floating-tools">
-        <button className="floating-tool-btn" onClick={() => setShowCalculator(true)} title="Calculator">
-          🔢
+        <button className="floating-tool-btn calculator-btn" onClick={() => setShowCalculator(true)} title="Calculator">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <rect x="4" y="2" width="16" height="20" rx="2" fill="none" stroke="currentColor" strokeWidth="2"/>
+            <rect x="6" y="4" width="12" height="4" rx="1" fill="currentColor"/>
+            <circle cx="8" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="16" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="8" cy="16" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+            <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
+            <circle cx="8" cy="20" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+            <circle cx="16" cy="20" r="1.5" fill="currentColor"/>
+          </svg>
         </button>
-        <button className="floating-tool-btn" onClick={() => setShowScratchPad(true)} title="Scratch Pad">
-          📝
+        <button className="floating-tool-btn scratchpad-btn" onClick={() => setShowScratchPad(true)} title="Scratch Pad">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+          </svg>
         </button>
-        <button className="floating-tool-btn zoom" onClick={handleZoomIn} title="Zoom In">
-          +
+        <button className="floating-tool-btn zoom-btn" onClick={handleZoomIn} title="Zoom In">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="2"/>
+            <line x1="16" y1="16" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="10" y1="7" x2="10" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         </button>
-        <button className="floating-tool-btn zoom" onClick={handleZoomOut} title="Zoom Out">
-          -
+        <button className="floating-tool-btn zoom-btn" onClick={handleZoomOut} title="Zoom Out">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="2"/>
+            <line x1="16" y1="16" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         </button>
       </div>
     </div>
