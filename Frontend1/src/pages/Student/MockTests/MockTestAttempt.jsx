@@ -588,6 +588,43 @@ const MockTestAttempt = () => {
     
     return testData.sections.map((section, index) => {
       const sectionQuestions = section.questions || [];
+      
+      let status = 'yet_to_attempt';
+      if (index < currentSection) status = 'completed';
+      else if (index === currentSection) status = 'current';
+
+      // For completed sections, use saved stats from completedSections
+      if (status === 'completed') {
+        const savedStats = completedSections.find(s => s.sectionName === section.name);
+        if (savedStats) {
+          return {
+            sectionName: section.name,
+            totalQuestions: sectionQuestions.length,
+            answered: savedStats.answered,
+            notAnswered: savedStats.notAnswered,
+            markedForReview: savedStats.markedForReview,
+            answeredAndMarked: savedStats.answeredAndMarked || 0,
+            notVisited: savedStats.notVisited,
+            status
+          };
+        }
+      }
+
+      // For yet to attempt sections, show all as not visited
+      if (status === 'yet_to_attempt') {
+        return {
+          sectionName: section.name,
+          totalQuestions: sectionQuestions.length,
+          answered: 0,
+          notAnswered: 0,
+          markedForReview: 0,
+          answeredAndMarked: 0,
+          notVisited: sectionQuestions.length,
+          status
+        };
+      }
+
+      // For current section, calculate live stats
       let answered = 0;
       let markedCount = 0;
       let answeredAndMarked = 0;
@@ -600,12 +637,12 @@ const MockTestAttempt = () => {
         const isVisited = visitedQuestions.has(localIndex);
         const hasAnswer = response && (typeof response === 'string' ? response.trim() !== '' : true);
 
-        if (index === currentSection && isVisited) visitedCount++;
-        else if (index < currentSection) visitedCount = sectionQuestions.length;
+        if (isVisited) visitedCount++;
         
         if (hasAnswer && isMarked) {
           answeredAndMarked++;
           answered++;
+          markedCount++;
         } else if (hasAnswer) {
           answered++;
         } else if (isMarked) {
@@ -616,16 +653,12 @@ const MockTestAttempt = () => {
       const notAnswered = visitedCount - answered;
       const notVisited = sectionQuestions.length - visitedCount;
 
-      let status = 'yet_to_attempt';
-      if (index < currentSection) status = 'completed';
-      else if (index === currentSection) status = 'current';
-
       return {
         sectionName: section.name,
         totalQuestions: sectionQuestions.length,
         answered: answered - answeredAndMarked,
         notAnswered: Math.max(0, notAnswered),
-        markedForReview: markedCount,
+        markedForReview: markedCount - answeredAndMarked,
         answeredAndMarked,
         notVisited: Math.max(0, notVisited),
         status
