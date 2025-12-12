@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const MockTestFeedback = require('../models/MockTestFeedback');
 const MockTestAttempt = require('../models/MockTestAttempt');
-const { authenticateToken, adminAuth } = require('../middleware/authMiddleware');
+const { authMiddleware, adminAuth } = require('../middleware/authMiddleware');
 
-router.post('/submit', authenticateToken, async (req, res) => {
+router.post('/submit', authMiddleware, async (req, res) => {
   try {
     const { attemptId, testId, responses } = req.body;
     const userId = req.user.id;
@@ -45,7 +45,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/my-feedback/:attemptId', authenticateToken, async (req, res) => {
+router.get('/my-feedback/:attemptId', authMiddleware, async (req, res) => {
   try {
     const { attemptId } = req.params;
     const userId = req.user.id;
@@ -66,7 +66,7 @@ router.get('/my-feedback/:attemptId', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/student/all', authenticateToken, async (req, res) => {
+router.get('/student/all', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
 

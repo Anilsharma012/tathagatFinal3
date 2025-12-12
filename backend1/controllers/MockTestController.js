@@ -1388,14 +1388,10 @@ const submitTest = async (req, res) => {
     }
 
     // Update attempt
-    attempt.isCompleted = true;
-    attempt.isSubmitted = true;
-    attempt.endTime = new Date();
-    attempt.timeSpent = Math.floor((attempt.endTime - attempt.startTime) / (1000 * 60));
-    attempt.score.total = totalScore;
-    attempt.marks.total = totalScore;
-    attempt.marks.positive = positiveMarks;
-    attempt.marks.negative = negativeMarks;
+    attempt.status = 'COMPLETED';
+    attempt.completedAt = new Date();
+    attempt.totalTimeTakenSeconds = Math.floor((new Date() - attempt.startedAt) / 1000);
+    attempt.totalScore = totalScore;
 
     await attempt.save();
 
