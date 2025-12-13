@@ -23,6 +23,8 @@ const StudentCourseContentManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState("recorded");
+  const [isUpcoming, setIsUpcoming] = useState(false);
+  const [courseStartDate, setCourseStartDate] = useState(null);
 
   const [recordedClasses, setRecordedClasses] = useState({
     videos: [],
@@ -115,6 +117,19 @@ const StudentCourseContentManager = () => {
         console.log("📊 Response status:", response.status);
         
         if (!response.ok) {
+          // Try to parse error response for date-based access info
+          try {
+            const errorData = await response.json();
+            if (errorData.isUpcoming || errorData.isExpired) {
+              const customError = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+              customError.isUpcoming = errorData.isUpcoming;
+              customError.isExpired = errorData.isExpired;
+              customError.startDate = errorData.startDate;
+              throw customError;
+            }
+          } catch (parseErr) {
+            if (parseErr.isUpcoming || parseErr.isExpired) throw parseErr;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -173,12 +188,17 @@ const StudentCourseContentManager = () => {
         }
       } catch (err) {
         console.error("❌ Error fetching course content:", err);
-        if (err.message && err.message.includes("403")) {
-          setError(
-            "You need to purchase this course to access its content."
-          );
+        // Check if error contains date-based access info
+        if (err.isUpcoming && err.startDate) {
+          setIsUpcoming(true);
+          setCourseStartDate(err.startDate);
+          setError(err.message || "Course content is not yet available.");
+        } else if (err.isExpired) {
+          setError("Course access has expired.");
+        } else if (err.message && err.message.includes("403")) {
+          setError("You need to purchase this course to access its content.");
         } else {
-          setError("Failed to load course content. Please try again. Error: " + err.message);
+          setError("Failed to load course content. Please try again.");
         }
       } finally {
         setLoading(false);
@@ -225,12 +245,41 @@ const StudentCourseContentManager = () => {
   }
 
   if (error) {
+    const formatStartDate = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-IN', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
     return (
       <div className="scm-page">
         <div className="scm-center-card scm-error-card">
-          <FaLock className="scm-error-icon" />
-          <h2>Access Restricted</h2>
-          <p>{error}</p>
+          {isUpcoming ? (
+            <>
+              <FaClock className="scm-error-icon scm-upcoming-icon" />
+              <h2>Course Starting Soon</h2>
+              <p>{error}</p>
+              {courseStartDate && (
+                <div className="scm-start-date-info">
+                  <FaGraduationCap />
+                  <span>Course begins on <strong>{formatStartDate(courseStartDate)}</strong></span>
+                </div>
+              )}
+              <p className="scm-muted">You are enrolled in this course. Content will be available once the course starts.</p>
+            </>
+          ) : (
+            <>
+              <FaLock className="scm-error-icon" />
+              <h2>Access Restricted</h2>
+              <p>{error}</p>
+            </>
+          )}
           <button
             className="scm-btn scm-btn-primary"
             onClick={() => navigate("/student/dashboard")}

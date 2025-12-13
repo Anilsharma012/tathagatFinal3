@@ -405,7 +405,10 @@ exports.getComprehensiveCourseContent = async (req, res) => {
     if (!accessCheck.hasAccess) {
       return res.status(403).json({
         success: false,
-        message: accessCheck.message
+        message: accessCheck.message,
+        isUpcoming: accessCheck.isUpcoming || false,
+        isExpired: accessCheck.isExpired || false,
+        startDate: accessCheck.startDate || null
       });
     }
 

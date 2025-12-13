@@ -51,6 +51,27 @@
   margin-bottom: 12px;
 }
 
+.scm-upcoming-icon {
+  color: #f59e0b;
+}
+
+.scm-start-date-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 12px;
+  margin: 16px 0;
+  color: #92400e;
+  font-size: 0.95rem;
+}
+
+.scm-start-date-info svg {
+  font-size: 18px;
+}
+
 /* HEADER */
 .scm-header {
   display: flex;
