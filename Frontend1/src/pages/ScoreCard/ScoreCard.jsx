@@ -41,6 +41,36 @@ const ScoreCard = () => {
   const [filteredScorecards, setFilteredScorecards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
+  
+  const [demoForm, setDemoForm] = useState({ name: '', email: '', course: 'Quant', date: '' });
+  const [demoSubmitting, setDemoSubmitting] = useState(false);
+  
+  const handleDemoChange = (e) => setDemoForm({ ...demoForm, [e.target.name]: e.target.value });
+  
+  const submitDemoForm = async (e) => {
+    e.preventDefault();
+    if (!demoForm.name || !demoForm.email) {
+      alert('Please enter your name and email');
+      return;
+    }
+    try {
+      setDemoSubmitting(true);
+      await http.post('/crm/leads/enquiry', {
+        name: demoForm.name,
+        email: demoForm.email,
+        courseInterest: demoForm.course,
+        preferredDate: demoForm.date,
+        formType: 'demo_reservation',
+        page: 'ScoreCard'
+      });
+      alert('Demo spot reserved! We will contact you soon.');
+      setDemoForm({ name: '', email: '', course: 'Quant', date: '' });
+    } catch (err) {
+      alert('Submission failed. Please try again.');
+    } finally {
+      setDemoSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     fetchScorecards();
@@ -195,15 +225,16 @@ const ScoreCard = () => {
 
         <div className="tss-demo-right">
           <h3>Reserve Your Demo Spot</h3>
-          <form className="tss-demo-form">
-           <input type="text" placeholder="Your Name" />
-<input type="email" placeholder="Your Email" />
-<select required>
-  <option value="Quant">Quant</option>
-  <option value="Verbal">Verbal</option>
-</select>
-<input type="date" placeholder="Preferred Date" />
-            <button type="submit">Reserve Your Spot</button>
+          <form className="tss-demo-form" onSubmit={submitDemoForm}>
+            <input type="text" name="name" placeholder="Your Name" value={demoForm.name} onChange={handleDemoChange} required />
+            <input type="email" name="email" placeholder="Your Email" value={demoForm.email} onChange={handleDemoChange} required />
+            <select name="course" value={demoForm.course} onChange={handleDemoChange} required>
+              <option value="Quant">Quant</option>
+              <option value="Verbal">Verbal</option>
+              <option value="DILR">DILR</option>
+            </select>
+            <input type="date" name="date" value={demoForm.date} onChange={handleDemoChange} placeholder="Preferred Date" />
+            <button type="submit" disabled={demoSubmitting}>{demoSubmitting ? 'Submitting...' : 'Reserve Your Spot'}</button>
           </form>
         </div>
       </div>

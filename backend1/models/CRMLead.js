@@ -2,10 +2,18 @@ const mongoose = require('mongoose');
 
 const CRMLeadSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  mobile: { type: String, required: true, trim: true },
+  mobile: { type: String, trim: true },
   email: { type: String, trim: true, lowercase: true },
   courseInterest: { type: String, trim: true },
   source: { type: String, trim: true },
+  formType: { 
+    type: String, 
+    enum: ['contact', 'demo_reservation', 'guide_form', 'faq_question', 'other'], 
+    default: 'other',
+    index: true 
+  },
+  message: { type: String, trim: true },
+  preferredDate: { type: Date },
   stage: { type: String, enum: ['New', 'Contacted', 'Demo Scheduled', 'Negotiation', 'Won', 'Lost'], default: 'New', index: true },
   owner: { type: String, trim: true },
   score: { type: Number, default: 0 },

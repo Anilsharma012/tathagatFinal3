@@ -12,8 +12,54 @@ import { useNavigate } from "react-router-dom";
 import FAQ from "../../components/FAQ/FAQ";
 import LazyImage from "../../components/LazyImage/LazyImage";
 import Chatbox from "../../components/Chat/Chatbox";
+import http from "../../utils/http";
 
 const teamImages = [ourTeam, ourTeam, ourTeam];
+
+const DemoSpotForm = () => {
+  const [form, setForm] = useState({ name: '', email: '', course: '', date: '' });
+  const [submitting, setSubmitting] = useState(false);
+  
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email) {
+      alert('Please enter your name and email');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await http.post('/crm/leads/enquiry', {
+        name: form.name,
+        email: form.email,
+        courseInterest: form.course,
+        preferredDate: form.date,
+        formType: 'demo_reservation',
+        page: 'SuccessStory'
+      });
+      alert('Demo spot reserved! We will contact you soon.');
+      setForm({ name: '', email: '', course: '', date: '' });
+    } catch (err) {
+      alert('Submission failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="ts-demo-right">
+      <h3>Reserve Your Demo Spot</h3>
+      <form className="ts-demo-form" onSubmit={handleSubmit}>
+        <input type="text" name="name" placeholder="Your Name" value={form.name} onChange={handleChange} required />
+        <input type="email" name="email" placeholder="Your Email" value={form.email} onChange={handleChange} required />
+        <input type="text" name="course" placeholder="Course of Interest" value={form.course} onChange={handleChange} />
+        <input type="date" name="date" placeholder="Preferred Date" value={form.date} onChange={handleChange} />
+        <button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Reserve Your Spot'}</button>
+      </form>
+    </div>
+  );
+};
 
 /* ------------------- Helpers ------------------- */
 function getYouTubeId(url = "") {
@@ -375,24 +421,7 @@ const SuccessStory = () => {
           </div>
         </div>
 
-        <div className="ts-demo-right">
-          <h3>Reserve Your Demo Spot</h3>
-          <form className="ts-demo-form">
-            <input type="text" placeholder="Your Name" />
-            <input type="email" placeholder="Your Email" />
-            <input type="text" placeholder="Course of Interest" />
-            <input type="date" placeholder="Preferred Date" />
-            <button
-              type="submit"
-              onClick={(e) => {
-                e.preventDefault();
-                alert("Your spot has been reserved!");
-              }}
-            >
-              Reserve Your Spot
-            </button>
-          </form>
-        </div>
+        <DemoSpotForm />
       </div>
 
       <div className="ts-blog-team-wrapper">

@@ -15,7 +15,7 @@ const adminOnly = [authMiddleware, checkPermission('admin')];
 // Public enquiry endpoint for website forms
 router.post('/leads/enquiry', async (req, res) => {
   try {
-    const { name, mobile, email, message, courseInterest, page } = req.body || {};
+    const { name, mobile, email, message, courseInterest, page, formType, preferredDate } = req.body || {};
     if (!name || !(mobile || email)) return res.status(400).json({ success: false, message: 'name and mobile or email required' });
 
     const lead = await CRMLead.create({
@@ -23,6 +23,9 @@ router.post('/leads/enquiry', async (req, res) => {
       mobile,
       email,
       courseInterest,
+      formType: formType || 'other',
+      message,
+      preferredDate: preferredDate ? new Date(preferredDate) : undefined,
       source: 'website_enquiry',
       stage: 'New',
       notes: message,
@@ -32,6 +35,45 @@ router.post('/leads/enquiry', async (req, res) => {
     return res.status(201).json({ success: true, lead });
   } catch (e) {
     return res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Get leads filtered by formType for admin
+router.get('/leads/by-type/:formType', adminOnly, async (req, res) => {
+  try {
+    const { formType } = req.params;
+    const { page = 1, limit = 50, search } = req.query;
+    const query = { formType };
+    
+    if (search) {
+      const s = new RegExp(search.trim(), 'i');
+      query.$or = [{ name: s }, { email: s }, { mobile: s }, { courseInterest: s }];
+    }
+    
+    const total = await CRMLead.countDocuments(query);
+    const leads = await CRMLead.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .lean();
+    
+    res.json({ success: true, leads, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Get lead counts by form type for admin dashboard
+router.get('/leads/form-type-counts', adminOnly, async (req, res) => {
+  try {
+    const counts = await CRMLead.aggregate([
+      { $group: { _id: '$formType', count: { $sum: 1 } } }
+    ]);
+    const result = { contact: 0, demo_reservation: 0, guide_form: 0, faq_question: 0, other: 0 };
+    counts.forEach(c => { if (c._id) result[c._id] = c.count; });
+    res.json({ success: true, counts: result });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
   }
 });
 

@@ -41,7 +41,7 @@ const GetInTouch = () => {
     e.preventDefault();
     try {
       setSubmitting(true);
-      await http.post('/crm/leads/enquiry', { name: form.name, email: form.email, mobile: form.mobile, courseInterest: form.address, message: form.message, page: 'GetInTouch' });
+      await http.post('/crm/leads/enquiry', { name: form.name, email: form.email, mobile: form.mobile, courseInterest: form.address, message: form.message, formType: 'contact', page: 'GetInTouch' });
       alert('Thanks! We will contact you shortly.');
       setForm({ name: '', email: '', mobile: '', address: '', message: '' });
     } catch (err) {

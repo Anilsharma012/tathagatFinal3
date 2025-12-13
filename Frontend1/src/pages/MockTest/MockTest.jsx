@@ -4,6 +4,7 @@ import team from "../../images/contactTeams.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import Chatbox from "../../components/Chat/Chatbox";
 import axios from "axios";
+import http from "../../utils/http";
 
 const API_BASE = "/api/downloads";
 
@@ -175,6 +176,16 @@ const MockTest = () => {
     setStatus("Sending...");
 
     try {
+      await http.post('/crm/leads/enquiry', {
+        name: guide.name,
+        mobile: guide.phone,
+        email: guide.email,
+        courseInterest: guide.program,
+        message: `Mode: ${guide.mode}`,
+        formType: 'guide_form',
+        page: 'MockTest'
+      });
+      
       const data = new FormData();
       data.append("name", guide.name);
       data.append("phone", guide.phone);

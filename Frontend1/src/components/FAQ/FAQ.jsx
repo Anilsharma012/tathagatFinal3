@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "./FAQ.css";
+import http from '../../utils/http';
 
 const faqs = [
   {
@@ -84,12 +85,32 @@ const FAQ = () => {
     setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
   };
 
-  const onSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+  
+  const onSubmit = async (e) => {
     e.preventDefault();
-    // yaha API call / email / webhook add kar sakte ho
-    alert("Thanks! We'll get back to you shortly.");
-    setShowForm(false);
-    setForm({ name: "", phone: "", email: "", message: "" });
+    if (!form.name || !form.email) {
+      alert('Please enter your name and email');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await http.post('/crm/leads/enquiry', {
+        name: form.name,
+        email: form.email,
+        mobile: form.phone,
+        message: form.message,
+        formType: 'faq_question',
+        page: 'FAQ'
+      });
+      alert("Thanks! We'll get back to you shortly.");
+      setShowForm(false);
+      setForm({ name: "", phone: "", email: "", message: "" });
+    } catch (err) {
+      alert('Submission failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
