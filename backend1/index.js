@@ -773,6 +773,7 @@ safeUse("/api/downloads", "./routes/downloadRoutes");
 safeUse("/api/top-performers", "./routes/topPerformerRoutes");
 safeUse("/api/course-purchase-content", "./routes/coursePurchaseContentRoutes");
 safeUse("/api/mock-test-feedback", "./routes/mockTestFeedbackRoutes");
+safeUse("/api/admin/billing-settings", "./routes/billingSettingsRoutes");
 
 /* -------------------- Production Static (kept your note) -------------------- */
 if (process.env.NODE_ENV === "production") {

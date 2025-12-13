@@ -187,7 +187,7 @@ router.get('/receipt/:id/pdf', authMiddleware, async (req, res) => {
     let receipt = await Receipt.findById(id).lean();
     if (receipt) {
       if (receipt.userId.toString() !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
-      return res.json({ url: `/api/user/receipt/${id}/download?format=html` });
+      return res.json({ url: `/api/user/receipts/download/${id}?format=html` });
     }
 
     // Otherwise, map payment -> find its receipt
@@ -195,7 +195,7 @@ router.get('/receipt/:id/pdf', authMiddleware, async (req, res) => {
     if (!payment || payment.userId.toString() !== req.user.id) return res.status(404).json({ message: 'Not found' });
 
     const foundReceipt = await Receipt.findOne({ paymentId: payment._id }).lean();
-    if (foundReceipt) return res.json({ url: `/api/user/receipt/${foundReceipt._id}/download?format=html` });
+    if (foundReceipt) return res.json({ url: `/api/user/receipts/download/${foundReceipt._id}?format=html` });
 
     return res.status(404).json({ message: 'Receipt not found' });
   } catch (err) {

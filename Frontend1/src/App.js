@@ -125,6 +125,7 @@ import SuccessStoryManagement from "./pages/mainAdmin/SuccessStoryManagement/Suc
 import TopPerformerManagement from "./pages/mainAdmin/TopPerformerManagement/TopPerformerManagement";
 import CoursePurchaseContentManagement from "./pages/mainAdmin/CoursePurchaseContentManagement/CoursePurchaseContentManagement";
 import ResponseSheetSubmissions from "./pages/mainAdmin/ResponseSheetSubmissions/ResponseSheetSubmissions";
+import BillingSettings from "./pages/mainAdmin/BillingSettings/BillingSettings";
 import TeacherLiveClasses from "./pages/MainSubAdmin/LiveClasses/TeacherLiveClasses";
 import StudentLiveClasses from "./pages/Student/LiveClasses/StudentLiveClasses";
 import ContinueLearning from "./pages/Student/ContinueLearning/ContinueLearning";
@@ -592,6 +593,14 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <PaymentManagement />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/billing-settings"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <BillingSettings />
             </PrivateRoute>
           }
         />

@@ -755,6 +755,7 @@ exports.downloadReceipt = async (req, res) => {
   try {
     const userId = getUserId(req);
     const { receiptId } = req.params;
+    const format = req.query.format || 'json';
 
     if (!userId) {
       return res.status(401).json({ status: false, msg: "Unauthorized" });
@@ -765,7 +766,53 @@ exports.downloadReceipt = async (req, res) => {
       return res.status(404).json({ status: false, msg: "Receipt not found" });
     }
 
-    // Simple JSON download (safe baseline)
+    if (format === 'html') {
+      const { generateReceiptHTML } = require('../utils/receiptGenerator');
+      const BillingSettings = require('../models/BillingSettings');
+      
+      let billingSettings = await BillingSettings.findOne({ isActive: true }).lean();
+      
+      let receiptData = receipt.getReceiptData();
+      
+      if (billingSettings) {
+        const addressParts = [
+          billingSettings.address?.street,
+          billingSettings.address?.city,
+          billingSettings.address?.state,
+          billingSettings.address?.pincode,
+          billingSettings.address?.country
+        ].filter(Boolean);
+        
+        receiptData.company = {
+          name: billingSettings.companyName || receiptData.company?.name || 'Tathagat Education',
+          address: addressParts.join(', ') || receiptData.company?.address || '',
+          phone: billingSettings.phone || receiptData.company?.phone || '',
+          email: billingSettings.email || receiptData.company?.email || '',
+          gstin: billingSettings.gstNumber || receiptData.company?.gstin || ''
+        };
+      }
+      
+      const html = generateReceiptHTML(receiptData);
+      
+      await receipt.markAsDownloaded();
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', `inline; filename="receipt-${receipt.receiptNumber}.html"`);
+      return res.send(html);
+    }
+
+    if (format === 'text') {
+      const { generateReceiptText } = require('../utils/receiptGenerator');
+      const receiptData = receipt.getReceiptData();
+      const text = generateReceiptText(receiptData);
+      
+      await receipt.markAsDownloaded();
+      
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="receipt-${receipt.receiptNumber}.txt"`);
+      return res.send(text);
+    }
+
     res.setHeader("Content-Type", "application/json");
     res.setHeader(
       "Content-Disposition",

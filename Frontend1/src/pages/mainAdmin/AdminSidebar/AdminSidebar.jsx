@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FaTachometerAlt, FaBookOpen, FaUsers, FaUserGraduate, FaChalkboardTeacher, FaUserCircle, FaSignOutAlt, FaClipboardList, FaFileAlt, FaBullhorn, FaComments, FaGraduationCap, FaUniversity, FaBlog, FaYoutube, FaTrophy, FaFileInvoice, FaDownload, FaStar } from "react-icons/fa";
+import { FaTachometerAlt, FaBookOpen, FaUsers, FaUserGraduate, FaChalkboardTeacher, FaUserCircle, FaSignOutAlt, FaClipboardList, FaFileAlt, FaBullhorn, FaComments, FaGraduationCap, FaUniversity, FaBlog, FaYoutube, FaTrophy, FaFileInvoice, FaDownload, FaStar, FaCog } from "react-icons/fa";
 import logo from "../../../images/tgLOGO.png"
 import "./AdminSidebar.css";
 
@@ -88,6 +88,7 @@ const AdminSidebar = () => {
         <NavLink to="/admin/crm/pipeline" className="admin-link">Pipeline</NavLink>
         <NavLink to="/admin/crm/invoices" className="admin-link">Invoices</NavLink>
         <NavLink to="/admin/payments" className="admin-link">Payments</NavLink>
+        <NavLink to="/admin/billing-settings" className="admin-link"><FaCog className="admin-icon" /> Billing Settings</NavLink>
         <NavLink to="/admin/crm/settings" className="admin-link">Settings</NavLink>
 
         <div className="admin-group-title">Live Classes</div>
