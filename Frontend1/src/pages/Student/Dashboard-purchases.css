@@ -183,6 +183,14 @@
   margin-right: 5px;
 }
 
+.download-btn.pdf-btn {
+  background-color: #e74c3c;
+}
+
+.download-btn.pdf-btn:hover {
+  background-color: #c0392b;
+}
+
 .receipts-table {
   background: white;
   border-radius: 8px;

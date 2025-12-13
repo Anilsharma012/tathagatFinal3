@@ -792,8 +792,45 @@ const loadMyCourses = async () => {
         document.body.removeChild(a);
       }
     } catch (error) {
-      console.error('�� Error downloading receipt:', error);
+      console.error('Error downloading receipt:', error);
       alert('Failed to download receipt. Please try again.');
+    }
+  };
+
+  // Function to download PDF tax invoice
+  const downloadTaxInvoice = async (paymentId) => {
+    const authToken = localStorage.getItem('authToken');
+
+    if (!authToken) {
+      alert('Please login to download invoice');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/invoices/download/${paymentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to download invoice');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TaxInvoice-${paymentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading tax invoice:', error);
+      alert(error.message || 'Failed to download tax invoice. Please try again.');
     }
   };
 
@@ -1402,18 +1439,25 @@ const loadMyCourses = async () => {
                       <td>
                         <div className="receipt-actions">
                           <button
+                            className="download-btn small pdf-btn"
+                            onClick={() => downloadTaxInvoice(receipt.paymentId || receipt._id)}
+                            title="Download Tax Invoice PDF"
+                          >
+                            <FiDownload /> PDF
+                          </button>
+                          <button
                             className="download-btn small"
                             onClick={() => downloadReceipt(receipt._id, 'html')}
                             title="Download as HTML"
                           >
-                            <FiDownload /> HTML
+                            HTML
                           </button>
                           <button
                             className="download-btn small"
                             onClick={() => downloadReceipt(receipt._id, 'text')}
                             title="Download as Text"
                           >
-                            <FiFileText /> TXT
+                            TXT
                           </button>
                         </div>
                       </td>
