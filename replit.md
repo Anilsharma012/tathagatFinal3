@@ -54,6 +54,14 @@ The platform employs a decoupled frontend and backend architecture.
   - Student Lock UI: When students try to access content before start date, they see a friendly "Course Starting Soon" message with the start date displayed.
   - Server-side Access Control: `checkCourseAccess` function in StudentCourseController validates date-based access before serving any content.
   - Backward Compatibility: Existing courses without startDate are treated as already started (content accessible immediately after publish).
+- **PDF Tax Invoice System:** Professional GST-compliant tax invoice generation for student purchases. Features include:
+  - `BillingSettings` model with company details (name, logo, GSTIN, PAN, CIN), centre details, tax settings (CGST/SGST/IGST rates, HSN codes), authorized signatory with signature image upload, and bank details.
+  - Admin management at `/admin/billing-settings` with comprehensive form for configuring all invoice settings including image uploads for logo and signature.
+  - Professional PDF invoice template matching Indian GST tax invoice format with company header, student details, centre details, itemized product table with HSN codes, tax columns (CGST/SGST for intrastate or IGST for interstate), amount in words, payment details, terms & conditions, and authorized signatory section.
+  - Automatic interstate vs intrastate detection based on student state vs centre state, applying correct tax breakup (CGST+SGST or IGST).
+  - Puppeteer-based PDF generation service at `/api/invoices/download/:paymentId` with Handlebars templating.
+  - Student Purchase History page updated with "Tax Invoice" download button for paid orders, generating professional PDF invoices on demand.
+  - Backend files: `BillingSettings.js` model, `billingSettingsRoutes.js`, `invoiceRoutes.js`, `invoicePdfService.js`, `taxInvoice.hbs` template.
 
 **System Design Choices:**
 - **Backend:** Node.js/Express API server, using MongoDB Atlas for data storage.
