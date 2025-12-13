@@ -217,8 +217,6 @@ const MockTestPage = () => {
         return renderTestList(testTree.moduleTests, 'module');
       case 'sessional':
         return renderSessionalTests();
-      case 'free':
-        return renderTestList(testTree.freeTests, 'free');
       default:
         return null;
     }
@@ -262,12 +260,6 @@ const MockTestPage = () => {
             onClick={() => setActiveTab('sessional')}
           >
             Sessional Tests
-          </button>
-          <button
-            className={`tab ${activeTab === 'free' ? 'active' : ''}`}
-            onClick={() => setActiveTab('free')}
-          >
-            Free Tests
           </button>
         </div>
 
