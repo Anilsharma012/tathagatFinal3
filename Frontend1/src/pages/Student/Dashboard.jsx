@@ -5,6 +5,7 @@ import './Dashboard-purchases.css';
 import { fetchPublishedCourses, fetchMyCourses } from '../../utils/api';
 import DiscussionForum from '../../components/DiscussionForum/DiscussionForum';
 import MockTestPage from './MockTests/MockTestPage';
+import StudentLiveClasses from './LiveClasses/StudentLiveClasses';
 import { fetchLiveClasses } from '../../utils/liveClassesApi';
 import { getCache as getLiveCache, setCache as setLiveCache, shouldRevalidate as shouldRevalidateLive } from '../../utils/liveClassesCache';
 import NextStepCard from '../../components/Student/NextStep/NextStepCard';
@@ -1739,134 +1740,7 @@ const loadMyCourses = async () => {
   );
 
   const renderLiveClassesContent = () => {
-    const formatSessionDate = (dateStr) => {
-      const d = new Date(dateStr);
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      if (d.toDateString() === today.toDateString()) return 'Today';
-      if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-      return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-    };
-
-    const canJoinSession = (session) => {
-      const now = new Date();
-      const sessionDate = new Date(session.date);
-      const [startH, startM] = session.startTime.split(':').map(Number);
-      const [endH, endM] = session.endTime.split(':').map(Number);
-      const start = new Date(sessionDate);
-      start.setHours(startH, startM, 0, 0);
-      const end = new Date(sessionDate);
-      end.setHours(endH, endM, 0, 0);
-      return now >= new Date(start.getTime() - 10 * 60000) && now <= new Date(end.getTime() + 30 * 60000);
-    };
-
-    return (
-      <div className="live-classes-content">
-        <div className="section-header">
-          <h2>Live Classes</h2>
-        </div>
-
-        {liveSessionsLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p>Loading live sessions...</p>
-          </div>
-        ) : liveSessions.upcoming.length === 0 && liveSessions.past.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '8px' }}>
-            <FiVideo size={48} style={{ color: '#95a5a6', marginBottom: '15px' }} />
-            <h3 style={{ color: '#7f8c8d' }}>No Live Classes Scheduled</h3>
-            <p style={{ color: '#95a5a6' }}>Live classes will appear here when scheduled for your courses</p>
-          </div>
-        ) : (
-          <>
-            <div className="upcoming-sessions">
-              <h3>Upcoming Live Sessions ({liveSessions.upcoming.length})</h3>
-              {liveSessions.upcoming.length === 0 ? (
-                <p style={{ color: '#7f8c8d', padding: '20px' }}>No upcoming sessions</p>
-              ) : (
-                <div className="sessions-list">
-                  {liveSessions.upcoming.slice(0, 10).map((session, index) => (
-                    <div key={session._id || index} className="session-card">
-                      <div className="session-info">
-                        <h4>{session.topic}</h4>
-                        <p style={{ color: '#3498db', fontWeight: '500' }}>
-                          {session.liveBatchId?.subjectId?.name || session.liveBatchId?.name || 'Live Class'}
-                        </p>
-                        <div className="session-meta">
-                          <span><FiCalendar /> {formatSessionDate(session.date)}</span>
-                          <span><FiClock /> {session.startTime} - {session.endTime}</span>
-                          {session.courseName && <span><FiBook /> {session.courseName}</span>}
-                        </div>
-                        {session.platform && (
-                          <span style={{ fontSize: '12px', color: '#6c757d' }}>
-                            Platform: {session.platform}
-                          </span>
-                        )}
-                      </div>
-                      {session.meetingLink && canJoinSession(session) ? (
-                        <a 
-                          href={session.meetingLink} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="join-session-btn"
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <FiVideo /> Join Live
-                        </a>
-                      ) : session.meetingLink ? (
-                        <button className="join-session-btn" disabled style={{ opacity: 0.5 }}>
-                          <FiClock /> Scheduled
-                        </button>
-                      ) : (
-                        <button className="join-session-btn" disabled style={{ opacity: 0.5 }}>
-                          Link Coming Soon
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {liveSessions.past.length > 0 && (
-              <div className="upcoming-sessions" style={{ marginTop: '30px' }}>
-                <h3>Past Sessions ({liveSessions.past.length})</h3>
-                <div className="sessions-list">
-                  {liveSessions.past.slice(0, 5).map((session, index) => (
-                    <div key={session._id || index} className="session-card" style={{ opacity: 0.7 }}>
-                      <div className="session-info">
-                        <h4>{session.topic}</h4>
-                        <p style={{ color: '#6c757d' }}>
-                          {session.liveBatchId?.subjectId?.name || session.liveBatchId?.name || 'Live Class'}
-                        </p>
-                        <div className="session-meta">
-                          <span><FiCalendar /> {formatSessionDate(session.date)}</span>
-                          <span><FiClock /> {session.startTime} - {session.endTime}</span>
-                        </div>
-                      </div>
-                      {session.recordingUrl ? (
-                        <a 
-                          href={session.recordingUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="join-session-btn"
-                          style={{ textDecoration: 'none', background: '#27ae60' }}
-                        >
-                          <FiPlay /> Watch Recording
-                        </a>
-                      ) : (
-                        <span style={{ color: '#95a5a6', fontSize: '12px' }}>Recording not available</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    );
+    return <StudentLiveClasses />;
   };
 
   const renderPracticeTestsContent = () => (
