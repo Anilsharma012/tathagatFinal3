@@ -13,8 +13,41 @@ const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id) && (new mongoose.Types.ObjectId(id)).toString() === id;
 };
 
+// Helper function to check course date-based access
+const checkCourseDateAccess = (course) => {
+  const now = new Date();
+  const startDate = course.startDate ? new Date(course.startDate) : null;
+  const endDate = course.endDate ? new Date(course.endDate) : null;
+  
+  // Check if course has not started yet
+  if (startDate && now < startDate) {
+    const formattedDate = startDate.toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    return { 
+      hasAccess: false, 
+      isUpcoming: true,
+      message: `Course content will be available from ${formattedDate}`,
+      startDate: course.startDate 
+    };
+  }
+  
+  // Check if course has expired and access is not kept
+  if (endDate && now > endDate && !course.keepAccessAfterEnd) {
+    return { 
+      hasAccess: false, 
+      isExpired: true,
+      message: "Course access has expired" 
+    };
+  }
+  
+  return { hasAccess: true };
+};
+
 // Helper function to check if student has access to course
-const checkCourseAccess = async (userId, courseId) => {
+const checkCourseAccess = async (userId, courseId, skipDateCheck = false) => {
   try {
     console.log(`🔍 checkCourseAccess: userId=${userId}, courseId=${courseId}`);
     
@@ -23,6 +56,15 @@ const checkCourseAccess = async (userId, courseId) => {
     if (!course || !course.published) {
       console.log('❌ Course not found or not published');
       return { hasAccess: false, message: "Course not available" };
+    }
+
+    // Check date-based access (unless explicitly skipped for course info display)
+    if (!skipDateCheck) {
+      const dateAccess = checkCourseDateAccess(course);
+      if (!dateAccess.hasAccess) {
+        console.log(`📅 Date-based access denied: ${dateAccess.message}`);
+        return { ...dateAccess, course };
+      }
     }
 
     // In development mode with dev admin ID, grant access to all courses
