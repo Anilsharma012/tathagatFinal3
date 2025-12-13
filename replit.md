@@ -45,6 +45,7 @@ The platform employs a decoupled frontend and backend architecture.
   - Per-test leaderboard modal showing top 10 students with current user's rank highlighted
   - Backend APIs at `/api/mock-tests/reports/summary`, `/api/mock-tests/reports/:testId/leaderboard`, and `/api/mock-tests/reports/section-analysis`
 - **Mock Test Feedback System:** CAT-style candidate feedback form shown after test submission. Students rate exam support, digital experience, center facilities, and overall satisfaction. Feedback stored in `MockTestFeedback` model with admin management at `/admin/mock-test-feedback` including CSV export, search, and statistics overview.
+- **Inquiry Management System:** Centralized lead capture and management from all website forms. Uses `CRMLead` model with `formType` field categorizing inquiries as 'contact', 'demo_reservation', 'guide_form', 'faq_question', or 'other'. Public endpoint at `/api/crm/leads/enquiry` accepts form submissions with formType. Admin-only endpoints `/api/crm/leads/by-type/:formType` and `/api/crm/leads/form-type-counts` enable filtered viewing and statistics. Frontend forms (ScoreCard, SuccessStory, MockTest, GetInTouch, FAQ) submit leads with appropriate formType. Admin management at `/admin/inquiries` provides filter buttons for each form type, search functionality, and CSV export. Integrated into admin sidebar under CRM section.
 
 **System Design Choices:**
 - **Backend:** Node.js/Express API server, using MongoDB Atlas for data storage.
