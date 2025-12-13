@@ -55,6 +55,21 @@ const courseSchema = new mongoose.Schema(
     subjects: { type: [String], default: ['A','B','C','D'] },
     validityMonths: { type: Number, default: 12 },
 
+    // Course scheduling - Start and End dates
+    startDate: {
+      type: Date,
+      default: null,  // If null, content is accessible immediately after publish
+    },
+    endDate: {
+      type: Date,
+      default: null,  // If null, course never expires
+    },
+    // Whether to keep content accessible after endDate
+    keepAccessAfterEnd: {
+      type: Boolean,
+      default: true,  // By default, keep content accessible after end date
+    },
+
     overview: {
       description: { type: String, default: "" },
       about: { type: String, default: "" },

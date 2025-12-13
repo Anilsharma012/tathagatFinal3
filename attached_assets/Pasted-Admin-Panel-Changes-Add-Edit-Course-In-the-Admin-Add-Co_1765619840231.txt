@@ -1,0 +1,132 @@
+Admin Panel Changes (Add/Edit Course)
+
+In the Admin “Add Course” and “Edit Course” form, add two new fields:
+
+Start Date (required)
+
+End Date (optional but recommended)
+
+Use a date picker input (or ISO date format) and store dates in the database in a consistent format (prefer ISO string).
+
+Validate:
+
+Start Date must be present.
+
+If End Date is provided, it must be greater than or equal to Start Date.
+
+These fields must appear on the course card/list in Admin as well (like created date), so Admin can quickly see schedule.
+
+2) Database / API Updates
+
+Update the Course model/schema to include:
+
+startDate
+
+endDate
+
+Update APIs:
+
+Create course API should accept and save these fields.
+
+Update course API should allow editing these fields.
+
+Course list APIs should return these fields.
+
+3) Frontend Course Visibility & Purchase Rules
+
+Course should be visible on frontend immediately after Admin creates/publishes it.
+
+User should be able to buy/enroll anytime, even before start date.
+
+However, course content must remain locked until startDate arrives.
+
+4) Content Locking Rules (Critical)
+
+When a user opens a course page after buying:
+
+If current date < startDate:
+
+Show course basic info (title, thumbnail, description, pricing, start date).
+
+Show a clear message:
+“Course starts on DD/MM/YYYY. Content will unlock after start date.”
+
+Disable/hide content sections like:
+
+Overview content details (if it includes learning content)
+
+Videos / Lectures
+
+Tests / Practice tests
+
+Live classes links
+
+PDFs / materials downloads
+
+If any content list is shown, show it as locked with lock icons and disabled buttons.
+
+If current date >= startDate:
+
+Unlock all content normally for enrolled users.
+
+If endDate exists AND current date > endDate (optional behavior, but implement):
+
+Show message: “Course access ended on DD/MM/YYYY.”
+
+Decide access policy:
+
+Either lock content again OR keep content accessible (Admin configurable).
+
+Default: lock after endDate unless “lifetime access” is enabled.
+
+5) Access Control Must Be Enforced Server-Side
+
+Do not rely only on frontend UI hiding.
+
+Add a server-side guard on APIs that fetch course content:
+
+If user is not enrolled → deny.
+
+If enrolled but current date < startDate → deny content response (return a friendly “locked until startDate” response).
+
+This should apply to:
+
+Fetching videos list
+
+Fetching tests list
+
+Fetching PDFs/materials links
+
+Any “course content” endpoints
+
+6) Status & UX Improvements
+
+On frontend course cards (course listing), show a badge based on date:
+
+Upcoming if current date < startDate
+
+Active if between startDate and endDate (or no endDate)
+
+Expired if current date > endDate (if endDate exists)
+
+On course detail page:
+
+Show Start Date and End Date clearly.
+
+7) Backward Compatibility
+
+For existing courses that don’t have startDate:
+
+Automatically treat them as already started (startDate = createdAt or current date) OR provide a migration default.
+
+Ensure no existing course breaks.
+
+8) Testing Checklist
+
+Create course with future start date → visible on frontend → user can buy → content locked → unlocks after start date.
+
+Start date today → content accessible immediately after purchase.
+
+End date passed → expired behavior works.
+
+API content endpoints block access correctly before start date.

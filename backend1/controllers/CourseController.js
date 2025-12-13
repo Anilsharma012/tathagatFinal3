@@ -30,7 +30,7 @@ const createCourse = async (req, res) => {
   try {
     console.log("📥 Received course creation request");
 
-    const { name, description, price, courseType } = req.body;
+    const { name, description, price, courseType, startDate, endDate, keepAccessAfterEnd } = req.body;
     const thumbnail = req.file ? req.file.filename : "";
 
     console.log("✅ req.body:", req.body);
@@ -59,6 +59,9 @@ const createCourse = async (req, res) => {
       thumbnail,
       courseType: courseType || 'full_course',
       createdBy: req.user.id,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      keepAccessAfterEnd: keepAccessAfterEnd === 'false' ? false : true,
     });
 
     await course.save();
@@ -105,7 +108,7 @@ const getCourseById = async (req, res) => {
 // ✅ Update course with image handling (partial updates supported)
 const updateCourse = async (req, res) => {
   try {
-    const { name, description, price, overview, courseType } = req.body;
+    const { name, description, price, overview, courseType, startDate, endDate, keepAccessAfterEnd } = req.body;
     
     // Only include fields that are actually provided
     const updateData = {};
@@ -113,6 +116,9 @@ const updateCourse = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = price;
     if (courseType !== undefined) updateData.courseType = courseType;
+    if (startDate !== undefined) updateData.startDate = startDate || null;
+    if (endDate !== undefined) updateData.endDate = endDate || null;
+    if (keepAccessAfterEnd !== undefined) updateData.keepAccessAfterEnd = keepAccessAfterEnd === 'false' ? false : true;
 
     if (req.file) {
       updateData.thumbnail = req.file.filename;

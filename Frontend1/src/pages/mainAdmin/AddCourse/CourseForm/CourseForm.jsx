@@ -5,14 +5,23 @@ import "react-quill/dist/quill.snow.css";
 import axios from "axios";
 import "./CourseForm.css";
 
+const formatDateForInput = (dateValue) => {
+  if (!dateValue) return "";
+  const date = new Date(dateValue);
+  return date.toISOString().split('T')[0];
+};
+
 const CourseForm = ({ onClose, onSuccess, editData, courseType = 'full_course' }) => {
-    const [name, setName] = useState(editData?.name || "");
+  const [name, setName] = useState(editData?.name || "");
   const [price, setPrice] = useState(editData?.price || "");
   const [description, setDescription] = useState(editData?.description || "");
   const [selectedCourseType, setSelectedCourseType] = useState(editData?.courseType || courseType || 'full_course');
- const [thumbnail, setThumbnail] = useState(null);
- const [preview, setPreview] = useState(editData?.thumbnail ? `/uploads/${editData.thumbnail}` : null);
+  const [thumbnail, setThumbnail] = useState(null);
+  const [preview, setPreview] = useState(editData?.thumbnail ? `/uploads/${editData.thumbnail}` : null);
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState(formatDateForInput(editData?.startDate) || "");
+  const [endDate, setEndDate] = useState(formatDateForInput(editData?.endDate) || "");
+  const [keepAccessAfterEnd, setKeepAccessAfterEnd] = useState(editData?.keepAccessAfterEnd !== false);
 
   const courseTypeLabels = {
     full_course: 'Full Course',
@@ -35,6 +44,9 @@ const CourseForm = ({ onClose, onSuccess, editData, courseType = 'full_course' }
   formData.append("price", price);
   formData.append("description", description);
   formData.append("courseType", selectedCourseType);
+  formData.append("startDate", startDate || "");
+  formData.append("endDate", endDate || "");
+  formData.append("keepAccessAfterEnd", keepAccessAfterEnd.toString());
 
   // Only add thumbnail if new file selected (edit case may have preview string)
   if (typeof thumbnail === "object") {
@@ -114,6 +126,43 @@ const CourseForm = ({ onClose, onSuccess, editData, courseType = 'full_course' }
             <input type="file" onChange={handleThumbnail} required={!editData} />
             {preview && <img src={preview} alt="Preview" className="adminCourse-thumb-preview" />}
           </div>
+
+          <div className="adminCourse-form-row">
+            <div className="adminCourse-form-group">
+              <label>Start Date</label>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)}
+                className="adminCourse-date-input"
+              />
+              <span className="adminCourse-help-text">Content is locked until this date. Leave empty to start immediately.</span>
+            </div>
+            <div className="adminCourse-form-group">
+              <label>End Date</label>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || undefined}
+                className="adminCourse-date-input"
+              />
+              <span className="adminCourse-help-text">Leave empty for no expiration.</span>
+            </div>
+          </div>
+
+          {endDate && (
+            <div className="adminCourse-form-group">
+              <label className="adminCourse-checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={keepAccessAfterEnd} 
+                  onChange={(e) => setKeepAccessAfterEnd(e.target.checked)}
+                />
+                Keep content accessible after end date
+              </label>
+            </div>
+          )}
 
           <div className="adminCourse-form-actions">
             <button type="submit" disabled={loading} className="adminCourse-submit">

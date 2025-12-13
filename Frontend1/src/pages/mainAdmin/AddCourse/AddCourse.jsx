@@ -4,10 +4,32 @@ import AdminLayout from "../AdminLayout/AdminLayout";
 import CourseForm from "./CourseForm/CourseForm";
 import VideoManagement from "./VideoManagement/VideoManagement";
 import CourseMockTestManager from "./CourseMockTestManager/CourseMockTestManager";
-import { FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaFileAlt, FaVideo, FaClipboardList } from "react-icons/fa";
+import { FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaFileAlt, FaVideo, FaClipboardList, FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import "./AddCourse.css";
+
+const getCourseStatus = (course) => {
+  const now = new Date();
+  const startDate = course.startDate ? new Date(course.startDate) : null;
+  const endDate = course.endDate ? new Date(course.endDate) : null;
+  
+  if (startDate && now < startDate) {
+    return { status: 'upcoming', label: 'Upcoming' };
+  }
+  
+  if (endDate && now > endDate && !course.keepAccessAfterEnd) {
+    return { status: 'expired', label: 'Expired' };
+  }
+  
+  return { status: 'active', label: 'Active' };
+};
+
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 const AddCourse = () => {
   const [courses, setCourses] = useState([]);
@@ -243,11 +265,28 @@ const AddCourse = () => {
                 </div>
               </div>
               <div className="adminCourse-card-body">
-                <h3 className="adminCourse-name">{course.name}</h3>
+                <div className="adminCourse-card-header">
+                  <h3 className="adminCourse-name">{course.name}</h3>
+                  <div className="adminCourse-card-badges">
+                    <span className={`adminCourse-status-badge ${getCourseStatus(course).status}`}>
+                      {getCourseStatus(course).label}
+                    </span>
+                  </div>
+                </div>
                 <div
                   className="adminCourse-description"
                   dangerouslySetInnerHTML={{ __html: course.description }}
                 ></div>
+                {(course.startDate || course.endDate) && (
+                  <div className="adminCourse-dates-info">
+                    {course.startDate && (
+                      <span><FaCalendarAlt /> Starts: {formatDisplayDate(course.startDate)}</span>
+                    )}
+                    {course.endDate && (
+                      <span><FaCalendarAlt /> Ends: {formatDisplayDate(course.endDate)}</span>
+                    )}
+                  </div>
+                )}
                 <div className="adminCourse-card-footer">
                   <p className="adminCourse-price">₹{course.price}</p>
                   <p className="adminCourse-date">
