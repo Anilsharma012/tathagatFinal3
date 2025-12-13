@@ -422,12 +422,47 @@ exports.unlockCourseForStudent = async (req, res) => {
   try {
     const userId = getUserId(req);
     const { courseId } = req.params;
+    const { amount, paymentMethod = 'manual', notes = '' } = req.body || {};
 
     if (!userId) {
       return res.status(401).json({ status: false, msg: "Unauthorized" });
     }
 
     const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ status: false, msg: "User not found" });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ status: false, msg: "Course not found" });
+    }
+
+    const existingPayment = await Payment.findOne({
+      userId,
+      courseId,
+      status: 'paid',
+    });
+
+    if (existingPayment) {
+      user.enrolledCourses = user.enrolledCourses || [];
+      const existingEnrollment = user.enrolledCourses.find(
+        (c) => String(c.courseId) === String(courseId)
+      );
+      if (existingEnrollment && existingEnrollment.status !== 'unlocked') {
+        existingEnrollment.status = 'unlocked';
+        await user.save();
+      }
+      const existingReceipt = await Receipt.findOne({ paymentId: existingPayment._id });
+      return res.json({
+        status: true,
+        msg: "Course already unlocked",
+        data: user.enrolledCourses,
+        paymentId: existingPayment._id,
+        receiptNumber: existingReceipt?.receiptNumber || existingPayment.receiptNumber || null,
+      });
+    }
+
     user.enrolledCourses = user.enrolledCourses || [];
 
     const existing = user.enrolledCourses.find(
@@ -446,10 +481,84 @@ exports.unlockCourseForStudent = async (req, res) => {
 
     await user.save();
 
+    const finalAmountRupees = amount !== undefined ? Number(amount) : (course.price || 0);
+    const amountInPaise = Math.round(finalAmountRupees * 100);
+
+    const BillingSettings = require('../models/BillingSettings');
+    let billingSettings = await BillingSettings.findOne({ isActive: true }).lean();
+
+    let companyDetails = {
+      name: 'Tathagat Education',
+      address: '',
+      phone: '',
+      email: '',
+      gstin: '',
+    };
+
+    if (billingSettings) {
+      const addressParts = [
+        billingSettings.address?.street,
+        billingSettings.address?.city,
+        billingSettings.address?.state,
+        billingSettings.address?.pincode,
+        billingSettings.address?.country
+      ].filter(Boolean);
+
+      companyDetails = {
+        name: billingSettings.companyName || 'Tathagat Education',
+        address: addressParts.join(', '),
+        phone: billingSettings.phone || '',
+        email: billingSettings.email || '',
+        gstin: billingSettings.gstNumber || '',
+      };
+    }
+
+    const payment = await Payment.create({
+      userId,
+      courseId,
+      razorpay_order_id: `manual_unlock_${userId}_${courseId}_${Date.now()}`,
+      razorpay_payment_id: null,
+      amount: amountInPaise,
+      originalAmount: amountInPaise,
+      currency: "INR",
+      status: "paid",
+      paymentMethod: paymentMethod || 'manual',
+      notes: notes || 'Course unlocked manually',
+      validityStartDate: new Date(),
+    });
+
+    const receiptNumber = Receipt.generateReceiptNumber();
+    await Receipt.create({
+      paymentId: payment._id,
+      userId,
+      courseId,
+      receiptNumber,
+      amount: amountInPaise,
+      totalAmount: amountInPaise,
+      taxAmount: 0,
+      currency: "INR",
+      customerDetails: {
+        name: user.name || 'Student',
+        email: user.email || 'no-email@example.com',
+        phone: user.phoneNumber || '',
+      },
+      courseDetails: {
+        name: course.name || 'Course',
+        description: course.description || '',
+        price: amountInPaise,
+      },
+      companyDetails,
+      receiptType: 'course_purchase',
+      status: 'generated',
+      generatedAt: new Date(),
+    });
+
     return res.json({
       status: true,
       msg: "Course unlocked",
       data: user.enrolledCourses,
+      paymentId: payment._id,
+      receiptNumber,
     });
   } catch (err) {
     console.error("unlockCourseForStudent error:", err);
