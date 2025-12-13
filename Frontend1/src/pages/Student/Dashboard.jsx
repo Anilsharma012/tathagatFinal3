@@ -689,8 +689,9 @@ const loadMyCourses = async () => {
       const data = await response.json();
       console.log("📦 Payment History Response:", data);
 
-      if (data.success && Array.isArray(data.payments)) {
-        setPaymentHistory(data.payments);
+      const payments = data.payments || data.data || [];
+      if ((data.success || data.status) && Array.isArray(payments)) {
+        setPaymentHistory(payments);
       } else {
         setPaymentHistory([]);
       }
@@ -732,8 +733,9 @@ const loadMyCourses = async () => {
       const data = await response.json();
       console.log("📦 Receipts Response:", data);
 
-      if (data.success && Array.isArray(data.receipts)) {
-        setReceipts(data.receipts);
+      const receipts = data.receipts || data.data || [];
+      if ((data.success || data.status) && Array.isArray(receipts)) {
+        setReceipts(receipts);
       } else {
         setReceipts([]);
       }
