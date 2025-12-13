@@ -583,10 +583,17 @@ const getStudentSchedule = async (req, res) => {
       ]
     }).sort({ date: 1, startTime: 1 });
 
+    console.log('[getStudentSchedule] Total sessions found:', sessions.length);
+    console.log('[getStudentSchedule] Visibility map:', JSON.stringify(batchVisibilityMap, null, 2));
+    
     const filteredSessions = sessions.filter(session => {
       if (!session.liveBatchId) return false;
       const batchVisibleFrom = batchVisibilityMap[session.liveBatchId._id.toString()];
-      return batchVisibleFrom && new Date(session.date) >= new Date(batchVisibleFrom);
+      const sessionDate = new Date(session.date);
+      const visibleFromDate = new Date(batchVisibleFrom);
+      const isVisible = batchVisibleFrom && sessionDate >= visibleFromDate;
+      console.log(`[getStudentSchedule] Session ${session._id}: date=${session.date}, visibleFrom=${batchVisibleFrom}, isVisible=${isVisible}`);
+      return isVisible;
     });
 
     const upcomingSessions = [];
