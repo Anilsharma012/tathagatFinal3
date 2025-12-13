@@ -60,11 +60,22 @@ const StudentLiveClasses = () => {
   };
 
   const normalizeItem = (item, courseName) => {
+    const dateStr = item.date ? item.date.split('T')[0] : null;
+    let startDateTime = item.sessionStartTime || item.startTime;
+    let endDateTime = item.sessionEndTime || item.endTime;
+    
+    if (dateStr && item.startTime && typeof item.startTime === 'string' && item.startTime.includes(':')) {
+      startDateTime = new Date(`${dateStr}T${item.startTime}:00`);
+    }
+    if (dateStr && item.endTime && typeof item.endTime === 'string' && item.endTime.includes(':')) {
+      endDateTime = new Date(`${dateStr}T${item.endTime}:00`);
+    }
+    
     return {
       _id: item._id,
       title: item.topic || item.title || 'Live Session',
-      startTime: item.date || item.sessionStartTime || item.startTime,
-      endTime: item.sessionEndTime || item.endTime || (item.date && item.endTimeStr ? new Date(`${item.date.split('T')[0]}T${item.endTimeStr}:00`) : null),
+      startTime: startDateTime,
+      endTime: endDateTime,
       joinLink: item.sessionLink || item.meetingLink || item.link,
       platform: item.platform || item.liveBatchId?.platform || 'zoom',
       courseId: item.courseId || item.liveBatchId?.courseId,
@@ -85,17 +96,23 @@ const StudentLiveClasses = () => {
     abortControllerRef.current = controller;
     const courseId = course._id;
     
+    console.log('Fetching sessions for course:', courseId, course.name);
+    
     setLoading(true);
     setItems([]);
     try {
       const scheduleRes = await http.get(`/live-batches/student/schedule?courseId=${courseId}`, {
         signal: controller.signal
       });
+      console.log('Schedule API response:', scheduleRes.data);
+      
       if (selectedCourseRef.current?._id !== courseId) return;
       const data = scheduleRes.data;
       if (data?.success && data?.data) {
         const sessions = [...(data.data.upcoming || []), ...(data.data.past || [])];
+        console.log('Raw sessions:', sessions);
         const normalized = sessions.map(session => normalizeItem(session, course.name));
+        console.log('Normalized sessions:', normalized);
         const uniqueItems = Array.from(new Map(normalized.map(item => [item._id, item])).values());
         setItems(uniqueItems);
       }

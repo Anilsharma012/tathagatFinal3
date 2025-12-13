@@ -493,6 +493,8 @@ const getStudentSchedule = async (req, res) => {
     const { courseId } = req.query;
     const userId = req.user?._id || req.user?.id;
 
+    console.log('[getStudentSchedule] courseId:', courseId, 'userId:', userId);
+
     if (!courseId) {
       return res.status(400).json({ success: false, message: 'courseId is required' });
     }
@@ -504,6 +506,7 @@ const getStudentSchedule = async (req, res) => {
       courseId,
       status: 'active'
     });
+    console.log('[getStudentSchedule] Enrollment found:', !!enrollment);
 
     let enrollmentDate = enrollment?.joinedAt || new Date();
 
@@ -564,6 +567,9 @@ const getStudentSchedule = async (req, res) => {
         allBatchIds.push(batch._id);
       }
     });
+
+    console.log('[getStudentSchedule] Linked batches:', validLinkedBatches.length, 'Direct batches:', directBatches.length);
+    console.log('[getStudentSchedule] All batch IDs:', allBatchIds);
 
     const sessions = await LiveSession.find({
       liveBatchId: { $in: allBatchIds },
