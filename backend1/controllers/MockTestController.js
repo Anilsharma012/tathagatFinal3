@@ -1800,7 +1800,8 @@ const getMockTestTree = async (req, res) => {
       fullTests: [],
       seriesTests: [],
       moduleTests: [],
-      sessionalTests: {}
+      sessionalTests: {},
+      freeTests: []
     };
 
     tests.forEach((test) => {
@@ -1812,6 +1813,17 @@ const getMockTestTree = async (req, res) => {
         totalQuestions: test.totalQuestions,
         totalMarks: test.totalMarks
       };
+
+      const hasNoCourse = !test.courseId || test.courseId === null;
+      const hasNoSeries = !test.seriesId || test.seriesId === null;
+      if (test.isFree && hasNoCourse && hasNoSeries) {
+        tree.freeTests.push({
+          ...common,
+          name: test.title,
+          testType: test.testType || 'full'
+        });
+        return;
+      }
 
       const type = test.testType || 'full';
 

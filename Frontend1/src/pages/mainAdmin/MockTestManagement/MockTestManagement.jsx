@@ -15,6 +15,7 @@ const MockTestManagement = () => {
   const [editingTest, setEditingTest] = useState(null);
   const [showQuestionBuilder, setShowQuestionBuilder] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
+  const [isFreeTestMode, setIsFreeTestMode] = useState(false);
   
   const getDefaultSection = (sectionName) => {
     const defaults = {
@@ -78,6 +79,30 @@ const MockTestManagement = () => {
     }
   };
 
+  const fetchFreeTests = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchWithErrorHandling('/api/admin/mock-tests/tests?courseId=free');
+      if (data && data.tests) {
+        setTests(data.tests);
+      }
+    } catch (error) {
+      console.error('Error fetching free tests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFreeTestModeToggle = (isEnabled) => {
+    setIsFreeTestMode(isEnabled);
+    handleCancelEdit();
+    if (isEnabled) {
+      fetchFreeTests();
+    } else if (selectedCourse) {
+      fetchTests(selectedCourse);
+    }
+  };
+
   const handleEditTest = (test) => {
     setEditingTest(test);
     const sections = test.sections && test.sections.length > 0 ? test.sections : getDefaultSections();
@@ -127,7 +152,7 @@ const MockTestManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!selectedCourse && !editingTest) {
+    if (!isFreeTestMode && !selectedCourse && !editingTest) {
       alert('Please select a course first');
       return;
     }
@@ -150,14 +175,17 @@ const MockTestManagement = () => {
       
       const testData = {
         ...formData,
-        courseId: editingTest ? editingTest.courseId : selectedCourse,
         testType: activeTab,
         paperType: activeTab === 'previousYear' ? subTab : null,
         positiveMarks: 3,
         negativeMarks: -1,
-        isFree: false,
+        isFree: isFreeTestMode,
         difficulty: 'Medium'
       };
+
+      if (!isFreeTestMode) {
+        testData.courseId = editingTest ? editingTest.courseId : selectedCourse;
+      }
 
       let data;
       if (editingTest) {
@@ -175,7 +203,11 @@ const MockTestManagement = () => {
       if (data && data.success) {
         alert(`Test ${editingTest ? 'updated' : 'created'} successfully!`);
         handleCancelEdit();
-        fetchTests(selectedCourse);
+        if (isFreeTestMode) {
+          fetchFreeTests();
+        } else {
+          fetchTests(selectedCourse);
+        }
       }
     } catch (error) {
       alert(`Failed to ${editingTest ? 'update' : 'create'} test: ` + error.message);
@@ -197,7 +229,11 @@ const MockTestManagement = () => {
         if (editingTest && editingTest._id === testId) {
           handleCancelEdit();
         }
-        fetchTests(selectedCourse);
+        if (isFreeTestMode) {
+          fetchFreeTests();
+        } else {
+          fetchTests(selectedCourse);
+        }
       }
     } catch (error) {
       alert('Failed to delete test: ' + error.message);
@@ -205,10 +241,10 @@ const MockTestManagement = () => {
   };
 
   useEffect(() => {
-    if (selectedCourse) {
+    if (!isFreeTestMode && selectedCourse) {
       fetchTests(selectedCourse);
     }
-  }, [selectedCourse]);
+  }, [selectedCourse, isFreeTestMode]);
 
   const renderForm = () => {
     return (
@@ -402,20 +438,67 @@ const MockTestManagement = () => {
         <h1>Mock Test Management</h1>
       </div>
 
-      <div className="course-selector">
-        <label>Select Course:</label>
-        <select
-          value={selectedCourse || ''}
-          onChange={(e) => setSelectedCourse(e.target.value)}
+      <div className="mode-toggle-container" style={{ marginBottom: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+        <button
+          className={`mode-btn ${!isFreeTestMode ? 'active' : ''}`}
+          onClick={() => handleFreeTestModeToggle(false)}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: !isFreeTestMode ? '2px solid #10b981' : '2px solid #ddd',
+            backgroundColor: !isFreeTestMode ? '#10b981' : '#fff',
+            color: !isFreeTestMode ? '#fff' : '#333',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
         >
-          <option value="">-- Select Course --</option>
-          {courses.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          Course Mock Tests
+        </button>
+        <button
+          className={`mode-btn ${isFreeTestMode ? 'active' : ''}`}
+          onClick={() => handleFreeTestModeToggle(true)}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: isFreeTestMode ? '2px solid #f59e0b' : '2px solid #ddd',
+            backgroundColor: isFreeTestMode ? '#f59e0b' : '#fff',
+            color: isFreeTestMode ? '#fff' : '#333',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          Free Mock Tests
+        </button>
       </div>
+
+      {!isFreeTestMode && (
+        <div className="course-selector">
+          <label>Select Course:</label>
+          <select
+            value={selectedCourse || ''}
+            onChange={(e) => setSelectedCourse(e.target.value)}
+          >
+            <option value="">-- Select Course --</option>
+            {courses.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {isFreeTestMode && (
+        <div className="free-mode-info" style={{ 
+          padding: '15px', 
+          backgroundColor: '#fef3c7', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          border: '1px solid #f59e0b'
+        }}>
+          <strong>Free Mock Tests Mode</strong> - Tests created here will be available to all students without course enrollment.
+        </div>
+      )}
 
       <div className="tabs-container">
         <div className="main-tabs">
@@ -508,7 +591,7 @@ const MockTestManagement = () => {
             {loading ? (
               <p>Loading...</p>
             ) : tests.length === 0 ? (
-              <p>No tests found for this course</p>
+              <p>{isFreeTestMode ? 'No free tests created yet' : 'No tests found for this course'}</p>
             ) : (
               <div className="tests-grid">
                 {tests.map((test) => (

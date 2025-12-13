@@ -249,10 +249,10 @@ const createTest = async (req, res) => {
       });
     }
 
-    if (!courseId && !seriesId) {
+    if (!courseId && !seriesId && !isFree) {
       return res.status(400).json({
         success: false,
-        message: 'Either courseId or seriesId is required',
+        message: 'Either courseId, seriesId or isFree flag is required',
       });
     }
 
@@ -283,6 +283,13 @@ const createTest = async (req, res) => {
       }
       const existingTestsCount = await MockTest.countDocuments({ seriesId });
       testNumber = existingTestsCount + 1;
+    } else if (isFree) {
+      const existingFreeTestsCount = await MockTest.countDocuments({ 
+        isFree: true, 
+        $or: [{ courseId: { $exists: false } }, { courseId: null }],
+        $and: [{ $or: [{ seriesId: { $exists: false } }, { seriesId: null }] }]
+      });
+      testNumber = existingFreeTestsCount + 1;
     }
 
     // Map frontend sections -> schema sections
@@ -389,8 +396,17 @@ const getTests = async (req, res) => {
 
     const filter = {};
     
-    // Filter by course
-    if (courseId && courseId !== 'all') {
+    // Filter by free tests (no courseId, no seriesId)
+    if (courseId === 'free') {
+      filter.isFree = true;
+      filter.$or = [
+        { courseId: { $exists: false } },
+        { courseId: null }
+      ];
+      filter.$and = [
+        { $or: [{ seriesId: { $exists: false } }, { seriesId: null }] }
+      ];
+    } else if (courseId && courseId !== 'all') {
       if (!mongoose.Types.ObjectId.isValid(courseId)) {
         return res.status(400).json({
           success: false,
