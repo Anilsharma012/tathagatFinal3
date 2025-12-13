@@ -136,8 +136,51 @@
   cursor: not-allowed;
 }
 
+.image-upload-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-btn:hover {
+  background-color: #e5e5e5;
+  border-color: #ccc;
+}
+
+.preview-image {
+  max-height: 50px;
+  max-width: 150px;
+  object-fit: contain;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 4px;
+  background: #fff;
+}
+
+.signature-preview {
+  max-height: 40px;
+  max-width: 100px;
+}
+
 @media (max-width: 600px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .image-upload-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

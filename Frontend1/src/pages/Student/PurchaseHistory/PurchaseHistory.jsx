@@ -164,13 +164,14 @@ export default function PurchaseHistory() {
   const openDrawer = (row) => { setSelected(row); setDrawerOpen(true); };
   const closeDrawer = () => setDrawerOpen(false);
 
-  const onDownload = async (row) => {
+  const onDownload = async (row, type = 'invoice') => {
     try {
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      const url = `${Base}/payments/receipt/${row._id}/pdf`;
+      const url = type === 'invoice' 
+        ? `${Base}/invoices/download/${row._id}`
+        : `${Base}/payments/receipt/${row._id}/pdf`;
       const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' });
       const blob = res.data;
-      // If backend returned JSON with {url}
       if (blob.type && blob.type.includes('application/json')) {
         const text = await blob.text();
         try {
@@ -179,19 +180,26 @@ export default function PurchaseHistory() {
             window.open(json.url, '_blank');
             return;
           }
+          if (json.message) {
+            alert(json.message);
+            return;
+          }
         } catch {}
       }
       const file = new Blob([blob], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(file);
-      const fileName = `${row.receiptNo || row._id}.pdf`;
+      const fileName = type === 'invoice' 
+        ? `Invoice-${row.receiptNo || row._id}.pdf`
+        : `Receipt-${row.receiptNo || row._id}.pdf`;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(link.href), 5000);
     } catch (e) {
-      alert('Failed to download receipt');
+      console.error('Download error:', e);
+      alert('Failed to download. Please try again.');
     }
   };
 
@@ -309,8 +317,8 @@ export default function PurchaseHistory() {
                 <td>{row.method || row.paymentMethod || '—'}</td>
                 <td><span className={statusClass(row.status)}>{(row.status || '').toString()}</span></td>
                 <td>
-                  {row.downloads?.receiptPdf ? (
-                    <button className="ph-link" onClick={() => onDownload(row)}>Receipt PDF</button>
+                  {(row.status || '').toLowerCase() === 'paid' ? (
+                    <button className="ph-link" onClick={() => onDownload(row, 'invoice')}>Tax Invoice</button>
                   ) : (
                     <span className="ph-muted">—</span>
                   )}
@@ -373,7 +381,7 @@ export default function PurchaseHistory() {
           )}
         </div>
         <div className="ph-drawer-footer">
-          <button className="ph-download" disabled={!selected} onClick={() => selected && onDownload(selected)}>Download Receipt</button>
+          <button className="ph-download" disabled={!selected || (selected.status || '').toLowerCase() !== 'paid'} onClick={() => selected && onDownload(selected, 'invoice')}>Download Tax Invoice</button>
           {(selected && (selected.status === 'pending_offline' || selected.method === 'offline' || selected.method === 'manual')) && (
             <div className="ph-upload-inline">
               <input type="file" accept="image/*,application/pdf" onChange={(e)=>setSlipFile(e.target.files[0])} />
