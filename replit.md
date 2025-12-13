@@ -46,6 +46,13 @@ The platform employs a decoupled frontend and backend architecture.
   - Backend APIs at `/api/mock-tests/reports/summary`, `/api/mock-tests/reports/:testId/leaderboard`, and `/api/mock-tests/reports/section-analysis`
 - **Mock Test Feedback System:** CAT-style candidate feedback form shown after test submission. Students rate exam support, digital experience, center facilities, and overall satisfaction. Feedback stored in `MockTestFeedback` model with admin management at `/admin/mock-test-feedback` including CSV export, search, and statistics overview.
 - **Inquiry Management System:** Centralized lead capture and management from all website forms. Uses `CRMLead` model with `formType` field categorizing inquiries as 'contact', 'demo_reservation', 'guide_form', 'faq_question', or 'other'. Public endpoint at `/api/crm/leads/enquiry` accepts form submissions with formType. Admin-only endpoints `/api/crm/leads/by-type/:formType` and `/api/crm/leads/form-type-counts` enable filtered viewing and statistics. Frontend forms (ScoreCard, SuccessStory, MockTest, GetInTouch, FAQ) submit leads with appropriate formType. Admin management at `/admin/inquiries` provides filter buttons for each form type, search functionality, and CSV export. Integrated into admin sidebar under CRM section.
+- **Course Scheduling System:** Admins can set Start Date and End Date for courses via the Add/Edit Course form. Features include:
+  - Start Date: Content is locked until this date arrives. Students can purchase and enroll but cannot access videos, tests, or materials until start date.
+  - End Date (optional): Course can optionally expire. `keepAccessAfterEnd` setting controls whether content remains accessible after end date.
+  - Status Badges: Course cards in admin panel show Upcoming (yellow), Active (green), or Expired (red) badges based on current date.
+  - Student Lock UI: When students try to access content before start date, they see a friendly "Course Starting Soon" message with the start date displayed.
+  - Server-side Access Control: `checkCourseAccess` function in StudentCourseController validates date-based access before serving any content.
+  - Backward Compatibility: Existing courses without startDate are treated as already started (content accessible immediately after publish).
 
 **System Design Choices:**
 - **Backend:** Node.js/Express API server, using MongoDB Atlas for data storage.
