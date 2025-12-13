@@ -12,123 +12,101 @@ const StudentLiveClasses = () => {
   const [tab, setTab] = useState('upcoming');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const selectedCourseRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const versionTimerRef = useRef(null);
+  const versionRef = useRef(readVersion());
   const timersRef = useRef({});
   const [prefs, setPrefs] = useState(readPrefs());
   const [active, setActive] = useState(null);
-  const [version, setVersion] = useState(readVersion());
 
-  useEffect(()=>{ hydrate(); startVersionPolling(); return () => { clearAllTimers(); stopVersionPolling(); }; }, []);
+  useEffect(()=>{ loadEnrolledCourses(); return () => { clearAllTimers(); stopVersionPolling(); }; }, []);
   useEffect(()=>{ scheduleReminders(items, prefs); }, [items, prefs]);
+  useEffect(()=>{ 
+    selectedCourseRef.current = selectedCourse;
+    if (selectedCourse) {
+      fetchSessionsForCourse(selectedCourse);
+      startVersionPolling();
+    } else {
+      stopVersionPolling();
+    }
+  }, [selectedCourse]);
 
   const [offline, setOffline] = useState(false);
-  const hydrate = async () => {
-    const cached = getCache(scope);
-    setItems(cached.items || []);
-    setVersion(readVersion());
-    markLastViewed();
-    await refresh();
-  };
 
-  const normalizeItem = (item, source = 'liveclass') => {
-    if (source === 'liveclass') {
-      return {
-        _id: item._id,
-        title: item.title || 'Live Class',
-        startTime: item.startTime,
-        endTime: item.endTime,
-        joinLink: item.joinLink,
-        platform: item.platform,
-        courseId: item.courseId,
-        courseName: item.courseId?.name || 'Course',
-        description: item.description,
-        status: item.status,
-        recordingUrl: item.recordingUrl,
-        source: 'liveclass'
-      };
-    } else {
-      return {
-        _id: item._id,
-        title: item.topic || item.title || 'Live Session',
-        startTime: item.date || item.sessionStartTime || item.startTime,
-        endTime: item.sessionEndTime || item.endTime || (item.date && item.endTimeStr ? new Date(`${item.date.split('T')[0]}T${item.endTimeStr}:00`) : null),
-        joinLink: item.sessionLink || item.meetingLink || item.link,
-        platform: item.platform || item.liveBatchId?.platform || 'zoom',
-        courseId: item.courseId || item.liveBatchId?.courseId,
-        courseName: item.courseName || item.liveBatchId?.subjectId?.name || item.liveBatchId?.name || 'Session',
-        description: item.description || item.notes,
-        status: item.status || 'scheduled',
-        recordingUrl: item.recordingUrl || item.recordingLink,
-        source: 'livebatch'
-      };
-    }
-  };
-
-  const refresh = async () => {
-    console.log('[LiveClasses] refresh() started');
-    setLoading(true);
-    const token = localStorage.getItem('authToken');
-    console.log('[LiveClasses] Token exists:', !!token);
-
+  const loadEnrolledCourses = async () => {
+    setCoursesLoading(true);
     try {
-      console.log('[LiveClasses] Fetching my-courses...');
       const res = await http.get('/user/student/my-courses');
-      console.log('[LiveClasses] my-courses response:', res.status, res.data);
-      const courses = res.data?.courses || res.data?.enrollments || res.data || [];
-      console.log('[LiveClasses] Got courses:', courses.length);
-      
-      if (courses.length === 0) {
-        console.log('[LiveClasses] No courses, setting empty and done');
-        setItems([]);
-        setLoading(false);
-        return;
-      }
-      
-      const allItems = [];
-      const courseIds = courses.map(enr => {
-        const courseId = (enr.courseId && typeof enr.courseId === 'object') ? enr.courseId._id : (enr.courseId || enr._id);
-        const courseName = enr.courseId?.name || enr.name || 'Course';
-        return { courseId, courseName };
-      }).filter(c => c.courseId);
-      
-      console.log('[LiveClasses] Valid courseIds:', courseIds.length, courseIds.map(c => c.courseId));
-      
-      for (let i = 0; i < Math.min(3, courseIds.length); i++) {
-        const { courseId, courseName } = courseIds[i];
-        console.log(`[LiveClasses] Fetching schedule ${i+1}/3 for`, courseName, courseId);
-        try {
-          const scheduleRes = await http.get(`/live-batches/student/schedule?courseId=${courseId}`);
-          console.log(`[LiveClasses] Response ${i+1}:`, scheduleRes.status);
-          const data = scheduleRes.data;
-          console.log(`[LiveClasses] Data ${i+1}:`, data?.success, data?.data ? 'has data' : 'no data');
-          if (data?.success && data?.data) {
-            const sessions = [...(data.data.upcoming || []), ...(data.data.past || [])];
-            console.log(`[LiveClasses] Sessions ${i+1}:`, sessions.length);
-            for (const session of sessions) {
-              try {
-                const normalized = normalizeItem({ ...session, courseName }, 'livebatch');
-                allItems.push(normalized);
-              } catch (normErr) {
-                console.log(`[LiveClasses] Normalize error:`, normErr.message);
-              }
-            }
-          }
-        } catch (fetchErr) {
-          console.log(`[LiveClasses] Fetch error ${i+1}:`, fetchErr.message);
-        }
-      }
-      
-      console.log('[LiveClasses] Total items collected:', allItems.length);
-      const uniqueItems = Array.from(new Map(allItems.map(item => [item._id, item])).values());
-      console.log('[LiveClasses] Unique items:', uniqueItems.length);
-      setItems(uniqueItems);
-      
+      const courses = res.data?.enrolledCourses || res.data?.courses || res.data?.enrollments || [];
+      const validCourses = courses.map(enr => {
+        const course = enr.courseId && typeof enr.courseId === 'object' ? enr.courseId : enr;
+        return {
+          _id: course._id || enr.courseId,
+          name: course.name || 'Course',
+          thumbnail: course.thumbnail,
+          courseType: course.courseType
+        };
+      }).filter(c => c._id);
+      setEnrolledCourses(validCourses);
     } catch (e) {
-      console.log('[LiveClasses] Main error:', e.message, e.stack);
+      console.error('Error loading enrolled courses:', e);
+      toast.error('Failed to load courses');
     }
+    setCoursesLoading(false);
+  };
 
-    console.log('[LiveClasses] Setting loading to false NOW');
-    setLoading(false);
-    console.log('[LiveClasses] refresh() DONE');
+  const normalizeItem = (item, courseName) => {
+    return {
+      _id: item._id,
+      title: item.topic || item.title || 'Live Session',
+      startTime: item.date || item.sessionStartTime || item.startTime,
+      endTime: item.sessionEndTime || item.endTime || (item.date && item.endTimeStr ? new Date(`${item.date.split('T')[0]}T${item.endTimeStr}:00`) : null),
+      joinLink: item.sessionLink || item.meetingLink || item.link,
+      platform: item.platform || item.liveBatchId?.platform || 'zoom',
+      courseId: item.courseId || item.liveBatchId?.courseId,
+      courseName: courseName || item.liveBatchId?.subjectId?.name || item.liveBatchId?.name || 'Session',
+      batchName: item.liveBatchId?.name || '',
+      description: item.description || item.notes,
+      status: item.status || 'scheduled',
+      recordingUrl: item.recordingUrl || item.recordingLink,
+      source: 'livebatch'
+    };
+  };
+
+  const fetchSessionsForCourse = async (course) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const courseId = course._id;
+    
+    setLoading(true);
+    setItems([]);
+    try {
+      const scheduleRes = await http.get(`/live-batches/student/schedule?courseId=${courseId}`, {
+        signal: controller.signal
+      });
+      if (selectedCourseRef.current?._id !== courseId) return;
+      const data = scheduleRes.data;
+      if (data?.success && data?.data) {
+        const sessions = [...(data.data.upcoming || []), ...(data.data.past || [])];
+        const normalized = sessions.map(session => normalizeItem(session, course.name));
+        const uniqueItems = Array.from(new Map(normalized.map(item => [item._id, item])).values());
+        setItems(uniqueItems);
+      }
+    } catch (e) {
+      if (e.name === 'CanceledError' || e.name === 'AbortError') return;
+      console.error('Error fetching sessions:', e);
+      toast.error('Failed to load live sessions');
+    }
+    if (selectedCourseRef.current?._id === courseId) {
+      setLoading(false);
+    }
   };
 
   const now = useMemo(() => new Date(), []);
@@ -227,20 +205,20 @@ const StudentLiveClasses = () => {
     return Number(r?.data?.v || Date.now());
   };
 
-  let verTimer = null;
   const startVersionPolling = () => {
     stopVersionPolling();
-    verTimer = setInterval(async () => {
+    versionTimerRef.current = setInterval(async () => {
       try {
         const v = await fetchVersion();
-        if (v && v !== version) {
-          setVersion(v); writeVersion(v);
-          await refresh();
+        if (v && v !== versionRef.current) {
+          versionRef.current = v;
+          writeVersion(v);
+          if (selectedCourseRef.current) fetchSessionsForCourse(selectedCourseRef.current);
         }
       } catch {}
     }, 20000);
   };
-  const stopVersionPolling = () => { if (verTimer) { clearInterval(verTimer); verTimer = null; } };
+  const stopVersionPolling = () => { if (versionTimerRef.current) { clearInterval(versionTimerRef.current); versionTimerRef.current = null; } };
 
   const mirrorStudentCache = (data, f) => {
     try { sessionStorage.setItem('live:student:list:v1', JSON.stringify({ items: data, filters: f, ts: Date.now() })); } catch {}
@@ -275,8 +253,65 @@ const StudentLiveClasses = () => {
 
   const displayItems = tab === 'upcoming' ? upcomingItems : pastItems;
 
+  const goBackToCourses = () => {
+    setSelectedCourse(null);
+    setItems([]);
+  };
+
+  if (!selectedCourse) {
+    return (
+      <div className="lc-container">
+        <h1 className="lc-page-title">Live Classes</h1>
+        <p style={{ color: '#666', marginBottom: '24px' }}>Select a course to view its live classes</p>
+
+        {coursesLoading ? (
+          <div className="lc-loading">
+            <div className="lc-spinner"></div>
+            <p>Loading your courses...</p>
+          </div>
+        ) : enrolledCourses.length === 0 ? (
+          <div className="lc-empty">
+            <div className="lc-empty-icon">📚</div>
+            <h3>No Enrolled Courses</h3>
+            <p>You need to enroll in a course to view live classes.</p>
+          </div>
+        ) : (
+          <div className="lc-course-grid">
+            {enrolledCourses.map(course => (
+              <div 
+                key={course._id} 
+                className="lc-course-card"
+                onClick={() => setSelectedCourse(course)}
+              >
+                <div className="lc-course-thumbnail">
+                  {course.thumbnail ? (
+                    <img src={`/uploads/${course.thumbnail}`} alt={course.name} />
+                  ) : (
+                    <div className="lc-course-placeholder">📖</div>
+                  )}
+                </div>
+                <div className="lc-course-info">
+                  <h3 className="lc-course-name-card">{course.name}</h3>
+                  <span className="lc-course-type">{course.courseType || 'Course'}</span>
+                </div>
+                <div className="lc-course-arrow">→</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="lc-container">
+      <div className="lc-breadcrumb">
+        <button className="lc-back-btn" onClick={goBackToCourses}>
+          ← Back to Courses
+        </button>
+        <span className="lc-current-course">{selectedCourse.name}</span>
+      </div>
+
       <h1 className="lc-page-title">Live Classes</h1>
       
       <div className="lc-header">
@@ -295,7 +330,7 @@ const StudentLiveClasses = () => {
           </button>
         </div>
         <div className="lc-actions">
-          <button className="lc-btn" onClick={refresh} disabled={loading}>
+          <button className="lc-btn" onClick={() => fetchSessionsForCourse(selectedCourse)} disabled={loading}>
             {loading ? 'Loading...' : 'Refresh'}
           </button>
         </div>
@@ -313,8 +348,8 @@ const StudentLiveClasses = () => {
           <div className="lc-empty-icon">{tab === 'upcoming' ? '📅' : '📼'}</div>
           <h3>{tab === 'upcoming' ? 'No Upcoming Classes' : 'No Past Classes'}</h3>
           <p>{tab === 'upcoming' 
-            ? 'Live classes will appear here when your instructors schedule them for your enrolled courses.' 
-            : 'Your completed classes will appear here.'}</p>
+            ? 'Live classes for this course will appear here when instructors schedule them.' 
+            : 'Completed classes for this course will appear here.'}</p>
         </div>
       ) : (
         <div className="lc-card-list">
@@ -329,7 +364,7 @@ const StudentLiveClasses = () => {
                 </div>
               </div>
               
-              <div className="lc-course-name">{it.courseName}</div>
+              {it.batchName && <div className="lc-batch-name">{it.batchName}</div>}
               
               <div className="lc-schedule">
                 <span className="lc-date">{formatDate(it.startTime)}</span>
@@ -345,15 +380,18 @@ const StudentLiveClasses = () => {
               <div className="lc-card-actions">
                 {tab === 'upcoming' ? (
                   <>
-                    <a 
-                      className={`lc-btn ${canJoin(it) && it.joinLink ? 'primary' : 'disabled'}`} 
-                      href={canJoin(it) && it.joinLink ? it.joinLink : undefined} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      onClick={e => (!canJoin(it) || !it.joinLink) && e.preventDefault()}
-                    >
-                      {isLive(it) ? 'Join Now' : canJoin(it) ? 'Join Class' : 'Not Started Yet'}
-                    </a>
+                    {canJoin(it) && it.joinLink ? (
+                      <a 
+                        className="lc-btn primary" 
+                        href={it.joinLink} 
+                        target="_blank" 
+                        rel="noreferrer"
+                      >
+                        {isLive(it) ? 'Join Now' : 'Join Class'}
+                      </a>
+                    ) : (
+                      <span className="lc-btn link-coming-soon">Link Coming Soon</span>
+                    )}
                     <button className="lc-btn" onClick={()=>downloadIcs(it)}>Add to Calendar</button>
                     <button 
                       className={`lc-btn ${prefs[it._id]?.browser ? 'active' : ''}`} 
@@ -361,7 +399,6 @@ const StudentLiveClasses = () => {
                     >
                       {prefs[it._id]?.browser ? '🔔 On' : '🔕 Remind'}
                     </button>
-                    {it.joinLink && <button className="lc-btn" onClick={()=>onCopyLink(it.joinLink)}>Copy Link</button>}
                   </>
                 ) : (
                   <>
@@ -370,9 +407,8 @@ const StudentLiveClasses = () => {
                         Watch Recording
                       </a>
                     ) : (
-                      <span className="lc-no-recording">No recording available</span>
+                      <span className="lc-no-recording">Recording not available</span>
                     )}
-                    {it.joinLink && <button className="lc-btn" onClick={()=>onCopyLink(it.joinLink)}>Copy Link</button>}
                   </>
                 )}
               </div>
@@ -392,6 +428,11 @@ const StudentLiveClasses = () => {
               <div className="lc-detail-row">
                 <strong>Course:</strong> {active.courseName}
               </div>
+              {active.batchName && (
+                <div className="lc-detail-row">
+                  <strong>Batch:</strong> {active.batchName}
+                </div>
+              )}
               <div className="lc-detail-row">
                 <strong>Date:</strong> {formatDate(active.startTime)}
               </div>
@@ -412,16 +453,19 @@ const StudentLiveClasses = () => {
               )}
             </div>
             <div className="lc-modal-footer">
-              <a 
-                className={`lc-btn ${canJoin(active) && active.joinLink ? 'primary' : 'disabled'}`} 
-                href={canJoin(active) && active.joinLink ? active.joinLink : undefined} 
-                target="_blank" 
-                rel="noreferrer"
-              >
-                {canJoin(active) ? 'Join Class' : 'Not Started Yet'}
-              </a>
+              {canJoin(active) && active.joinLink ? (
+                <a 
+                  className="lc-btn primary" 
+                  href={active.joinLink} 
+                  target="_blank" 
+                  rel="noreferrer"
+                >
+                  {isLive(active) ? 'Join Now' : 'Join Class'}
+                </a>
+              ) : (
+                <span className="lc-btn link-coming-soon">Link Coming Soon</span>
+              )}
               <button className="lc-btn" onClick={()=>downloadIcs(active)}>Add to Calendar</button>
-              {active.joinLink && <button className="lc-btn" onClick={()=>onCopyLink(active.joinLink)}>Copy Link</button>}
               <button className="lc-btn" onClick={closeDetails}>Close</button>
             </div>
           </div>
