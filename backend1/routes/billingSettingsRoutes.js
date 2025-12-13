@@ -23,13 +23,18 @@ router.put('/', authMiddleware, adminMiddleware, async (req, res) => {
       companyLogo,
       gstNumber,
       panNumber,
+      cinNumber,
       address,
       phone,
       email,
       website,
+      centreDetails,
+      taxSettings,
+      authorizedSignatory,
       bankDetails,
       termsAndConditions,
-      footerNote
+      footerNote,
+      invoicePrefix
     } = req.body;
 
     let settings = await BillingSettings.findOne({ isActive: true });
@@ -41,11 +46,13 @@ router.put('/', authMiddleware, adminMiddleware, async (req, res) => {
     if (companyLogo !== undefined) settings.companyLogo = companyLogo;
     if (gstNumber !== undefined) settings.gstNumber = gstNumber;
     if (panNumber !== undefined) settings.panNumber = panNumber;
+    if (cinNumber !== undefined) settings.cinNumber = cinNumber;
     if (phone !== undefined) settings.phone = phone;
     if (email !== undefined) settings.email = email;
     if (website !== undefined) settings.website = website;
     if (termsAndConditions !== undefined) settings.termsAndConditions = termsAndConditions;
     if (footerNote !== undefined) settings.footerNote = footerNote;
+    if (invoicePrefix !== undefined) settings.invoicePrefix = invoicePrefix;
 
     if (address) {
       settings.address = {
@@ -54,6 +61,33 @@ router.put('/', authMiddleware, adminMiddleware, async (req, res) => {
         state: address.state || settings.address?.state || '',
         pincode: address.pincode || settings.address?.pincode || '',
         country: address.country || settings.address?.country || 'India'
+      };
+    }
+
+    if (centreDetails) {
+      settings.centreDetails = {
+        name: centreDetails.name || settings.centreDetails?.name || '',
+        address: centreDetails.address || settings.centreDetails?.address || '',
+        city: centreDetails.city || settings.centreDetails?.city || '',
+        state: centreDetails.state || settings.centreDetails?.state || '',
+        stateCode: centreDetails.stateCode || settings.centreDetails?.stateCode || ''
+      };
+    }
+
+    if (taxSettings) {
+      settings.taxSettings = {
+        cgstRate: taxSettings.cgstRate ?? settings.taxSettings?.cgstRate ?? 9,
+        sgstRate: taxSettings.sgstRate ?? settings.taxSettings?.sgstRate ?? 9,
+        igstRate: taxSettings.igstRate ?? settings.taxSettings?.igstRate ?? 18,
+        defaultHsnCode: taxSettings.defaultHsnCode || settings.taxSettings?.defaultHsnCode || '999293'
+      };
+    }
+
+    if (authorizedSignatory) {
+      settings.authorizedSignatory = {
+        name: authorizedSignatory.name || settings.authorizedSignatory?.name || '',
+        designation: authorizedSignatory.designation || settings.authorizedSignatory?.designation || '',
+        signatureImage: authorizedSignatory.signatureImage || settings.authorizedSignatory?.signatureImage || ''
       };
     }
 
