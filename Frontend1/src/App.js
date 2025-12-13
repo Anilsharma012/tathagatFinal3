@@ -108,6 +108,7 @@ import CRMLeadDetail from "./pages/mainAdmin/CRM/CRMLeadDetail";
 import CRMPipeline from "./pages/mainAdmin/CRM/CRMPipeline";
 import CRMInvoices from "./pages/mainAdmin/CRM/CRMInvoices";
 import CRMSettings from "./pages/mainAdmin/CRM/CRMSettings";
+import InquiryManagement from "./pages/mainAdmin/CRM/InquiryManagement";
 import PaymentManagement from "./pages/mainAdmin/PaymentManagement/PaymentManagement";
 import AdminStudentDetail from "./pages/mainAdmin/CRM/AdminStudentDetail";
 import AdminEvaluateAnswers from "./pages/mainAdmin/Evaluation/AdminEvaluateAnswers";
@@ -522,6 +523,14 @@ const AppContent = () => {
         />
 
         {/* CRM routes */}
+        <Route
+          path="/admin/inquiries"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <InquiryManagement />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/admin/enquiries"
           element={

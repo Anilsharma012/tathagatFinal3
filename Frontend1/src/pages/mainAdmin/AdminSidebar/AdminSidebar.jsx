@@ -81,6 +81,7 @@ const AdminSidebar = () => {
         <NavLink to="/admin/reports" className="admin-link">Reports</NavLink>
 
         <div className="admin-group-title">CRM</div>
+        <NavLink to="/admin/inquiries" className="admin-link">All Inquiries</NavLink>
         <NavLink to="/admin/enquiries" className="admin-link">New Enquiries</NavLink>
         <NavLink to="/admin/crm/leads" className="admin-link">CRM Leads</NavLink>
         <NavLink to="/admin/crm/leads/new" className="admin-link">Create Lead</NavLink>
