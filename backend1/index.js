@@ -156,6 +156,20 @@ app.get("/api/test", (_req, res) => {
   });
 });
 
+// Public billing settings route - no auth required
+app.get("/api/billing-settings/public", async (_req, res) => {
+  try {
+    const BillingSettings = require("./models/BillingSettings");
+    const settings = await BillingSettings.findOne({ isActive: true }).select(
+      'companyName companyLogo gstNumber address phone email website footerNote'
+    );
+    res.json({ success: true, settings: settings || {} });
+  } catch (error) {
+    console.error('Error fetching public billing settings:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch billing settings' });
+  }
+});
+
 /* -------------------- Dev Login (atomic upsert) -------------------- */
 app.post("/api/dev/login", async (req, res) => {
   try {
@@ -724,6 +738,8 @@ safeUse("/api/scorecards", "./routes/scoreCardRoutes");
 safeUse("/api/topper-feedback", "./routes/topperFeedbackRoutes");
 safeUse("/api/success-stories", "./routes/successStoryRoutes");
 
+safeUse("/api/admin/billing-settings", "./routes/billingSettingsRoutes");
+safeUse("/api/invoices", "./routes/invoiceRoutes");
 safeUse("/api/admin", "./routes/AdminRoute");
 safeUse("/api/admin/bulk-upload", "./routes/bulkUpload");
 safeUse("/api/admin/zoom", "./routes/zoom");
@@ -773,8 +789,6 @@ safeUse("/api/downloads", "./routes/downloadRoutes");
 safeUse("/api/top-performers", "./routes/topPerformerRoutes");
 safeUse("/api/course-purchase-content", "./routes/coursePurchaseContentRoutes");
 safeUse("/api/mock-test-feedback", "./routes/mockTestFeedbackRoutes");
-safeUse("/api/admin/billing-settings", "./routes/billingSettingsRoutes");
-safeUse("/api/invoices", "./routes/invoiceRoutes");
 
 /* -------------------- Production Static (kept your note) -------------------- */
 if (process.env.NODE_ENV === "production") {
