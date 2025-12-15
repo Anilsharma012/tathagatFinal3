@@ -479,43 +479,83 @@ const startTestAttempt = async (req, res) => {
       });
 
       if (existingAttempt) {
-        // Return the existing attempt for resume
-        return res.status(200).json({
-          success: true,
-          message: 'Resuming existing attempt',
-          attempt: existingAttempt,
-          resuming: true
-        });
+        // Check if the attempt is completed/submitted - if so, reset for re-attempt
+        if (existingAttempt.status === 'COMPLETED' || existingAttempt.status === 'EXPIRED') {
+          console.log('🔄 Previous attempt was completed, resetting for re-attempt');
+          
+          // Reset the attempt for a fresh re-attempt
+          const resetSectionStates = test.sections.map((section, index) => ({
+            sectionKey: section.name,
+            startedAt: index === 0 ? new Date() : null,
+            remainingSeconds: section.duration * 60,
+            isLocked: false,
+            isCompleted: false,
+            completedAt: null
+          }));
+          
+          existingAttempt.status = 'IN_PROGRESS';
+          existingAttempt.startedAt = new Date();
+          existingAttempt.completedAt = null;
+          existingAttempt.currentSectionKey = test.sections[0]?.name || 'VARC';
+          existingAttempt.currentSectionIndex = 0;
+          existingAttempt.currentQuestionIndex = 0;
+          existingAttempt.sectionStates = resetSectionStates;
+          existingAttempt.lastSyncedAt = new Date();
+          existingAttempt.responses = [];
+          existingAttempt.totalScore = 0;
+          existingAttempt.totalMaxScore = 0;
+          existingAttempt.totalTimeTakenSeconds = 0;
+          existingAttempt.sectionWiseStats = [];
+          existingAttempt.rank = null;
+          existingAttempt.percentile = null;
+          
+          await existingAttempt.save();
+          
+          // Don't return here - continue to fetch questions and return fresh test data
+        } else {
+          // Return the existing attempt for resume (in-progress attempt)
+          return res.status(200).json({
+            success: true,
+            message: 'Resuming existing attempt',
+            attempt: existingAttempt,
+            resuming: true
+          });
+        }
       }
     }
 
-    // Initialize section states for session persistence
-    const initialSectionStates = test.sections.map((section, index) => ({
-      sectionKey: section.name,
-      startedAt: index === 0 ? new Date() : null, // Only first section starts immediately
-      remainingSeconds: section.duration * 60, // Convert minutes to seconds
-      isLocked: false,
-      isCompleted: false,
-      completedAt: null
-    }));
+    // Use existing reset attempt or create new attempt
+    let attemptToUse = existingAttempt; // Will be set if we reset an existing completed attempt
+    
+    if (!attemptToUse) {
+      // Initialize section states for session persistence
+      const initialSectionStates = test.sections.map((section, index) => ({
+        sectionKey: section.name,
+        startedAt: index === 0 ? new Date() : null, // Only first section starts immediately
+        remainingSeconds: section.duration * 60, // Convert minutes to seconds
+        isLocked: false,
+        isCompleted: false,
+        completedAt: null
+      }));
 
-    // Create new attempt
-    const newAttempt = new MockTestAttempt({
-      userId: userId,
-      testPaperId: testId,
-      seriesId: test.seriesId?._id || null,
-      totalDuration: test.duration,
-      startedAt: new Date(),
-      status: 'IN_PROGRESS',
-      currentSectionKey: test.sections[0]?.name || 'VARC',
-      currentSectionIndex: 0,
-      currentQuestionIndex: 0,
-      sectionStates: initialSectionStates,
-      lastSyncedAt: new Date(),
-      responses: []
-    });
+      // Create new attempt
+      attemptToUse = new MockTestAttempt({
+        userId: userId,
+        testPaperId: testId,
+        seriesId: test.seriesId?._id || null,
+        totalDuration: test.duration,
+        startedAt: new Date(),
+        status: 'IN_PROGRESS',
+        currentSectionKey: test.sections[0]?.name || 'VARC',
+        currentSectionIndex: 0,
+        currentQuestionIndex: 0,
+        sectionStates: initialSectionStates,
+        lastSyncedAt: new Date(),
+        responses: []
+      });
 
-    await newAttempt.save();
+      await attemptToUse.save();
+    }
 
     // Get questions for the test
     const questionsWithSections = [];
@@ -594,7 +634,8 @@ const startTestAttempt = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Test attempt started successfully',
-      attempt: newAttempt,
+      attempt: attemptToUse,
+      resuming: false, // Always false for new/reset attempts - frontend should treat as fresh start
       test: {
         _id: test._id,
         title: test.title,
