@@ -121,6 +121,7 @@ import BatchManagement from "./pages/mainAdmin/BatchManagement/BatchManagement";
 import BlogManagement from "./pages/mainAdmin/BlogManagement/BlogManagement";
 import DemoVideoManagement from "./pages/mainAdmin/DemoVideoManagement/DemoVideoManagement";
 import ImageGalleryManagement from "./pages/mainAdmin/ImageGalleryManagement/ImageGalleryManagement";
+import RoleManagement from "./pages/mainAdmin/RoleManagement/RoleManagement";
 import DownloadsManagement from "./pages/mainAdmin/DownloadsManagement/DownloadsManagement";
 import ScoreCardManagement from "./pages/mainAdmin/ScoreCardManagement/ScoreCardManagement";
 import SuccessStoryManagement from "./pages/mainAdmin/SuccessStoryManagement/SuccessStoryManagement";
@@ -629,6 +630,16 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <CRMSettings />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Role Management */}
+        <Route
+          path="/admin/role-management"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <RoleManagement />
             </PrivateRoute>
           }
         />
