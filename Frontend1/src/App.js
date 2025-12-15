@@ -163,11 +163,10 @@ import Cat26OMETOnline from "./CoursePurchasepage/Cat26OMETOnline"
 
 import Staticourse from "./components/StaticCourse/Staticourse"
 import Chatbox from "./components/Chat/Chatbox";
+import ProtectedAdminRoute from "./components/ProtectedAdminRoute/ProtectedAdminRoute";
 
 
-// Auto-login functionality is handled in AppContent useEffect
-
-// PrivateRoute: Flexible to handle admin and subadmin tokens
+// PrivateRoute: For subadmin routes only (admin uses ProtectedAdminRoute)
 const PrivateRoute = ({ children, tokenName }) => {
   const token = localStorage.getItem(tokenName);
   return token ? (
@@ -191,17 +190,7 @@ const AppContent = () => {
   const location = useLocation();
   const [user, setUser] = useState(null);
 
-  // Development mode: Auto-set admin token if not present
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const existingToken = localStorage.getItem('adminToken');
-      if (!existingToken) {
-        const devAdminToken = 'dev_admin_token_12345';
-        localStorage.setItem('adminToken', devAdminToken);
-        console.log('🔧 Development: Auto-set admin token');
-      }
-    }
-  }, []);
+  // SECURITY: Removed auto-admin-token - proper authentication required
 
   // Check if current route is admin/subadmin login page to hide header/footer
   const isAdminRoute = location.pathname.startsWith("/admin");
@@ -227,17 +216,17 @@ const AppContent = () => {
         <Route
           path="/admin/dashboard"
           element={
-            <PrivateRoute tokenName="adminToken">
+            <ProtectedAdminRoute>
               <AdminDashboard />
-            </PrivateRoute>
+            </ProtectedAdminRoute>
           }
         />
         <Route
           path="/admin/all-students"
           element={
-            <PrivateRoute tokenName="adminToken">
+            <ProtectedAdminRoute requiredPermission="students.view">
               <AllStudents />
-            </PrivateRoute>
+            </ProtectedAdminRoute>
           }
         />
         <Route
@@ -638,9 +627,9 @@ const AppContent = () => {
         <Route
           path="/admin/role-management"
           element={
-            <PrivateRoute tokenName="adminToken">
+            <ProtectedAdminRoute requiredPermission="roleManagement.view">
               <RoleManagement />
-            </PrivateRoute>
+            </ProtectedAdminRoute>
           }
         />
 

@@ -1,6 +1,17 @@
 const jwt = require("jsonwebtoken");
+const AdminUser = require("../models/AdminUser");
 
-// ✅ Helper: Token extract and verify
+// SECURITY: JWT secret must be set in environment
+const getJWTSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    console.error("CRITICAL: JWT_SECRET environment variable must be set and be at least 32 characters");
+    throw new Error("Server configuration error - JWT secret not properly configured");
+  }
+  return secret;
+};
+
+// ✅ Helper: Token extract and verify - SECURE VERSION
 const verifyToken = (req) => {
   const authHeader = req.headers.authorization || req.header("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -8,101 +19,39 @@ const verifyToken = (req) => {
   }
 
   const token = authHeader.split(" ")[1];
-  // Dev shortcut: accept any token containing 'admin' as admin in non-production
-  if (process.env.NODE_ENV !== 'production' && /admin/i.test(token)) {
-    // Use a valid ObjectId string for dev tokens to avoid Mongoose cast errors
-    return { id: '507f1f77bcf86cd799439011', role: 'admin', email: 'admin@dev.com', name: 'Development Admin' };
-  }
-  return jwt.verify(token, process.env.JWT_SECRET || 'secret_admin_key');
+  // SECURITY: Always verify JWT properly with secure secret
+  return jwt.verify(token, getJWTSecret());
 };
 
-// ✅ 1. Normal user middleware
+// ✅ 1. Normal user middleware - SECURE VERSION
 const authMiddleware = async (req, res, next) => {
-  console.log('🔍 Auth Middleware called for:', req.method, req.path);
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-
   try {
-    // Check if this is an admin route - admin routes should NOT fall back to demo student
+    // Check if this is an admin route - admin routes require proper authentication
     const isAdminRoute = req.path.includes('/admin') || req.baseUrl?.includes('/admin');
     
-    // First, try to verify if there's a valid JWT token (for admin/real users)
     const authHeader = req.headers.authorization || req.header("Authorization");
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
       try {
         const token = authHeader.split(" ")[1];
-
-        // In development mode, check for admin token shortcut - but NOT for student routes
-        const isStudentRoute = req.path.includes('/student/') || req.path.startsWith('/student') || 
-                               req.path.includes('/reports/') || req.path.includes('/attempt/') ||
-                               req.baseUrl?.includes('/mock-tests');
-        if (process.env.NODE_ENV === 'development' && token.includes('admin') && !isStudentRoute) {
-          console.log('🔧 Development admin token detected, using admin user');
-          req.user = {
-            id: '507f1f77bcf86cd799439011',
-            role: 'admin',
-            email: 'admin@dev.com',
-            name: 'Development Admin'
-          };
-          return next();
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_admin_key');
-
-        // If token is valid, use the decoded user (admin/subadmin/real student)
+        // SECURITY: Always verify JWT properly with secure secret
+        const decoded = jwt.verify(token, getJWTSecret());
         req.user = decoded;
-        try {
-          const mongoose = require('mongoose');
-          if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
-            console.warn('authMiddleware: decoded id invalid, normalizing to dev id');
-            req.user.id = '507f1f77bcf86cd799439011';
-            req.user.role = req.user.role || 'student';
-          }
-        } catch {}
-        console.log('✅ Valid JWT token found, user role:', req.user.role);
         return next();
       } catch (tokenError) {
         console.log('⚠️ Invalid token provided:', tokenError.message);
         
-        // In development mode, allow admin routes with demo admin user
-        if (process.env.NODE_ENV !== 'production' && isAdminRoute) {
-          console.log('🔧 Development mode - using demo admin for admin route');
-          req.user = {
-            id: '507f1f77bcf86cd799439011',
-            role: 'admin',
-            email: 'admin@dev.com',
-            name: 'Development Admin'
-          };
-          return next();
-        }
-        
-        // For admin routes in production, don't fall back to demo user - return 401
+        // SECURITY: Admin routes always require valid token
         if (isAdminRoute) {
-          console.log('❌ Admin route requires valid token');
           return res.status(401).json({ 
             success: false, 
             message: "Invalid or expired token. Please login again." 
           });
         }
-        
-        console.log('⚠️ Falling back to demo user for non-admin route');
       }
     } else {
       // No token provided
-      // In development mode, allow admin routes with demo admin user
-      if (process.env.NODE_ENV !== 'production' && isAdminRoute) {
-        console.log('🔧 Development mode - using demo admin for admin route (no token)');
-        req.user = {
-          id: '507f1f77bcf86cd799439011',
-          role: 'admin',
-          email: 'admin@dev.com',
-          name: 'Development Admin'
-        };
-        return next();
-      }
-      
       if (isAdminRoute) {
-        console.log('❌ Admin route requires authentication');
         return res.status(401).json({ 
           success: false, 
           message: "Authentication required. Please login." 
@@ -110,78 +59,106 @@ const authMiddleware = async (req, res, next) => {
       }
     }
 
-    // If no valid token and not admin route, use demo student user (for student-only routes)
-    console.log('🔧 Development mode - using demo student user');
-    const User = require("../models/UserSchema");
+    // For student routes without token in development, use demo student
+    if (process.env.NODE_ENV !== 'production') {
+      const User = require("../models/UserSchema");
+      const demoEmail = 'demo@test.com';
+      let demoUser = await User.findOne({ email: demoEmail });
 
-    const demoEmail = 'demo@test.com';
-    let demoUser = await User.findOne({ email: demoEmail });
-
-    // If not found, try by hardcoded ID as fallback
-    if (!demoUser) {
-      const demoUserId = '507f1f77bcf86cd799439011';
-      demoUser = await User.findById(demoUserId);
-    }
-
-    if (demoUser) {
-      req.user = {
-        id: demoUser._id.toString(),
-        role: 'student',
-        email: demoUser.email || 'demo@test.com',
-        name: demoUser.name || 'Demo Student'
-      };
-      console.log('✅ Demo student user found:', req.user.id);
-    } else {
-      // Fallback to hardcoded user
-      req.user = {
-        id: '507f1f77bcf86cd799439011',
-        role: 'student',
-        email: 'demo@test.com',
-        name: 'Demo Student'
-      };
-      console.log('⚠️ Demo user not found, using hardcoded fallback');
-    }
-
-    // Ensure req.user.id is a valid ObjectId string in development to avoid Mongoose cast errors
-    try {
-      const mongoose = require('mongoose');
-      if (!req.user || !req.user.id || !mongoose.Types.ObjectId.isValid(req.user.id)) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('authMiddleware: req.user.id invalid, normalizing to dev admin id');
-          req.user = req.user || {};
-          req.user.id = '507f1f77bcf86cd799439011';
-          req.user.role = req.user.role || 'admin';
-        }
+      if (demoUser) {
+        req.user = {
+          id: demoUser._id.toString(),
+          role: 'student',
+          email: demoUser.email || 'demo@test.com',
+          name: demoUser.name || 'Demo Student'
+        };
+      } else {
+        req.user = {
+          id: '507f1f77bcf86cd799439011',
+          role: 'student',
+          email: 'demo@test.com',
+          name: 'Demo Student'
+        };
       }
-    } catch (e) {
-      console.warn('authMiddleware normalization failed', e);
+      return next();
     }
 
-    return next();
+    // In production without token, reject
+    return res.status(401).json({ 
+      success: false, 
+      message: "Authentication required." 
+    });
   } catch (error) {
     console.error('Error in authMiddleware:', error);
-    // Fallback to hardcoded user on error
-    req.user = {
-      id: '507f1f77bcf86cd799439011',
-      role: 'student',
-      email: 'demo@test.com',
-      name: 'Demo Student'
-    };
-    return next();
+    return res.status(500).json({ 
+      success: false, 
+      message: "Authentication error." 
+    });
   }
 };
 
-// ✅ 2. Admin + Subadmin access middleware
-const adminAuth = (req, res, next) => {
+// ✅ 2. Admin + Subadmin + Teacher access middleware - SECURE VERSION
+const adminAuth = async (req, res, next) => {
   try {
     const decoded = verifyToken(req);
-    if (decoded.role !== "admin" && decoded.role !== "subadmin") {
-      return res.status(403).json({ message: "❌ Access Denied! Admin/Subadmin only" });
+    
+    // SECURITY: Validate userType is one of allowed admin types
+    const allowedUserTypes = ['superadmin', 'subadmin', 'teacher'];
+    const allowedRoles = ['admin', 'subadmin'];
+    
+    // Check if token has valid admin userType or role
+    const hasValidUserType = decoded.userType && allowedUserTypes.includes(decoded.userType);
+    const hasValidRole = decoded.role && allowedRoles.includes(decoded.role);
+    
+    if (!hasValidUserType && !hasValidRole) {
+      console.log(`❌ Access denied - userType: ${decoded.userType}, role: ${decoded.role}`);
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Admin panel is restricted to authorized administrators only." 
+      });
     }
+    
+    // SECURITY: Always verify user exists in database
+    let userExists = false;
+    let userStatus = 'active';
+    
+    // Check AdminUser collection first
+    const adminUser = await AdminUser.findById(decoded.id);
+    if (adminUser) {
+      userExists = true;
+      userStatus = adminUser.status;
+    } else {
+      // Check legacy Admin collection
+      const Admin = require("../models/Admin");
+      const legacyAdmin = await Admin.findById(decoded.id);
+      if (legacyAdmin) {
+        userExists = true;
+        // Legacy admins are always treated as active superadmins
+      }
+    }
+    
+    if (!userExists) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "User account not found. Please login again." 
+      });
+    }
+    
+    if (userStatus === 'suspended') {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Account suspended. Please contact administrator." 
+      });
+    }
+    
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ message: "❌ Unauthorized! Invalid Token" });
+    console.error("Admin auth error:", error.message);
+    return res.status(401).json({ 
+      success: false, 
+      message: "Authentication failed. Please login again." 
+    });
   }
 };
 

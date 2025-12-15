@@ -7,7 +7,15 @@ const User = require("../models/UserSchema");
 const Admin = require("../models/Admin");
 const UserProgress = require("../models/UserProgress");
 
-const JWT_SECRET = process.env.JWT_SECRET || "secret_admin_key";
+// SECURITY: JWT secret must be set in environment - no fallback
+const getJWTSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    console.error("CRITICAL: JWT_SECRET environment variable must be set and be at least 32 characters");
+    throw new Error("Server configuration error - JWT secret not properly configured");
+  }
+  return secret;
+};
 
 // Create admin (temporary use)
 exports.createAdmin = async (req, res) => {
@@ -28,38 +36,123 @@ exports.createAdmin = async (req, res) => {
   }
 };
 
-// Admin login
+// Admin login - SECURE VERSION
 exports.loginAdmin = async (req, res) => {
   const { email, password } = req.body;
 
-  try {
-    let admin = await Admin.findOne({ email });
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: "Email and password are required" });
+  }
 
-    // In development, auto-create an admin if none exists for smoother DX
-    if (!admin) {
-      if (process.env.NODE_ENV !== 'production') {
-        try {
-          admin = new Admin({ email, password });
-          await admin.save();
-          console.log(`🆕 Dev admin auto-created for ${email}`);
-        } catch (createErr) {
-          console.warn('⚠️ Failed to auto-create admin in development:', createErr.message);
-          return res.status(404).json({ message: "Admin not found" });
-        }
-      } else {
-        return res.status(404).json({ message: "Admin not found" });
+  try {
+    const AdminUser = require("../models/AdminUser");
+    
+    // First check AdminUser collection (for superadmin/subadmin/teacher)
+    let adminUser = await AdminUser.findOne({ email: email.toLowerCase() }).populate("role");
+    
+    if (adminUser) {
+      // Found in AdminUser collection
+      if (adminUser.status === 'suspended') {
+        return res.status(403).json({ 
+          success: false, 
+          message: "Account suspended. Please contact administrator." 
+        });
       }
+      
+      const isMatch = await adminUser.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: "Invalid email or password" });
+      }
+      
+      // Update last login
+      adminUser.lastLogin = new Date();
+      await adminUser.save();
+      
+      // Get effective permissions
+      const permissions = await adminUser.getEffectivePermissions();
+      
+      const token = jwt.sign(
+        { 
+          id: adminUser._id, 
+          email: adminUser.email,
+          name: adminUser.fullName,
+          role: adminUser.userType === 'superadmin' ? 'admin' : 'subadmin',
+          userType: adminUser.userType,
+          roleId: adminUser.role?._id
+        }, 
+        getJWTSecret(), 
+        { expiresIn: "7d" }
+      );
+      
+      return res.status(200).json({ 
+        success: true,
+        token,
+        user: {
+          _id: adminUser._id,
+          fullName: adminUser.fullName,
+          email: adminUser.email,
+          userType: adminUser.userType,
+          role: adminUser.role,
+          status: adminUser.status
+        },
+        permissions
+      });
+    }
+    
+    // Fallback: Check legacy Admin collection
+    let admin = await Admin.findOne({ email });
+    
+    if (!admin) {
+      // SECURITY: Never auto-create admins
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 
-    const token = jwt.sign({ id: admin._id, role: "admin" }, JWT_SECRET, { expiresIn: "1d" });
-    res.status(200).json({ token });
+    // Generate full permissions for legacy admin (treated as superadmin)
+    const allPermissions = {};
+    const modules = [
+      "dashboard", "students", "courses", "batches", "liveClasses",
+      "mockTests", "practiceTests", "payments", "coupons", "notifications",
+      "announcements", "leads", "reports", "faculty", "blogs",
+      "studyMaterials", "discussions", "bschools", "iimPredictor",
+      "downloads", "gallery", "crm", "billing", "roleManagement"
+    ];
+    modules.forEach(mod => {
+      allPermissions[mod] = {
+        view: true, create: true, edit: true, delete: true, export: true, approve: true
+      };
+    });
+
+    const token = jwt.sign(
+      { 
+        id: admin._id, 
+        role: "admin",
+        userType: "superadmin",
+        email: admin.email,
+        name: admin.name || "Admin"
+      }, 
+      getJWTSecret(), 
+      { expiresIn: "7d" }
+    );
+    
+    res.status(200).json({ 
+      success: true,
+      token,
+      user: {
+        _id: admin._id,
+        fullName: admin.name || "Admin",
+        email: admin.email,
+        userType: "superadmin"
+      },
+      permissions: allPermissions
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Admin login error:", err);
+    res.status(500).json({ success: false, message: "Login failed. Please try again." });
   }
 };
 

@@ -28,17 +28,27 @@ router.get("/", adminAuth, checkPermission("roleManagement", "view"), async (req
 
 router.get("/me", adminAuth, async (req, res) => {
   try {
+    // First try AdminUser collection
     const user = await AdminUser.findById(req.user.id)
       .select("-password")
       .populate("role");
 
-    if (!user) {
+    if (user) {
+      const permissions = await user.getEffectivePermissions();
+      return res.json({ success: true, user, permissions });
+    }
+
+    // Fallback: Check legacy Admin collection
+    const Admin = require("../models/Admin");
+    const legacyAdmin = await Admin.findById(req.user.id).select("-password");
+    
+    if (legacyAdmin) {
       return res.json({
         success: true,
         user: {
-          _id: req.user.id,
-          fullName: req.user.name || "Super Admin",
-          email: req.user.email,
+          _id: legacyAdmin._id,
+          fullName: legacyAdmin.name || "Super Admin",
+          email: legacyAdmin.email,
           userType: "superadmin",
           status: "active"
         },
@@ -46,8 +56,11 @@ router.get("/me", adminAuth, async (req, res) => {
       });
     }
 
-    const permissions = await user.getEffectivePermissions();
-    res.json({ success: true, user, permissions });
+    // User not found in either collection
+    return res.status(401).json({ 
+      success: false, 
+      message: "User account not found. Please login again." 
+    });
   } catch (error) {
     console.error("Error fetching current user:", error);
     res.status(500).json({ success: false, message: "Failed to fetch user info" });
@@ -274,6 +287,13 @@ router.post("/login", async (req, res) => {
 
     const permissions = await user.getEffectivePermissions();
 
+    // SECURITY: Validate JWT secret before use
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.length < 32) {
+      console.error("CRITICAL: JWT_SECRET not properly configured");
+      return res.status(500).json({ success: false, message: "Server configuration error" });
+    }
+
     const token = jwt.sign(
       {
         id: user._id,
@@ -283,7 +303,7 @@ router.post("/login", async (req, res) => {
         userType: user.userType,
         roleId: user.role?._id
       },
-      process.env.JWT_SECRET || "secret_admin_key",
+      jwtSecret,
       { expiresIn: "7d" }
     );
 

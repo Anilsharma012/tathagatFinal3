@@ -106,7 +106,15 @@ exports.deleteSubAdmin = async (req, res) => {
 
 // SubAdmin login route (email/password + JWT)
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = process.env.JWT_SECRET || "secret_subadmin_key";
+
+// SECURITY: JWT secret must be properly configured
+const getJWTSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("Server configuration error - JWT secret not properly configured");
+  }
+  return secret;
+};
 
 exports.subAdminLogin = async (req, res) => {
   try {
@@ -126,7 +134,7 @@ exports.subAdminLogin = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: subAdmin._id, role: "subadmin" }, JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign({ id: subAdmin._id, role: "subadmin" }, getJWTSecret(), { expiresIn: "1d" });
     res.json({ token });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
