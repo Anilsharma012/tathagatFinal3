@@ -29,6 +29,8 @@ const PdfManagement = () => {
     file: null
   });
 
+  const categoryOptions = ['Study Materials', 'Video Lectures', 'Previous Year Papers'];
+
   const [uploadLoading, setUploadLoading] = useState(false);
   
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -115,7 +117,7 @@ const PdfManagement = () => {
       formData.append('title', uploadData.title);
       formData.append('description', uploadData.description);
       formData.append('subject', uploadData.subject);
-      formData.append('category', 'Study Materials');
+      formData.append('category', uploadData.category);
       formData.append('type', uploadData.type);
       formData.append('tags', uploadData.tags);
       formData.append('file', uploadData.file);
@@ -184,8 +186,12 @@ const PdfManagement = () => {
   };
 
   const handlePreview = (material) => {
-    setSelectedMaterial(material);
-    setShowPreviewModal(true);
+    if (material.type === 'PDF') {
+      window.open(`/api/study-materials/view/${material._id}`, '_blank');
+    } else {
+      setSelectedMaterial(material);
+      setShowPreviewModal(true);
+    }
   };
 
   const handleEdit = (material) => {
@@ -468,19 +474,31 @@ const PdfManagement = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Subject *</label>
+                  <label>Category *</label>
                   <select
-                    value={uploadData.subject}
-                    onChange={(e) => setUploadData(prev => ({ ...prev, subject: e.target.value }))}
+                    value={uploadData.category}
+                    onChange={(e) => setUploadData(prev => ({ ...prev, category: e.target.value }))}
                     required
                   >
-                    <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                    <option value="Verbal Ability">Verbal Ability</option>
-                    <option value="Data Interpretation">Data Interpretation</option>
-                    <option value="Logical Reasoning">Logical Reasoning</option>
-                    <option value="General Knowledge">General Knowledge</option>
+                    {categoryOptions.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
+              </div>
+              <div className="form-group">
+                <label>Subject *</label>
+                <select
+                  value={uploadData.subject}
+                  onChange={(e) => setUploadData(prev => ({ ...prev, subject: e.target.value }))}
+                  required
+                >
+                  <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                  <option value="Verbal Ability">Verbal Ability</option>
+                  <option value="Data Interpretation">Data Interpretation</option>
+                  <option value="Logical Reasoning">Logical Reasoning</option>
+                  <option value="General Knowledge">General Knowledge</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Tags</label>
