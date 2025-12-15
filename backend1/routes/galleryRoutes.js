@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const GalleryController = require('../controllers/GalleryController');
-const adminAuth = require('../middleware/adminAuth');
+const { adminAuth } = require('../middleware/authMiddleware');
 
 const uploadDir = path.join(__dirname, '../uploads/gallery');
 if (!fs.existsSync(uploadDir)) {
