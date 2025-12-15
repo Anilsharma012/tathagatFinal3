@@ -1,0 +1,260 @@
+I want to add a complete “Role Management & Permissions System” in my Tathagat admin panel.side bar m button bnana h iska 
+
+1) Goal
+
+Create a functional system where the Super Admin can:
+
+Create new users of type: Subadmin and Teacher
+
+Assign them a Role
+
+Control what they can access inside admin panel (pages + actions)
+
+Manage everything from a dedicated admin sidebar menu.
+
+2) Admin Panel UI Requirement
+
+In the admin sidebar, add a new menu item:
+
+“Role Assign” (or “Access Control”)
+
+When clicked, open a full page that has 3 tabs/sections:
+
+Roles
+
+Users
+
+Assign Role
+
+3) Roles Module (CRUD)
+
+On Roles tab:
+
+Create Role (e.g., “Subadmin - Admissions”, “Teacher - CAT”, “Accounts”)
+
+Edit Role
+
+Delete Role (only if no users assigned, else show warning)
+Role must include:
+
+roleName
+
+description
+
+permissions (checkbox based)
+
+4) Permissions Structure (Page + Action Level)
+
+Make permission system like this:
+
+Admin Panel Pages (Modules):
+
+Dashboard
+
+Students
+
+Courses
+
+Batches
+
+Live Classes
+
+Tests/Mock Tests
+
+Payments/Orders
+
+Coupons/Offers
+
+Notifications/WhatsApp/SMS/Email
+
+Leads/Enquiries
+
+Reports/Exports
+
+Faculty/Teachers
+
+Role Assign (only Super Admin allowed)
+
+For each module, allow action permissions:
+
+view
+
+create
+
+edit
+
+delete
+
+export (where applicable)
+
+approve/reject (where applicable)
+
+Example:
+Students: view, create, edit, delete, export
+Payments: view, approve/reject, export
+Courses: view, create, edit, delete
+
+5) Users Module (Create Subadmin/Teacher)
+
+On Users tab:
+
+Add new user form:
+
+fullName
+
+phone
+
+email
+
+password (or send invite link)
+
+userType: subadmin / teacher
+
+status: active / suspended
+
+List users table with:
+
+Name, Email, UserType, Assigned Role, Status, Created Date
+
+Actions: Edit, Suspend/Activate, Reset Password, Delete
+
+6) Assign Role Module
+
+On Assign Role tab:
+
+Select user (searchable dropdown)
+
+Select role (dropdown)
+
+Optional: “Custom overrides” (extra permission toggles for that specific user)
+
+Save assignment
+
+Show assigned summary below
+
+7) Backend Requirement
+
+Create backend APIs for:
+
+Roles CRUD
+
+Users CRUD (subadmin/teacher)
+
+Assign role to user
+
+Fetch current logged-in user permissions
+
+Middleware protection for routes
+
+8) Authentication + Authorization Rules
+
+Super Admin has full access always.
+
+Subadmin/Teacher access should be restricted based on assigned permissions:
+
+If user doesn’t have permission, page should:
+
+Hide menu item from sidebar
+
+Block route access (server + client)
+
+Show “Not Authorized” screen if forced access
+
+9) Security Requirements
+
+Use secure password hashing (bcrypt)
+
+Use JWT auth (or existing auth system)
+
+Token payload should include:
+
+userId
+
+roleId
+
+userType
+
+Server must verify permissions on every protected API endpoint.
+
+10) Database Schema (MongoDB Suggested)
+
+Create collections/tables:
+
+roles
+
+adminUsers (or users)
+
+roleAssignments (optional if not embedded)
+
+Role document should include:
+
+name
+
+permissions object (module-wise)
+User document should include:
+
+name, email, phone
+
+passwordHash
+
+userType (superadmin/subadmin/teacher)
+
+roleId
+
+customPermissionsOverrides
+
+status
+
+11) Frontend Integration
+
+Sidebar should render menu items dynamically based on permissions.
+
+Each protected route should check permissions.
+
+Each button/action should also check permissions:
+
+If no “create”, hide “Add” button
+
+If no “delete”, hide delete icon
+
+If no “export”, hide export button
+
+12) Testing Checklist
+
+Create role → assign role → login as that user → verify:
+
+Only allowed pages show
+
+Only allowed actions work
+
+Forbidden APIs blocked server-side too
+
+If role updated, user permissions update immediately.
+
+If user suspended, login should be blocked.
+
+Super Admin always bypasses restrictions.
+
+13) Deliverable Expectation
+
+Implement complete feature end-to-end:
+
+UI screens (Roles, Users, Assign Role)
+
+Backend APIs
+
+Middleware permissions
+
+DB schemas
+
+Proper validations + error messages
+
+Clean admin panel UX
+
+Bonus (meri strong opinion 😄)
+
+Bhai “Role Assign” ko simple mat rakhna, warna future me system mess ban jaata hai. Best practice ye hai:
+
+Role-based permissions + optional overrides
+
+Aur server-side permission check compulsory (warna frontend bypass ho jaata hai)

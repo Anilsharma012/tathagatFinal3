@@ -790,6 +790,8 @@ safeUse("/api/top-performers", "./routes/topPerformerRoutes");
 safeUse("/api/course-purchase-content", "./routes/coursePurchaseContentRoutes");
 safeUse("/api/mock-test-feedback", "./routes/mockTestFeedbackRoutes");
 safeUse("/api/gallery", "./routes/galleryRoutes");
+safeUse("/api/admin/roles", "./routes/roleRoutes");
+safeUse("/api/admin/admin-users", "./routes/adminUserRoutes");
 
 /* -------------------- Production Static (kept your note) -------------------- */
 if (process.env.NODE_ENV === "production") {
