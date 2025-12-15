@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaEye, FaFileAlt, FaFilter, FaSearch, FaBook, FaVideo, FaHistory } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEye, FaFileAlt, FaFilter, FaSearch, FaBook, FaVideo, FaHistory, FaFilePdf } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import './StudyMaterials.css';
 
@@ -51,12 +51,12 @@ const StudyMaterials = () => {
   const categories = ['All Categories', 'Study Materials', 'Video Lectures', 'Previous Year Papers'];
   const types = ['All Types', 'PDF', 'Video', 'Practice Sets', 'Notes', 'Other'];
 
-  const openUploadModal = (category) => {
+  const openUploadModal = (category, forceType = null) => {
     setSelectedCategory(category);
     setUploadData(prev => ({
       ...prev,
       category: category,
-      type: category === 'Video Lectures' ? 'Video' : 'PDF'
+      type: forceType || (category === 'Video Lectures' ? 'Video' : 'PDF')
     }));
     setShowUploadModal(true);
   };
@@ -287,6 +287,12 @@ const StudyMaterials = () => {
           <p>Upload and manage study materials for students</p>
         </div>
         <div className="upload-buttons-group">
+          <button 
+            className="upload-btn upload-btn-pdf"
+            onClick={() => openUploadModal('Study Materials', 'PDF')}
+          >
+            <FaFilePdf /> PDF Upload
+          </button>
           <button 
             className="upload-btn upload-btn-study"
             onClick={() => openUploadModal('Study Materials')}

@@ -60,6 +60,14 @@
   flex-wrap: wrap;
 }
 
+.upload-btn-pdf {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.upload-btn-pdf:hover {
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
 .upload-btn-study {
   background: linear-gradient(135deg, #28a745, #1e7e34);
 }
