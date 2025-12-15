@@ -1,0 +1,169 @@
+I need to fix a critical security issue in my Tathagat website: the admin panel is currently opening with any email/password. Implement a strict authentication + authorization system so the admin panel only opens for allowed admin users.
+
+1) Core Requirement
+
+Admin panel access must be allowed ONLY for:
+
+Super Admin account(s) (existing admin user email/password from database OR from a configured allowed list)
+
+Subadmin/Teacher accounts created by Super Admin in “Role Assign / Users Management” module (with saved credentials)
+
+No other users should be able to access admin panel under any condition.
+
+2) Separate Login Flow Rules
+
+Create two login flows (or one shared with strict routing):
+
+Admin Login → only works for userType in: superadmin | subadmin | teacher
+
+User Login (Student/User side) → works for normal users only (userType: student/user)
+
+If a normal user tries to login via admin login:
+
+Show error: “Not authorized for admin panel”
+
+Do not issue admin token/session
+
+Do not redirect to admin routes
+
+If an admin-type user tries to login via user login:
+
+Redirect them to admin panel OR block with message depending on policy (choose best UX)
+
+3) Token / Session Rules (Must-Have)
+
+When admin login succeeds, token/session MUST include:
+
+userId
+
+userType (superadmin/subadmin/teacher)
+
+roleId (if not superadmin)
+
+permissions (or permissions fetched server-side on each request)
+
+When normal user login succeeds:
+
+token/session must NOT allow admin routes (must not contain admin claims)
+
+4) Route Guarding (Client + Server)
+
+Implement strict guards:
+
+Frontend (Admin Routes)
+
+Admin routes should be accessible only when token has valid admin userType.
+
+If token missing or invalid → redirect to /admin/login
+
+If token is user/student token → redirect to user area + show “Not authorized”
+
+Backend (Most Important)
+
+Every admin API endpoint must enforce:
+
+token must be valid
+
+userType must be one of: superadmin/subadmin/teacher
+
+additionally, permission middleware must validate module+action
+
+If any check fails:
+
+return 401 (unauthenticated) or 403 (forbidden)
+
+5) Permission System Enforcement
+
+Permissions must control:
+
+Which admin pages show in sidebar
+
+Which routes can be opened
+
+Which actions are possible (create/edit/delete/export/approve)
+
+Rules:
+
+Super Admin bypasses all permission checks (full access)
+
+Subadmin/Teacher can only do what they have permission for
+
+If permission missing:
+
+hide the menu item
+
+block route access
+
+block backend API as final protection
+
+6) Admin User Creation & Credentials
+
+When Super Admin creates a subadmin/teacher:
+
+save their email + hashed password (or invite link + set password)
+
+set userType: subadmin / teacher
+
+set status: active/suspended
+
+roleId assigned (mandatory)
+
+Login should succeed ONLY if:
+
+user exists
+
+password matches
+
+userType is allowed for admin panel
+
+status is active
+
+If suspended:
+
+block login with message “Account suspended, contact admin”
+
+7) Prevent “Admin Panel Opening” by URL
+
+Even if someone enters /admin/dashboard directly:
+
+frontend must redirect to /admin/login if not authorized
+
+backend must reject admin API calls without valid admin token
+So the admin UI should never load data for unauthorized users.
+
+8) Data Separation (Recommended)
+
+Keep adminUsers separate from normal users OR at least store userType and enforce it strictly.
+Never allow a “student/user” record to be treated as admin.
+
+9) Test Scenarios (Mandatory)
+
+Implement and verify:
+
+Random email/password → admin login fails
+
+Normal user credentials → admin login fails (403)
+
+Subadmin created by admin → admin login works
+
+Subadmin without permission for Payments cannot see Payments menu and cannot call Payments APIs
+
+Teacher can only manage assigned modules (like Live Classes/Test) as permitted
+
+Super admin always has full access
+
+Suspended admin cannot login
+
+Token tampering / missing token blocks all admin APIs
+
+10) Deliverable
+
+Provide fully working fix with:
+
+Correct admin login restrictions
+
+Role & permissions enforcement
+
+Secure backend middleware
+
+Clean UX messages for unauthorized access
