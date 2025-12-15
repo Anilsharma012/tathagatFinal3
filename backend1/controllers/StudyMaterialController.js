@@ -305,10 +305,53 @@ const viewStudyMaterial = async (req, res) => {
 
     console.log('✅ Serving file for inline viewing:', material.fileName);
 
+    // Determine content type based on file extension
+    const ext = path.extname(material.fileName).toLowerCase();
+    let contentType = 'application/octet-stream';
+    
+    if (ext === '.pdf') {
+      contentType = 'application/pdf';
+    } else if (ext === '.mp4') {
+      contentType = 'video/mp4';
+    } else if (ext === '.mov') {
+      contentType = 'video/quicktime';
+    } else if (ext === '.avi') {
+      contentType = 'video/x-msvideo';
+    } else if (ext === '.wmv') {
+      contentType = 'video/x-ms-wmv';
+    }
+
     // Set headers for inline display (not download)
     res.setHeader('Content-Disposition', `inline; filename="${material.fileName}"`);
-    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+    // For video files, support range requests for seeking
+    if (contentType.startsWith('video/')) {
+      const stat = fs.statSync(resolvedPath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunksize = (end - start) + 1;
+        const file = fs.createReadStream(resolvedPath, { start, end });
+        
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize,
+          'Content-Type': contentType,
+        });
+        file.pipe(res);
+        return;
+      } else {
+        res.setHeader('Content-Length', fileSize);
+        res.setHeader('Accept-Ranges', 'bytes');
+      }
+    }
 
     // Stream the file
     const fileStream = fs.createReadStream(resolvedPath);

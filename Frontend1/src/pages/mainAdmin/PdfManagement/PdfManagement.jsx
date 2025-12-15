@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFilter, FaSearch, FaUpload } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEye, FaFilePdf, FaFilter, FaSearch, FaUpload, FaVideo, FaFile } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import './PdfManagement.css';
 
@@ -9,6 +9,7 @@ const PdfManagement = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [filters, setFilters] = useState({
     subject: 'All Subjects',
+    type: 'All Types',
     search: ''
   });
   const [pagination, setPagination] = useState({
@@ -37,21 +38,23 @@ const PdfManagement = () => {
     title: '',
     description: '',
     subject: '',
+    type: '',
     tags: ''
   });
   const [editLoading, setEditLoading] = useState(false);
 
   const subjects = ['All Subjects', 'Quantitative Aptitude', 'Verbal Ability', 'Data Interpretation', 'Logical Reasoning', 'General Knowledge'];
+  const types = ['All Types', 'PDF', 'Video'];
 
   const fetchMaterials = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('authToken');
       const queryParams = new URLSearchParams({
         page: pagination.page,
         limit: pagination.limit,
-        type: 'PDF',
         ...(filters.subject !== 'All Subjects' && { subject: filters.subject }),
+        ...(filters.type !== 'All Types' && { type: filters.type }),
         ...(filters.search && { search: filters.search })
       });
 
@@ -65,15 +68,17 @@ const PdfManagement = () => {
       const data = await response.json();
 
       if (data.success) {
-        const pdfOnly = (data.data || []).filter(m => m.type === 'PDF');
-        setMaterials(pdfOnly);
+        const filteredMaterials = (data.data || []).filter(m => 
+          filters.type === 'All Types' || m.type === filters.type
+        );
+        setMaterials(filteredMaterials);
         setPagination(data.pagination);
       } else {
-        toast.error(data.message || 'Failed to fetch PDFs');
+        toast.error(data.message || 'Failed to fetch materials');
       }
     } catch (error) {
       console.error('Error fetching materials:', error);
-      toast.error('Failed to fetch PDFs');
+      toast.error('Failed to fetch materials');
     } finally {
       setLoading(false);
     }
@@ -83,26 +88,35 @@ const PdfManagement = () => {
     e.preventDefault();
     
     if (!uploadData.file) {
-      toast.error('Please select a PDF file to upload');
+      toast.error('Please select a file to upload');
       return;
     }
 
-    if (!uploadData.file.name.toLowerCase().endsWith('.pdf')) {
+    const fileName = uploadData.file.name.toLowerCase();
+    const isPdf = fileName.endsWith('.pdf');
+    const isVideo = fileName.endsWith('.mp4') || fileName.endsWith('.mov') || fileName.endsWith('.avi') || fileName.endsWith('.wmv');
+
+    if (uploadData.type === 'PDF' && !isPdf) {
       toast.error('Please select a valid PDF file');
+      return;
+    }
+
+    if (uploadData.type === 'Video' && !isVideo) {
+      toast.error('Please select a valid video file (MP4, MOV, AVI, WMV)');
       return;
     }
 
     setUploadLoading(true);
     
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('authToken');
       const formData = new FormData();
       
       formData.append('title', uploadData.title);
       formData.append('description', uploadData.description);
       formData.append('subject', uploadData.subject);
       formData.append('category', 'Study Materials');
-      formData.append('type', 'PDF');
+      formData.append('type', uploadData.type);
       formData.append('tags', uploadData.tags);
       formData.append('file', uploadData.file);
 
@@ -117,7 +131,7 @@ const PdfManagement = () => {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('PDF uploaded successfully!');
+        toast.success(`${uploadData.type} uploaded successfully!`);
         setShowUploadModal(false);
         setUploadData({
           title: '',
@@ -130,23 +144,23 @@ const PdfManagement = () => {
         });
         fetchMaterials();
       } else {
-        toast.error(data.message || 'Failed to upload PDF');
+        toast.error(data.message || `Failed to upload ${uploadData.type}`);
       }
     } catch (error) {
-      console.error('Error uploading PDF:', error);
-      toast.error('Failed to upload PDF');
+      console.error('Error uploading:', error);
+      toast.error(`Failed to upload ${uploadData.type}`);
     } finally {
       setUploadLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this PDF?')) {
+    if (!window.confirm('Are you sure you want to delete this material?')) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('authToken');
       const response = await fetch(`/api/study-materials/admin/${id}`, {
         method: 'DELETE',
         headers: {
@@ -158,14 +172,14 @@ const PdfManagement = () => {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('PDF deleted successfully!');
+        toast.success('Material deleted successfully!');
         fetchMaterials();
       } else {
-        toast.error(data.message || 'Failed to delete PDF');
+        toast.error(data.message || 'Failed to delete material');
       }
     } catch (error) {
-      console.error('Error deleting PDF:', error);
-      toast.error('Failed to delete PDF');
+      console.error('Error deleting material:', error);
+      toast.error('Failed to delete material');
     }
   };
 
@@ -180,6 +194,7 @@ const PdfManagement = () => {
       title: material.title || '',
       description: material.description || '',
       subject: material.subject || 'Quantitative Aptitude',
+      type: material.type || 'PDF',
       tags: material.tags ? (Array.isArray(material.tags) ? material.tags.join(', ') : material.tags) : ''
     });
     setShowEditModal(true);
@@ -191,7 +206,7 @@ const PdfManagement = () => {
 
     setEditLoading(true);
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('authToken');
       const response = await fetch(`/api/study-materials/admin/${selectedMaterial._id}`, {
         method: 'PUT',
         headers: {
@@ -203,7 +218,7 @@ const PdfManagement = () => {
           description: editData.description,
           subject: editData.subject,
           category: 'Study Materials',
-          type: 'PDF',
+          type: editData.type,
           tags: editData.tags
         })
       });
@@ -211,15 +226,15 @@ const PdfManagement = () => {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('PDF updated successfully!');
+        toast.success('Material updated successfully!');
         setShowEditModal(false);
         fetchMaterials();
       } else {
-        toast.error(data.message || 'Failed to update PDF');
+        toast.error(data.message || 'Failed to update material');
       }
     } catch (error) {
-      console.error('Error updating PDF:', error);
-      toast.error('Failed to update PDF');
+      console.error('Error updating material:', error);
+      toast.error('Failed to update material');
     } finally {
       setEditLoading(false);
     }
@@ -253,18 +268,30 @@ const PdfManagement = () => {
     return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getFileIcon = (type) => {
+    if (type === 'Video') return <FaVideo className="file-icon video" />;
+    if (type === 'PDF') return <FaFilePdf className="file-icon pdf" />;
+    return <FaFile className="file-icon" />;
+  };
+
+  const getAcceptedFileTypes = () => {
+    if (uploadData.type === 'PDF') return '.pdf';
+    if (uploadData.type === 'Video') return '.mp4,.mov,.avi,.wmv';
+    return '.pdf,.mp4,.mov,.avi,.wmv';
+  };
+
   return (
     <div className="pdf-management-container">
       <div className="pdf-management-header">
         <div className="header-left">
-          <h1><FaFilePdf /> PDF Management</h1>
-          <p>Upload and manage PDF study materials</p>
+          <h1><FaFile /> Study Materials Management</h1>
+          <p>Upload and manage PDFs and Videos</p>
         </div>
         <button 
           className="upload-btn"
           onClick={() => setShowUploadModal(true)}
         >
-          <FaUpload /> Upload PDF
+          <FaUpload /> Upload Material
         </button>
       </div>
 
@@ -281,11 +308,22 @@ const PdfManagement = () => {
           </select>
         </div>
 
+        <div className="filter-group">
+          <select 
+            value={filters.type}
+            onChange={(e) => handleFilterChange('type', e.target.value)}
+          >
+            {types.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="search-group">
           <FaSearch className="search-icon" />
           <input
             type="text"
-            placeholder="Search PDFs..."
+            placeholder="Search materials..."
             value={filters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
           />
@@ -296,13 +334,14 @@ const PdfManagement = () => {
         {loading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
-            <p>Loading PDFs...</p>
+            <p>Loading materials...</p>
           </div>
         ) : (
           <table className="pdf-table">
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Type</th>
                 <th>Subject</th>
                 <th>Size</th>
                 <th>Views</th>
@@ -313,21 +352,26 @@ const PdfManagement = () => {
             <tbody>
               {materials.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="no-data">
-                    No PDFs found. Upload your first PDF!
+                  <td colSpan="7" className="no-data">
+                    No materials found. Upload your first PDF or Video!
                   </td>
                 </tr>
               ) : (
                 materials.map((material) => (
                   <tr key={material._id}>
                     <td className="material-title">
-                      <FaFilePdf className="pdf-icon" />
+                      {getFileIcon(material.type)}
                       <div>
                         <span className="title">{material.title}</span>
                         {material.description && (
                           <span className="description">{material.description.substring(0, 50)}...</span>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      <span className={`type-badge ${material.type?.toLowerCase()}`}>
+                        {material.type}
+                      </span>
                     </td>
                     <td>{material.subject}</td>
                     <td>{material.fileSize || formatFileSize(material.size)}</td>
@@ -386,7 +430,7 @@ const PdfManagement = () => {
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2><FaUpload /> Upload PDF</h2>
+              <h2><FaUpload /> Upload Study Material</h2>
               <button className="close-btn" onClick={() => setShowUploadModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleUpload}>
@@ -397,7 +441,7 @@ const PdfManagement = () => {
                   value={uploadData.title}
                   onChange={(e) => setUploadData(prev => ({ ...prev, title: e.target.value }))}
                   required
-                  placeholder="Enter PDF title"
+                  placeholder="Enter material title"
                 />
               </div>
               <div className="form-group">
@@ -409,19 +453,34 @@ const PdfManagement = () => {
                   rows="3"
                 />
               </div>
-              <div className="form-group">
-                <label>Subject *</label>
-                <select
-                  value={uploadData.subject}
-                  onChange={(e) => setUploadData(prev => ({ ...prev, subject: e.target.value }))}
-                  required
-                >
-                  <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                  <option value="Verbal Ability">Verbal Ability</option>
-                  <option value="Data Interpretation">Data Interpretation</option>
-                  <option value="Logical Reasoning">Logical Reasoning</option>
-                  <option value="General Knowledge">General Knowledge</option>
-                </select>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Type *</label>
+                  <select
+                    value={uploadData.type}
+                    onChange={(e) => {
+                      setUploadData(prev => ({ ...prev, type: e.target.value, file: null }));
+                    }}
+                    required
+                  >
+                    <option value="PDF">PDF</option>
+                    <option value="Video">Video</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Subject *</label>
+                  <select
+                    value={uploadData.subject}
+                    onChange={(e) => setUploadData(prev => ({ ...prev, subject: e.target.value }))}
+                    required
+                  >
+                    <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                    <option value="Verbal Ability">Verbal Ability</option>
+                    <option value="Data Interpretation">Data Interpretation</option>
+                    <option value="Logical Reasoning">Logical Reasoning</option>
+                    <option value="General Knowledge">General Knowledge</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
                 <label>Tags</label>
@@ -433,21 +492,25 @@ const PdfManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>PDF File *</label>
+                <label>{uploadData.type} File *</label>
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept={getAcceptedFileTypes()}
                   onChange={(e) => setUploadData(prev => ({ ...prev, file: e.target.files[0] }))}
                   required
                 />
-                <small>Only PDF files are allowed (Max: 100MB)</small>
+                <small>
+                  {uploadData.type === 'PDF' 
+                    ? 'Only PDF files are allowed (Max: 100MB)' 
+                    : 'Allowed formats: MP4, MOV, AVI, WMV (Max: 100MB)'}
+                </small>
               </div>
               <div className="form-actions">
                 <button type="button" className="cancel-btn" onClick={() => setShowUploadModal(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="submit-btn" disabled={uploadLoading}>
-                  {uploadLoading ? 'Uploading...' : 'Upload PDF'}
+                  {uploadLoading ? 'Uploading...' : `Upload ${uploadData.type}`}
                 </button>
               </div>
             </form>
@@ -459,7 +522,7 @@ const PdfManagement = () => {
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2><FaEdit /> Edit PDF</h2>
+              <h2><FaEdit /> Edit Material</h2>
               <button className="close-btn" onClick={() => setShowEditModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleEditSubmit}>
@@ -480,19 +543,31 @@ const PdfManagement = () => {
                   rows="3"
                 />
               </div>
-              <div className="form-group">
-                <label>Subject *</label>
-                <select
-                  value={editData.subject}
-                  onChange={(e) => setEditData(prev => ({ ...prev, subject: e.target.value }))}
-                  required
-                >
-                  <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                  <option value="Verbal Ability">Verbal Ability</option>
-                  <option value="Data Interpretation">Data Interpretation</option>
-                  <option value="Logical Reasoning">Logical Reasoning</option>
-                  <option value="General Knowledge">General Knowledge</option>
-                </select>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Type</label>
+                  <select
+                    value={editData.type}
+                    onChange={(e) => setEditData(prev => ({ ...prev, type: e.target.value }))}
+                  >
+                    <option value="PDF">PDF</option>
+                    <option value="Video">Video</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Subject *</label>
+                  <select
+                    value={editData.subject}
+                    onChange={(e) => setEditData(prev => ({ ...prev, subject: e.target.value }))}
+                    required
+                  >
+                    <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                    <option value="Verbal Ability">Verbal Ability</option>
+                    <option value="Data Interpretation">Data Interpretation</option>
+                    <option value="Logical Reasoning">Logical Reasoning</option>
+                    <option value="General Knowledge">General Knowledge</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
                 <label>Tags</label>
@@ -524,6 +599,7 @@ const PdfManagement = () => {
             </div>
             <div className="preview-body">
               <div className="preview-info">
+                <p><strong>Type:</strong> {selectedMaterial.type}</p>
                 <p><strong>Subject:</strong> {selectedMaterial.subject}</p>
                 <p><strong>Size:</strong> {selectedMaterial.fileSize}</p>
                 <p><strong>Views:</strong> {selectedMaterial.viewCount || selectedMaterial.downloadCount || 0}</p>
@@ -531,11 +607,24 @@ const PdfManagement = () => {
                   <p><strong>Description:</strong> {selectedMaterial.description}</p>
                 )}
               </div>
-              <div className="pdf-preview">
-                <iframe
-                  src={`/api/study-materials/view/${selectedMaterial._id}#toolbar=0&navpanes=0`}
-                  title="PDF Preview"
-                />
+              <div className="media-preview">
+                {selectedMaterial.type === 'PDF' ? (
+                  <iframe
+                    src={`/api/study-materials/view/${selectedMaterial._id}#toolbar=0&navpanes=0`}
+                    title="PDF Preview"
+                  />
+                ) : selectedMaterial.type === 'Video' ? (
+                  <video 
+                    controls 
+                    controlsList="nodownload"
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
+                    <source src={`/api/study-materials/view/${selectedMaterial._id}`} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <p>Preview not available for this file type</p>
+                )}
               </div>
             </div>
           </div>

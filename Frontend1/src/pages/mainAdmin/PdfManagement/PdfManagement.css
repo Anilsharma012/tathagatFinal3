@@ -451,3 +451,61 @@
   height: 500px;
   border: none;
 }
+
+.media-preview {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.media-preview iframe {
+  width: 100%;
+  height: 500px;
+  border: none;
+}
+
+.media-preview video {
+  width: 100%;
+  max-height: 500px;
+  background: #000;
+}
+
+.file-icon {
+  font-size: 24px;
+}
+
+.file-icon.pdf {
+  color: #e74c3c;
+}
+
+.file-icon.video {
+  color: #9b59b6;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.type-badge.pdf {
+  background: #fce4ec;
+  color: #c62828;
+}
+
+.type-badge.video {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
