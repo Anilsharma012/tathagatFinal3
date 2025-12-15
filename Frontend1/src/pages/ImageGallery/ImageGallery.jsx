@@ -4,12 +4,11 @@ import "./ImageGallery.css";
 import scorecardOne from "../../images/ScoreCardOne.png";
 import scorecardTwo from "../../images/ScoreCardTwo.png";
 import scorecardThree from "../../images/ScoreCardThree.png";
-// import scorecardFour from "../../images/ScoreCardOne.png"; // (unused)
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import { useNavigate } from "react-router-dom";
 import Chatbox from "../../components/Chat/Chatbox";
-/* ---------- Data ---------- */
+
 const faqs = [
   {
     question: "What courses does TathaGat offer?",
@@ -43,115 +42,76 @@ const faqs = [
   },
 ];
 
-const videos = [
-  {
-    title: "CAT 2019 100 Percentiler Interview ",
-    thumbnail: "https://img.youtube.com/vi/J_QoDDzzbyI/hqdefault.jpg",
-    url: "https://youtu.be/J_QoDDzzbyI",
-  },
-  {
-    title: "CAT Topper Interview - Preparation Journey",
-    thumbnail: "https://img.youtube.com/vi/EHBQ3AJ-uEo/hqdefault.jpg",
-    url: "https://youtu.be/EHBQ3AJ-uEo",
-  },
-  {
-    title: "CAT Topper Strategy - Smart Study Tips",
-    thumbnail: "https://img.youtube.com/vi/IVnBi5uPHW0/hqdefault.jpg",
-    url: "https://youtu.be/IVnBi5uPHW0",
-  },
-  {
-    title: "CAT 2020 Toppers’ Interview",
-    thumbnail: "https://img.youtube.com/vi/6X9qoILmlVs/hqdefault.jpg",
-    url: "https://youtu.be/6X9qoILmlVs",
-  },
-  {
-    title: "100 Percentile CAT Prep Journey",
-    thumbnail: "https://img.youtube.com/vi/1x9lbk01Tn4/hqdefault.jpg",
-    url: "https://youtu.be/1x9lbk01Tn4",
-  },
-  {
-    title: "CAT Success Story - Motivation",
-    thumbnail: "https://img.youtube.com/vi/VJK19CuaI9g/hqdefault.jpg",
-    url: "https://youtu.be/VJK19CuaI9g",
-  },
-  {
-    title: "Interview with CAT Topper",
-    thumbnail: "https://img.youtube.com/vi/Ctb23J-46cM/hqdefault.jpg",
-    url: "https://youtu.be/Ctb23J-46cM",
-  },
-  {
-    title: "CAT Toppers Reveal Secrets",
-    thumbnail: "https://img.youtube.com/vi/6ODXAKkACS4/hqdefault.jpg",
-    url: "https://youtu.be/6ODXAKkACS4",
-  },
-  {
-    title: "Strategy Session - CAT Topper",
-    thumbnail: "https://img.youtube.com/vi/JHgNoNlucTg/hqdefault.jpg",
-    url: "https://youtu.be/JHgNoNlucTg",
-  },
-  {
-    title: "CAT Interview: Success Formula",
-    thumbnail: "https://img.youtube.com/vi/gFm-9ey1IRQ/hqdefault.jpg",
-    url: "https://youtu.be/gFm-9ey1IRQ",
-  },
-  {
-    title: "CAT Journey of a Topper",
-    thumbnail: "https://img.youtube.com/vi/dqWQRQ5UhYQ/hqdefault.jpg",
-    url: "https://youtu.be/dqWQRQ5UhYQ",
-  },
-  {
-    title: "Motivational CAT Story",
-    thumbnail: "https://img.youtube.com/vi/r8rMbS-smtU/hqdefault.jpg",
-    url: "https://youtu.be/r8rMbS-smtU",
-  },
-  {
-    title: "Preparation Insights - CAT Topper",
-    thumbnail: "https://img.youtube.com/vi/h1LNMSAxuLQ/hqdefault.jpg",
-    url: "https://youtu.be/h1LNMSAxuLQ",
-  },
-  {
-    title: "Exclusive Interview - CAT Topper",
-    thumbnail: "https://img.youtube.com/vi/oaPp-eKk1aA/hqdefault.jpg",
-    url: "https://youtu.be/oaPp-eKk1aA",
-  },
-  {
-    title: "CAT Exam Strategy Revealed",
-    thumbnail: "https://img.youtube.com/vi/ozZuWTUl5Lg/hqdefault.jpg",
-    url: "https://youtu.be/ozZuWTUl5Lg",
-  },
-  {
-    title: "CAT 100 Percentile Interview",
-    thumbnail: "https://img.youtube.com/vi/kIbX3TTFEHg/hqdefault.jpg",
-    url: "https://youtu.be/kIbX3TTFEHg",
-  },
-];
-
-const testimonials = [
+const defaultTestimonials = [
   { name: "Abishek Kumar", image: "/path-to-image.jpg", scoreImg: scorecardOne },
   { name: "Abishek Kumar", image: "/path-to-image.jpg", scoreImg: scorecardTwo },
   { name: "Abishek Kumar", image: "/path-to-image.jpg", scoreImg: scorecardThree },
 ];
 
-/* ---------- Component ---------- */
 const ImageGallery = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [openIndex, setOpenIndex] = useState(null);
   const [activeTab, setActiveTab] = useState("Videos");
+  const [videos, setVideos] = useState([]);
+  const [images, setImages] = useState([]);
+  const [featuredVideo, setFeaturedVideo] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const extractVideoId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  useEffect(() => {
+    const fetchGalleryData = async () => {
+      try {
+        const [videosRes, imagesRes, featuredRes] = await Promise.all([
+          fetch('/api/gallery/public?type=video'),
+          fetch('/api/gallery/public?type=image'),
+          fetch('/api/gallery/public/featured')
+        ]);
+
+        const videosData = await videosRes.json();
+        const imagesData = await imagesRes.json();
+        const featuredData = await featuredRes.json();
+
+        if (videosData.success && videosData.data.length > 0) {
+          setVideos(videosData.data.map(v => ({
+            title: v.title,
+            thumbnail: v.thumbnailUrl || `https://img.youtube.com/vi/${extractVideoId(v.youtubeUrl)}/hqdefault.jpg`,
+            url: v.youtubeUrl
+          })));
+        }
+
+        if (imagesData.success && imagesData.data.length > 0) {
+          setImages(imagesData.data);
+        }
+
+        if (featuredData.success && featuredData.data) {
+          setFeaturedVideo(featuredData.data);
+        }
+      } catch (error) {
+        console.error('Error fetching gallery data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGalleryData();
+  }, []);
 
   const toggleIndex = (index) =>
     setOpenIndex((prev) => (prev === index ? null : index));
 
-  // ✅ form submit handler inside component
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    // TODO: yahan API call / email send karo
-    alert("Thanks! We’ll get back to you soon.");
+    alert("Thanks! We'll get back to you soon.");
     setIsFormOpen(false);
-    // navigate("/GetInTouch"); // agar submit ke baad navigate karna ho
   };
 
-  // Optional: ESC key to close modal
   useEffect(() => {
     if (!isFormOpen) return;
     const onEsc = (e) => e.key === "Escape" && setIsFormOpen(false);
@@ -159,9 +119,18 @@ const ImageGallery = () => {
     return () => window.removeEventListener("keydown", onEsc);
   }, [isFormOpen]);
 
+  const getFeaturedVideoId = () => {
+    if (featuredVideo && featuredVideo.youtubeUrl) {
+      return extractVideoId(featuredVideo.youtubeUrl);
+    }
+    if (videos.length > 0) {
+      return extractVideoId(videos[0].url);
+    }
+    return "J_QoDDzzbyI";
+  };
+
   return (
     <>
-      {/* -------- Hero -------- */}
       <div className="tv-wrapper">
         <div className="tv-background">
           <div className="tv-overlay">
@@ -177,7 +146,7 @@ const ImageGallery = () => {
                 <div className="tv-video-label">Our Featured Videos</div>
                 <iframe
                   className="tv-video-frame"
-                  src="https://www.youtube.com/embed/J_QoDDzzbyI"
+                  src={`https://www.youtube.com/embed/${getFeaturedVideoId()}`}
                   title="YouTube video player"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -189,7 +158,6 @@ const ImageGallery = () => {
         </div>
       </div>
 
-      {/* -------- Tabs + Grid -------- */}
       <div className="tv-gallery-wrapper">
         <div className="tv-tabs">
           <button
@@ -206,44 +174,68 @@ const ImageGallery = () => {
           </button>
         </div>
 
-        {activeTab === "Videos" && (
-          <div className="tv-video-grid">
-            {videos.map((video, index) => (
-              <div className="tv-video-card-grid" key={index}>
-                <a href={video.url} target="_blank" rel="noopener noreferrer">
-                  <div className="tv-thumbnail-container">
-                    <LazyLoadImage
-                      src={video.thumbnail}
-                      alt="video"
-                      className="tv-thumbnail"
-                      effect="blur"
-                    />
-                    <span className="tv-play-icon">▶</span>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+        ) : (
+          <>
+            {activeTab === "Videos" && (
+              <div className="tv-video-grid">
+                {videos.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1/-1' }}>
+                    No videos available yet.
                   </div>
-                </a>
-                <p className="tv-video-title">{video.title}</p>
+                ) : (
+                  videos.map((video, index) => (
+                    <div className="tv-video-card-grid" key={index}>
+                      <a href={video.url} target="_blank" rel="noopener noreferrer">
+                        <div className="tv-thumbnail-container">
+                          <LazyLoadImage
+                            src={video.thumbnail}
+                            alt="video"
+                            className="tv-thumbnail"
+                            effect="blur"
+                          />
+                          <span className="tv-play-icon">▶</span>
+                        </div>
+                      </a>
+                      <p className="tv-video-title">{video.title}</p>
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {activeTab === "Photos" && (
-          <div className="tv-scorecard-grid">
-            {testimonials.map((item, i) => (
-              <div className="tv-scorecard" key={i}>
-                <LazyLoadImage
-                  src={item.scoreImg}
-                  alt="Scorecard"
-                  className="tv-score-img"
-                  effect="blur"
-                />
+            {activeTab === "Photos" && (
+              <div className="tv-scorecard-grid">
+                {images.length === 0 ? (
+                  defaultTestimonials.map((item, i) => (
+                    <div className="tv-scorecard" key={i}>
+                      <LazyLoadImage
+                        src={item.scoreImg}
+                        alt="Scorecard"
+                        className="tv-score-img"
+                        effect="blur"
+                      />
+                    </div>
+                  ))
+                ) : (
+                  images.map((item, i) => (
+                    <div className="tv-scorecard" key={i}>
+                      <LazyLoadImage
+                        src={item.imagePath}
+                        alt={item.title}
+                        className="tv-score-img"
+                        effect="blur"
+                      />
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* -------- Why + Scorecards -------- */}
       <div className="tv-testimonial-wrapper">
         <div className="tv-left-box">
           <h2>Why Students Trust TathaGat</h2>
@@ -273,7 +265,7 @@ const ImageGallery = () => {
           </div>
 
           <div className="tv-scorecard-grid">
-            {testimonials.map((item, i) => (
+            {defaultTestimonials.map((item, i) => (
               <div className="tv-scorecard" key={i}>
                 <LazyLoadImage
                   src={item.scoreImg}
@@ -287,8 +279,8 @@ const ImageGallery = () => {
         </div>
       </div>
 
-<Chatbox/>
-      {/* -------- FAQ + Modal Trigger -------- */}
+      <Chatbox/>
+      
       <section className="tv-faq-section">
         <div className="tv-faq-left">
           <h5>GENERAL FAQS</h5>
@@ -296,7 +288,7 @@ const ImageGallery = () => {
           <h2>Answered Clearly and</h2>
           <h2>Concisely</h2>
           <p>
-            Find answers to common queries about TathaGat’s courses, teaching
+            Find answers to common queries about TathaGat's courses, teaching
             methods, tests, workshops, mentorship, fees, and more in our FAQs.
           </p>
 
@@ -324,7 +316,6 @@ const ImageGallery = () => {
             </div>
           ))}
 
-          {/* -------- Modal -------- */}
           {isFormOpen && (
             <div
               className="tv-modal-backdrop"
@@ -374,14 +365,10 @@ const ImageGallery = () => {
                   </button>
                 </form>
               </div>
-              
             </div>
           )}
-          
         </div>
-        
       </section>
-      
     </>
   );
 };
