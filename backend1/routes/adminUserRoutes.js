@@ -97,16 +97,21 @@ router.post("/", adminAuth, checkPermission("roleManagement", "create"), async (
       return res.status(400).json({ success: false, message: "User with this email already exists" });
     }
 
-    const user = new AdminUser({
+    const userData = {
       fullName,
       email: email.toLowerCase(),
       phone,
       password,
       userType: userType || "subadmin",
-      role,
       status: status || "active",
       createdBy: req.user.id
-    });
+    };
+
+    if (role && role.trim() !== "") {
+      userData.role = role;
+    }
+
+    const user = new AdminUser(userData);
 
     await user.save();
     const savedUser = await AdminUser.findById(user._id).select("-password").populate("role", "name");

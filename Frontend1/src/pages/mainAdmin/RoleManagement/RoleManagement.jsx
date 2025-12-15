@@ -4,7 +4,7 @@ import AdminSidebar from "../AdminSidebar/AdminSidebar";
 import "./RoleManagement.css";
 
 const API_BASE = "/api/admin";
-
+ 
 const PERMISSION_MODULES = [
   { key: "dashboard", label: "Dashboard", actions: ["view"] },
   { key: "students", label: "Students", actions: ["view", "create", "edit", "delete", "export"] },
