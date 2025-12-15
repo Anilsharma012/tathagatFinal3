@@ -62,6 +62,7 @@ import CourseTreeView from "./pages/mainAdmin/CourseTreeView/CourseTreeView";
 import CourseStructure from "./pages/mainAdmin/CourseTreeView/CourseStructure";
 import PracticeTestManagement from "./pages/mainAdmin/PracticeTestManagement/PracticeTestManagement";
 import StudyMaterials from "./pages/mainAdmin/StudyMaterials/StudyMaterials";
+import PdfManagement from "./pages/mainAdmin/PdfManagement/PdfManagement";
 import Announcements from "./pages/mainAdmin/Announcements/Announcements";
 import DiscussionManagement from "./pages/mainAdmin/DiscussionManagement/DiscussionManagement";
 import MockTestManagement from "./pages/mainAdmin/MockTestManagement/MockTestManagement";
@@ -310,6 +311,15 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <StudyMaterials />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/pdf-management"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <PdfManagement />
             </PrivateRoute>
           }
         />
