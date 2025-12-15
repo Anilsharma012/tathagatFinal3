@@ -7,7 +7,7 @@ const { checkPermission } = require("../middleware/permissionMiddleware");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
-router.get("/", adminAuth, async (req, res) => {
+router.get("/", adminAuth, checkPermission("roleManagement", "view"), async (req, res) => {
   try {
     const { userType, status } = req.query;
     const filter = {};
@@ -71,7 +71,7 @@ async function getFullPermissions() {
   return allPermissions;
 }
 
-router.get("/:id", adminAuth, async (req, res) => {
+router.get("/:id", adminAuth, checkPermission("roleManagement", "view"), async (req, res) => {
   try {
     const user = await AdminUser.findById(req.params.id)
       .select("-password")

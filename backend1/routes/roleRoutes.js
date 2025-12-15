@@ -5,7 +5,7 @@ const AdminUser = require("../models/AdminUser");
 const { adminAuth } = require("../middleware/authMiddleware");
 const { checkPermission } = require("../middleware/permissionMiddleware");
 
-router.get("/", adminAuth, async (req, res) => {
+router.get("/", adminAuth, checkPermission("roleManagement", "view"), async (req, res) => {
   try {
     const roles = await Role.find().sort({ createdAt: -1 });
     res.json({ success: true, roles });
@@ -15,7 +15,7 @@ router.get("/", adminAuth, async (req, res) => {
   }
 });
 
-router.get("/:id", adminAuth, async (req, res) => {
+router.get("/:id", adminAuth, checkPermission("roleManagement", "view"), async (req, res) => {
   try {
     const role = await Role.findById(req.params.id);
     if (!role) {
