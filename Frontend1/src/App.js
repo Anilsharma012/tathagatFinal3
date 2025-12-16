@@ -121,7 +121,6 @@ import BatchManagement from "./pages/mainAdmin/BatchManagement/BatchManagement";
 import BlogManagement from "./pages/mainAdmin/BlogManagement/BlogManagement";
 import DemoVideoManagement from "./pages/mainAdmin/DemoVideoManagement/DemoVideoManagement";
 import ImageGalleryManagement from "./pages/mainAdmin/ImageGalleryManagement/ImageGalleryManagement";
-import RoleManagement from "./pages/mainAdmin/RoleManagement/RoleManagement";
 import DownloadsManagement from "./pages/mainAdmin/DownloadsManagement/DownloadsManagement";
 import ScoreCardManagement from "./pages/mainAdmin/ScoreCardManagement/ScoreCardManagement";
 import SuccessStoryManagement from "./pages/mainAdmin/SuccessStoryManagement/SuccessStoryManagement";
@@ -163,10 +162,11 @@ import Cat26OMETOnline from "./CoursePurchasepage/Cat26OMETOnline"
 
 import Staticourse from "./components/StaticCourse/Staticourse"
 import Chatbox from "./components/Chat/Chatbox";
-import ProtectedAdminRoute from "./components/ProtectedAdminRoute/ProtectedAdminRoute";
 
 
-// PrivateRoute: For subadmin routes only (admin uses ProtectedAdminRoute)
+// Auto-login functionality is handled in AppContent useEffect
+
+// PrivateRoute: Flexible to handle admin and subadmin tokens
 const PrivateRoute = ({ children, tokenName }) => {
   const token = localStorage.getItem(tokenName);
   return token ? (
@@ -190,7 +190,17 @@ const AppContent = () => {
   const location = useLocation();
   const [user, setUser] = useState(null);
 
-  // SECURITY: Removed auto-admin-token - proper authentication required
+  // Development mode: Auto-set admin token if not present
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const existingToken = localStorage.getItem('adminToken');
+      if (!existingToken) {
+        const devAdminToken = 'dev_admin_token_12345';
+        localStorage.setItem('adminToken', devAdminToken);
+        console.log('🔧 Development: Auto-set admin token');
+      }
+    }
+  }, []);
 
   // Check if current route is admin/subadmin login page to hide header/footer
   const isAdminRoute = location.pathname.startsWith("/admin");
@@ -216,17 +226,17 @@ const AppContent = () => {
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedAdminRoute>
+            <PrivateRoute tokenName="adminToken">
               <AdminDashboard />
-            </ProtectedAdminRoute>
+            </PrivateRoute>
           }
         />
         <Route
           path="/admin/all-students"
           element={
-            <ProtectedAdminRoute requiredPermission="students.view">
+            <PrivateRoute tokenName="adminToken">
               <AllStudents />
-            </ProtectedAdminRoute>
+            </PrivateRoute>
           }
         />
         <Route
@@ -620,16 +630,6 @@ const AppContent = () => {
             <PrivateRoute tokenName="adminToken">
               <CRMSettings />
             </PrivateRoute>
-          }
-        />
-
-        {/* Role Management */}
-        <Route
-          path="/admin/role-management"
-          element={
-            <ProtectedAdminRoute requiredPermission="roleManagement.view">
-              <RoleManagement />
-            </ProtectedAdminRoute>
           }
         />
 

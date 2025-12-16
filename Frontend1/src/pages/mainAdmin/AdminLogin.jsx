@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import axios from "../../utils/axiosConfig";
 import "./AdminLogin.css";
 
@@ -8,30 +7,13 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  // Check if already logged in
-  useEffect(() => {
-    const token = localStorage.getItem("adminToken");
-    if (token) {
-      // Verify token is valid
-      axios.get("/api/admin/admin-users/me", {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(() => {
-        navigate("/admin/dashboard");
-      }).catch(() => {
-        // Token invalid, clear it
-        localStorage.removeItem("adminToken");
-        localStorage.removeItem("adminUser");
-        localStorage.removeItem("adminPermissions");
-      });
-    }
-  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    console.log("Attempting admin login with URL:", "/api/admin/login");
 
     try {
       const res = await axios.post("/api/admin/login", {
@@ -39,16 +21,12 @@ const AdminLogin = () => {
         password,
       });
 
-      if (res.data && res.data.success && res.data.token) {
-        // Store token and user info
+      if (res.data && res.data.token) {
         localStorage.setItem("adminToken", res.data.token);
-        localStorage.setItem("adminUser", JSON.stringify(res.data.user));
-        localStorage.setItem("adminPermissions", JSON.stringify(res.data.permissions));
-        
         console.log("Admin login successful, redirecting...");
         window.location.href = "/admin/dashboard";
       } else {
-        throw new Error(res.data?.message || "Login failed");
+        throw new Error("No token received from server");
       }
     } catch (err) {
       console.error("Login error:", err);
