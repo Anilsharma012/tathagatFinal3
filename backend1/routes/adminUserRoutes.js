@@ -7,7 +7,7 @@ const { checkPermission } = require("../middleware/permissionMiddleware");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
-router.get("/", adminAuth, async (req, res) => {
+router.get("/", adminAuth, checkPermission("roleManagement", "view"), async (req, res) => {
   try {
     const { userType, status } = req.query;
     const filter = {};
@@ -57,11 +57,12 @@ router.get("/me", adminAuth, async (req, res) => {
 async function getFullPermissions() {
   const allPermissions = {};
   const modules = [
-    "dashboard", "students", "courses", "batches", "liveClasses",
-    "mockTests", "practiceTests", "payments", "coupons", "notifications",
-    "announcements", "leads", "reports", "faculty", "blogs",
-    "studyMaterials", "discussions", "bschools", "iimPredictor",
-    "downloads", "gallery", "crm", "billing", "roleManagement"
+    "dashboard", "students", "courses", "batches", "liveClasses", "liveBatches",
+    "mockTests", "mockTestFeedback", "practiceTests", "payments", "coupons", "notifications",
+    "announcements", "popupAnnouncements", "leads", "reports", "faculty", "blogs", "demoVideos",
+    "studyMaterials", "pdfManagement", "discussions", "bschools", "iimPredictor", "responseSheets",
+    "downloads", "gallery", "scoreCards", "successStories", "topPerformers", "coursePurchaseContent",
+    "crm", "billing", "roleManagement"
   ];
   modules.forEach(mod => {
     allPermissions[mod] = {
@@ -71,7 +72,7 @@ async function getFullPermissions() {
   return allPermissions;
 }
 
-router.get("/:id", adminAuth, async (req, res) => {
+router.get("/:id", adminAuth, checkPermission("roleManagement", "view"), async (req, res) => {
   try {
     const user = await AdminUser.findById(req.params.id)
       .select("-password")

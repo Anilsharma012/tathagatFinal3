@@ -1,0 +1,427 @@
+.role-management {
+  padding: 24px;
+}
+
+.role-management .page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  color: var(--admin-text, #fff);
+  margin-bottom: 24px;
+}
+
+.role-management .alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.role-management .alert-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.role-management .alert-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.role-management .tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
+}
+
+.role-management .tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s;
+}
+
+.role-management .tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.role-management .tab.active {
+  color: #fff;
+  background: var(--admin-primary, #14b8a6);
+}
+
+.role-management .tab-content {
+  background: var(--admin-surface-2, #1e293b);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.role-management .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.role-management .section-header h2 {
+  font-size: 18px;
+  color: #fff;
+  margin: 0;
+}
+
+.role-management .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.role-management .btn-primary {
+  background: var(--admin-primary, #14b8a6);
+  color: #fff;
+}
+
+.role-management .btn-primary:hover {
+  background: #0d9488;
+}
+
+.role-management .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.role-management .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.role-management .btn-success {
+  background: #22c55e;
+  color: #fff;
+}
+
+.role-management .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.role-management .table-container {
+  overflow-x: auto;
+}
+
+.role-management .data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.role-management .data-table th,
+.role-management .data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.role-management .data-table th {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-management .data-table td {
+  color: #fff;
+  font-size: 14px;
+}
+
+.role-management .data-table .empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 32px;
+}
+
+.role-management .btn-icon {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.role-management .btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.role-management .btn-icon.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.role-management .badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-management .badge-superadmin {
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
+}
+
+.role-management .badge-subadmin {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.role-management .badge-teacher {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.role-management .status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.role-management .status-badge.active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.role-management .status-badge.suspended {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.role-management .assign-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-management .assign-inline select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 13px;
+}
+
+.role-management .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.role-management .modal {
+  background: var(--admin-surface-2, #1e293b);
+  border-radius: 16px;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.role-management .role-modal {
+  width: 900px;
+  max-width: 100%;
+}
+
+.role-management .user-modal {
+  width: 500px;
+  max-width: 100%;
+}
+
+.role-management .modal h2 {
+  margin: 0 0 20px;
+  color: #fff;
+  font-size: 20px;
+}
+
+.role-management .form-group {
+  margin-bottom: 16px;
+}
+
+.role-management .form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.role-management .form-group input,
+.role-management .form-group textarea,
+.role-management .form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+}
+
+.role-management .form-group input:focus,
+.role-management .form-group textarea:focus,
+.role-management .form-group select:focus {
+  outline: none;
+  border-color: var(--admin-primary, #14b8a6);
+}
+
+.role-management .form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.role-management .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.role-management .permissions-section {
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
+}
+
+.role-management .permissions-section h3 {
+  color: #fff;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.role-management .permissions-grid {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.role-management .perm-header,
+.role-management .perm-row {
+  display: grid;
+  grid-template-columns: 150px repeat(6, 70px) 70px;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.role-management .perm-header {
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+.role-management .perm-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.role-management .perm-row:last-child {
+  border-bottom: none;
+}
+
+.role-management .perm-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.role-management .module-label {
+  font-size: 13px;
+  color: #fff;
+}
+
+.role-management .action-label {
+  text-align: center;
+}
+
+.role-management .checkbox-cell {
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.role-management .checkbox-cell input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--admin-primary, #14b8a6);
+}
+
+.role-management .btn-toggle-all {
+  padding: 4px 8px;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.role-management .btn-toggle-all:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.role-management .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .role-management .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .role-management .perm-header,
+  .role-management .perm-row {
+    grid-template-columns: 120px repeat(6, 50px) 60px;
+    font-size: 10px;
+    padding: 8px;
+  }
+  
+  .role-management .tabs {
+    flex-wrap: wrap;
+  }
+}

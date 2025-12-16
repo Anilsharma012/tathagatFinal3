@@ -47,22 +47,32 @@ const AdminUserSchema = new mongoose.Schema(
       courses: CustomPermissionSchema,
       batches: CustomPermissionSchema,
       liveClasses: CustomPermissionSchema,
+      liveBatches: CustomPermissionSchema,
       mockTests: CustomPermissionSchema,
+      mockTestFeedback: CustomPermissionSchema,
       practiceTests: CustomPermissionSchema,
       payments: CustomPermissionSchema,
       coupons: CustomPermissionSchema,
       notifications: CustomPermissionSchema,
       announcements: CustomPermissionSchema,
+      popupAnnouncements: CustomPermissionSchema,
       leads: CustomPermissionSchema,
       reports: CustomPermissionSchema,
       faculty: CustomPermissionSchema,
       blogs: CustomPermissionSchema,
+      demoVideos: CustomPermissionSchema,
       studyMaterials: CustomPermissionSchema,
+      pdfManagement: CustomPermissionSchema,
       discussions: CustomPermissionSchema,
       bschools: CustomPermissionSchema,
       iimPredictor: CustomPermissionSchema,
+      responseSheets: CustomPermissionSchema,
       downloads: CustomPermissionSchema,
       gallery: CustomPermissionSchema,
+      scoreCards: CustomPermissionSchema,
+      successStories: CustomPermissionSchema,
+      topPerformers: CustomPermissionSchema,
+      coursePurchaseContent: CustomPermissionSchema,
       crm: CustomPermissionSchema,
       billing: CustomPermissionSchema,
       roleManagement: CustomPermissionSchema
@@ -99,11 +109,12 @@ AdminUserSchema.methods.getEffectivePermissions = async function () {
   if (this.userType === "superadmin") {
     const allPermissions = {};
     const modules = [
-      "dashboard", "students", "courses", "batches", "liveClasses",
-      "mockTests", "practiceTests", "payments", "coupons", "notifications",
-      "announcements", "leads", "reports", "faculty", "blogs",
-      "studyMaterials", "discussions", "bschools", "iimPredictor",
-      "downloads", "gallery", "crm", "billing", "roleManagement"
+      "dashboard", "students", "courses", "batches", "liveClasses", "liveBatches",
+      "mockTests", "mockTestFeedback", "practiceTests", "payments", "coupons", "notifications",
+      "announcements", "popupAnnouncements", "leads", "reports", "faculty", "blogs", "demoVideos",
+      "studyMaterials", "pdfManagement", "discussions", "bschools", "iimPredictor", "responseSheets",
+      "downloads", "gallery", "scoreCards", "successStories", "topPerformers", "coursePurchaseContent",
+      "crm", "billing", "roleManagement"
     ];
     modules.forEach(mod => {
       allPermissions[mod] = {

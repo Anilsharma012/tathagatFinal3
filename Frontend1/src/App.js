@@ -128,6 +128,7 @@ import TopPerformerManagement from "./pages/mainAdmin/TopPerformerManagement/Top
 import CoursePurchaseContentManagement from "./pages/mainAdmin/CoursePurchaseContentManagement/CoursePurchaseContentManagement";
 import ResponseSheetSubmissions from "./pages/mainAdmin/ResponseSheetSubmissions/ResponseSheetSubmissions";
 import BillingSettings from "./pages/mainAdmin/BillingSettings/BillingSettings";
+import RoleManagement from "./pages/mainAdmin/RoleManagement/RoleManagement";
 import TeacherLiveClasses from "./pages/MainSubAdmin/LiveClasses/TeacherLiveClasses";
 import StudentLiveClasses from "./pages/Student/LiveClasses/StudentLiveClasses";
 import ContinueLearning from "./pages/Student/ContinueLearning/ContinueLearning";
@@ -629,6 +630,14 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <CRMSettings />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/role-management"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <RoleManagement />
             </PrivateRoute>
           }
         />
