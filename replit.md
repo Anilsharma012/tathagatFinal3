@@ -41,6 +41,7 @@ The platform utilizes a decoupled frontend and backend architecture.
 - **Course Scheduling:** Admins can set start and end dates for courses, controlling content access and displaying course status.
 - **Image Gallery Management:** Admin-managed gallery for images and videos, supporting YouTube URLs, direct image uploads, and featured content.
 - **PDF Tax Invoice System:** Generates professional, GST-compliant PDF tax invoices for student purchases, with configurable company details, automated tax calculation (CGST/SGST/IGST), and signature uploads.
+- **Role Management & Permissions System:** Comprehensive role-based access control for the admin panel supporting three user types (Super Admin, Subadmin, Teacher) with granular module-based permissions covering 34+ admin modules, role CRUD operations, and user-role assignment capabilities.
 
 **System Design Choices:**
 - **Backend:** Node.js/Express.js.
