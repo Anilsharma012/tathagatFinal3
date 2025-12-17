@@ -38,6 +38,8 @@ const StudentReports = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [userRank, setUserRank] = useState(null);
+  const [totalParticipants, setTotalParticipants] = useState(0);
 
   useEffect(() => {
     fetchReportsData();
@@ -65,6 +67,8 @@ const StudentReports = () => {
 
       if (sectionRes.data?.success) {
         setSectionAnalysis(sectionRes.data.analysis);
+        setUserRank(sectionRes.data.userRank);
+        setTotalParticipants(sectionRes.data.totalParticipants);
       }
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -122,6 +126,8 @@ const StudentReports = () => {
     }]
   };
 
+  console.log('📊 Render - loading state:', loading, 'summary:', summary ? 'present' : 'null');
+  
   if (loading) {
     return (
       <div className="reports-container">
@@ -232,26 +238,66 @@ const StudentReports = () => {
         </div>
       </div>
 
-      <div className="section-stats-row">
-        {sectionAnalysis.map(section => (
-          <div key={section.section} className={`section-stat-card ${section.section.toLowerCase()}`}>
-            <h4>{section.section}</h4>
-            <div className="section-metrics">
-              <div className="metric">
-                <span className="value">{section.averageScore}</span>
-                <span className="label">Avg Score</span>
-              </div>
-              <div className="metric">
-                <span className="value">{section.averageAccuracy}%</span>
-                <span className="label">Accuracy</span>
-              </div>
-              <div className="metric">
-                <span className="value">{section.averageTimeMinutes}m</span>
-                <span className="label">Avg Time</span>
-              </div>
+      {userRank && (
+        <div className="rank-progress-card">
+          <h3>Your Overall Ranking</h3>
+          <div className="rank-stats">
+            <div className="rank-item">
+              <span className="rank-value">#{userRank}</span>
+              <span className="rank-label">Current Rank</span>
+            </div>
+            <div className="rank-item">
+              <span className="rank-value">{totalParticipants}</span>
+              <span className="rank-label">Total Participants</span>
+            </div>
+            <div className="rank-item">
+              <span className="rank-value">{totalParticipants > 0 ? ((1 - (userRank / totalParticipants)) * 100).toFixed(1) : 0}%</span>
+              <span className="rank-label">Percentile</span>
             </div>
           </div>
-        ))}
+        </div>
+      )}
+
+      <div className="comparison-section">
+        <h2>Subject-wise Performance vs Top 10</h2>
+        <p className="section-subtitle">Compare your scores with top 10 performers in each subject</p>
+        <div className="section-stats-row">
+          {sectionAnalysis.map(section => (
+            <div key={section.section} className={`section-stat-card ${section.section.toLowerCase()}`}>
+              <h4>{section.section === 'VARC' ? 'Verbal Ability & Reading Comprehension' : section.section === 'DILR' ? 'Data Interpretation & Logical Reasoning' : section.section === 'QA' ? 'Quantitative Aptitude' : section.section}</h4>
+              <div className="section-metrics">
+                <div className="metric">
+                  <span className="value">{section.averageScore}</span>
+                  <span className="label">Your Score</span>
+                </div>
+                <div className="metric">
+                  <span className="value">{section.top10AverageScore || 0}</span>
+                  <span className="label">Top 10 Avg</span>
+                </div>
+                <div className="metric">
+                  <span className={`value ${parseFloat(section.scoreDifference) >= 0 ? 'positive' : 'negative'}`}>
+                    {parseFloat(section.scoreDifference) >= 0 ? '+' : ''}{section.scoreDifference}
+                  </span>
+                  <span className="label">Difference</span>
+                </div>
+              </div>
+              <div className="accuracy-comparison">
+                <div className="accuracy-bar">
+                  <div className="accuracy-label">Your Accuracy: {section.averageAccuracy}%</div>
+                  <div className="accuracy-progress">
+                    <div className="progress-fill user" style={{width: `${Math.min(100, section.averageAccuracy)}%`}}></div>
+                  </div>
+                </div>
+                <div className="accuracy-bar">
+                  <div className="accuracy-label">Top 10 Accuracy: {section.top10AverageAccuracy || 0}%</div>
+                  <div className="accuracy-progress">
+                    <div className="progress-fill top10" style={{width: `${Math.min(100, section.top10AverageAccuracy || 0)}%`}}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="attempts-section">

@@ -2275,7 +2275,7 @@ const getTestLeaderboard = async (req, res) => {
   }
 };
 
-// Get section-wise performance comparison
+// Get section-wise performance comparison with top 10 comparison
 const getSectionWiseAnalysis = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -2301,23 +2301,86 @@ const getSectionWiseAnalysis = async (req, res) => {
       });
     });
 
-    const analysis = Object.entries(sectionAverages).map(([section, stats]) => ({
-      section,
-      averageScore: stats.length > 0 
-        ? (stats.reduce((a, b) => a + b.score, 0) / stats.length).toFixed(2) 
-        : 0,
-      averageAccuracy: stats.length > 0 
-        ? (stats.reduce((a, b) => a + b.accuracy, 0) / stats.length).toFixed(2) 
-        : 0,
-      averageTimeMinutes: stats.length > 0 
-        ? Math.round(stats.reduce((a, b) => a + b.timeSpent, 0) / stats.length / 60) 
-        : 0,
-      attempts: stats.length
-    }));
+    // Get top 10 performers' section-wise averages for comparison
+    const allCompletedAttempts = await MockTestAttempt.find({
+      status: 'COMPLETED'
+    }).sort({ totalScore: -1 }).limit(100);
+
+    // Get unique top 10 users
+    const seenUsers = new Set();
+    const topTenAttempts = [];
+    for (const attempt of allCompletedAttempts) {
+      const uId = attempt.userId?.toString();
+      if (uId && !seenUsers.has(uId) && uId !== userId) {
+        seenUsers.add(uId);
+        topTenAttempts.push(attempt);
+        if (topTenAttempts.length >= 10) break;
+      }
+    }
+
+    // Calculate top 10 section averages
+    const top10SectionAverages = { VARC: [], DILR: [], QA: [] };
+    topTenAttempts.forEach(attempt => {
+      (attempt.sectionWiseStats || []).forEach(stat => {
+        const section = stat.section?.toUpperCase();
+        if (top10SectionAverages[section]) {
+          top10SectionAverages[section].push({
+            score: stat.score || 0,
+            accuracy: stat.accuracy || 0,
+            timeSpent: stat.timeSpent || 0
+          });
+        }
+      });
+    });
+
+    const analysis = Object.entries(sectionAverages).map(([section, stats]) => {
+      const top10Stats = top10SectionAverages[section] || [];
+      const userAvgScore = stats.length > 0 
+        ? (stats.reduce((a, b) => a + b.score, 0) / stats.length) 
+        : 0;
+      const top10AvgScore = top10Stats.length > 0 
+        ? (top10Stats.reduce((a, b) => a + b.score, 0) / top10Stats.length) 
+        : 0;
+      const userAvgAccuracy = stats.length > 0 
+        ? (stats.reduce((a, b) => a + b.accuracy, 0) / stats.length) 
+        : 0;
+      const top10AvgAccuracy = top10Stats.length > 0 
+        ? (top10Stats.reduce((a, b) => a + b.accuracy, 0) / top10Stats.length) 
+        : 0;
+      
+      return {
+        section,
+        averageScore: userAvgScore.toFixed(2),
+        averageAccuracy: userAvgAccuracy.toFixed(2),
+        averageTimeMinutes: stats.length > 0 
+          ? Math.round(stats.reduce((a, b) => a + b.timeSpent, 0) / stats.length / 60) 
+          : 0,
+        attempts: stats.length,
+        top10AverageScore: top10AvgScore.toFixed(2),
+        top10AverageAccuracy: top10AvgAccuracy.toFixed(2),
+        scoreDifference: (userAvgScore - top10AvgScore).toFixed(2),
+        accuracyDifference: (userAvgAccuracy - top10AvgAccuracy).toFixed(2)
+      };
+    });
+
+    // Get user's current rank
+    let userRank = null;
+    const allUserScores = await MockTestAttempt.aggregate([
+      { $match: { status: 'COMPLETED' } },
+      { $group: { _id: '$userId', avgScore: { $avg: '$totalScore' } } },
+      { $sort: { avgScore: -1 } }
+    ]);
+    const userIndex = allUserScores.findIndex(u => u._id?.toString() === userId);
+    if (userIndex >= 0) {
+      userRank = userIndex + 1;
+    }
 
     res.json({
       success: true,
-      analysis
+      analysis,
+      userRank,
+      totalParticipants: allUserScores.length,
+      top10Count: topTenAttempts.length
     });
   } catch (error) {
     console.error('❌ Error fetching section analysis:', error);
