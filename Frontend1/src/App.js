@@ -67,6 +67,7 @@ import Announcements from "./pages/mainAdmin/Announcements/Announcements";
 import DiscussionManagement from "./pages/mainAdmin/DiscussionManagement/DiscussionManagement";
 import MockTestManagement from "./pages/mainAdmin/MockTestManagement/MockTestManagement";
 import MockTestFeedback from "./pages/Admin/MockTestFeedback";
+import StudentPerformance from "./pages/mainAdmin/StudentPerformance/StudentPerformance";
 import IIMCollegeManagement from "./pages/mainAdmin/IIMCollegeManagement/IIMCollegeManagement";
 import BSchoolManagement from "./pages/mainAdmin/BSchoolManagement/BSchoolManagement";
 import PopupAnnouncementManagement from "./pages/mainAdmin/PopupAnnouncements/PopupAnnouncementManagement";
@@ -430,6 +431,15 @@ const AppContent = () => {
           element={
             <PrivateRoute tokenName="adminToken">
               <MockTestFeedback />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/student-performance"
+          element={
+            <PrivateRoute tokenName="adminToken">
+              <StudentPerformance />
             </PrivateRoute>
           }
         />

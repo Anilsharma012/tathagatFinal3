@@ -33,6 +33,9 @@ const AdminSidebar = () => {
         <NavLink to="/admin/mock-test-feedback" className="admin-link">
           <FaComments className="admin-icon" /> Test Feedback
         </NavLink>
+        <NavLink to="/admin/student-performance" className="admin-link">
+          <FaUserGraduate className="admin-icon" /> Student Performance
+        </NavLink>
         <NavLink to="/admin/iim-colleges" className="admin-link">
           <FaUniversity className="admin-icon" /> IIM Predictor
         </NavLink>

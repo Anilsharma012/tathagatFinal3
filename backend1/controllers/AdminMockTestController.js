@@ -1165,6 +1165,157 @@ const bulkUploadQuestions = async (req, res) => {
   }
 };
 
+// Get student performance for admin view
+const getStudentPerformance = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    console.log(`📊 Admin fetching performance for student: ${studentId}`);
+
+    const User = require('../models/User');
+    const student = await User.findById(studentId).select('name email phoneNumber');
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const attempts = await MockTestAttempt.find({
+      userId: studentId,
+      status: 'COMPLETED'
+    })
+    .populate('testPaperId', 'title')
+    .sort({ completedAt: -1 })
+    .limit(50);
+
+    const summary = {
+      totalAttempts: attempts.length,
+      averageScore: attempts.length > 0 
+        ? Math.round(attempts.reduce((sum, a) => sum + (a.totalScore || 0), 0) / attempts.length) 
+        : 0,
+      bestScore: attempts.length > 0 
+        ? Math.max(...attempts.map(a => a.totalScore || 0)) 
+        : 0,
+      averagePercentile: attempts.length > 0 
+        ? Math.round(attempts.reduce((sum, a) => sum + (a.percentile || 0), 0) / attempts.length) 
+        : 0
+    };
+
+    const sectionAverages = { VARC: [], DILR: [], QA: [] };
+    attempts.forEach(attempt => {
+      (attempt.sectionWiseStats || []).forEach(stat => {
+        const section = stat.section?.toUpperCase();
+        if (sectionAverages[section]) {
+          sectionAverages[section].push({
+            score: stat.score || 0,
+            accuracy: stat.accuracy || 0
+          });
+        }
+      });
+    });
+
+    const sectionAnalysis = Object.entries(sectionAverages).map(([section, stats]) => ({
+      section,
+      averageScore: stats.length > 0 
+        ? (stats.reduce((a, b) => a + b.score, 0) / stats.length).toFixed(1) 
+        : 0,
+      averageAccuracy: stats.length > 0 
+        ? (stats.reduce((a, b) => a + b.accuracy, 0) / stats.length).toFixed(1) 
+        : 0
+    }));
+
+    const formattedAttempts = attempts.map(a => ({
+      testId: a.testPaperId?._id,
+      testName: a.testPaperId?.title || 'Test',
+      score: a.totalScore || 0,
+      rank: a.rank || null,
+      percentile: a.percentile || 0,
+      timeTakenMinutes: Math.floor((a.totalTimeTakenSeconds || 0) / 60),
+      completedAt: a.completedAt
+    }));
+
+    res.json({
+      success: true,
+      student: { name: student.name, email: student.email },
+      summary,
+      sectionAnalysis,
+      attempts: formattedAttempts
+    });
+  } catch (error) {
+    console.error('❌ Error fetching student performance:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch performance', error: error.message });
+  }
+};
+
+// Get test leaderboard for admin view
+const getTestLeaderboardAdmin = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    console.log(`🏆 Admin fetching leaderboard for test: ${testId}`);
+
+    const test = await MockTest.findById(testId).select('title');
+    if (!test) {
+      return res.status(404).json({ success: false, message: 'Test not found' });
+    }
+
+    const allAttempts = await MockTestAttempt.find({
+      testPaperId: testId,
+      status: 'COMPLETED'
+    })
+    .populate('userId', 'name email phoneNumber')
+    .sort({ totalScore: -1 })
+    .limit(200);
+
+    const uniqueAttempts = [];
+    const seenUsers = new Set();
+    for (const attempt of allAttempts) {
+      const uId = attempt.userId?._id?.toString();
+      if (uId && !seenUsers.has(uId)) {
+        seenUsers.add(uId);
+        uniqueAttempts.push(attempt);
+      }
+    }
+
+    const topTen = uniqueAttempts.slice(0, 10).map((attempt, index) => ({
+      rank: index + 1,
+      studentName: attempt.userId?.name || 'Anonymous',
+      email: attempt.userId?.email || '',
+      score: attempt.totalScore || 0,
+      timeTakenMinutes: Math.floor((attempt.totalTimeTakenSeconds || 0) / 60),
+      percentile: uniqueAttempts.length > 1 
+        ? ((1 - (index / uniqueAttempts.length)) * 100).toFixed(1) 
+        : 100,
+      completedAt: attempt.completedAt
+    }));
+
+    const allFormatted = uniqueAttempts.map((attempt, index) => ({
+      rank: index + 1,
+      studentName: attempt.userId?.name || 'Anonymous',
+      score: attempt.totalScore || 0,
+      completedAt: attempt.completedAt
+    }));
+
+    const averageScore = uniqueAttempts.length > 0 
+      ? Math.round(uniqueAttempts.reduce((sum, a) => sum + (a.totalScore || 0), 0) / uniqueAttempts.length)
+      : 0;
+    const highestScore = uniqueAttempts.length > 0 
+      ? Math.max(...uniqueAttempts.map(a => a.totalScore || 0))
+      : 0;
+
+    res.json({
+      success: true,
+      testId,
+      testName: test.title,
+      totalParticipants: uniqueAttempts.length,
+      averageScore,
+      highestScore,
+      topTen,
+      allAttempts: allFormatted
+    });
+  } catch (error) {
+    console.error('❌ Error fetching test leaderboard:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch leaderboard', error: error.message });
+  }
+};
+
 module.exports = {
   createSeries,
   getAllSeries,
@@ -1181,4 +1332,6 @@ module.exports = {
   toggleSeriesPublication,
   toggleTestPublication,
   getTestAnalytics,
+  getStudentPerformance,
+  getTestLeaderboardAdmin
 };

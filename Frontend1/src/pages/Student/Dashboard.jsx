@@ -65,7 +65,13 @@ ChartJS.register(
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeSection, setActiveSection] = useState('dashboard');
+  
+  const getInitialSection = () => {
+    const params = new URLSearchParams(location.search);
+    return params.get('section') || 'dashboard';
+  };
+  
+  const [activeSection, setActiveSection] = useState(getInitialSection);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [courses, setCourses] = useState([]);
@@ -201,6 +207,20 @@ const StudentDashboard = () => {
   const [announcementFilters, setAnnouncementFilters] = useState({
     type: 'all'
   });
+
+  // Analytics state for Analysis & Reports
+  const [analyticsData, setAnalyticsData] = useState({
+    summary: null,
+    attempts: [],
+    performanceTrend: [],
+    sectionAnalysis: [],
+    userRank: null,
+    totalParticipants: 0
+  });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [selectedTestForLeaderboard, setSelectedTestForLeaderboard] = useState(null);
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
@@ -480,6 +500,14 @@ const loadMyCourses = async () => {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    if (section) {
+      setActiveSection(section);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     hydrateLiveClasses();
     // Also refresh when myCourses change (e.g., after purchase)
   }, [myCourses.length]);
@@ -631,6 +659,78 @@ const loadMyCourses = async () => {
       console.error('Error marking all as read:', error);
     }
   };
+
+  // Load Analytics Data for Analysis & Reports section
+  const loadAnalyticsData = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    setAnalyticsLoading(true);
+    try {
+      const [summaryRes, sectionRes] = await Promise.all([
+        fetch('/api/mock-tests/reports/summary', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch('/api/mock-tests/reports/section-analysis', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const summaryData = await summaryRes.json();
+      const sectionData = await sectionRes.json();
+
+      if (summaryData?.success) {
+        setAnalyticsData(prev => ({
+          ...prev,
+          summary: summaryData.summary,
+          attempts: summaryData.attempts || [],
+          performanceTrend: summaryData.performanceTrend || []
+        }));
+      }
+
+      if (sectionData?.success) {
+        setAnalyticsData(prev => ({
+          ...prev,
+          sectionAnalysis: sectionData.analysis || [],
+          userRank: sectionData.userRank,
+          totalParticipants: sectionData.totalParticipants || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  // Load leaderboard for a specific test
+  const loadLeaderboard = async (testId, testName) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    setLeaderboardLoading(true);
+    setSelectedTestForLeaderboard({ id: testId, name: testName });
+    try {
+      const resp = await fetch(`/api/mock-tests/reports/${testId}/leaderboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await resp.json();
+      if (data?.success) {
+        setLeaderboardData(data);
+      }
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  // Load analytics when analysis section is active
+  useEffect(() => {
+    if (activeSection === 'analysis') {
+      loadAnalyticsData();
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     loadNotifications();
@@ -1856,85 +1956,294 @@ const loadMyCourses = async () => {
 
   const renderMockTestsContent = () => <MockTestPage />;
 
-  const renderAnalysisContent = () => (
-    <div className="analysis-content">
-      <div className="section-header">
-        <h2>Analysis & Reports</h2>
-        <div className="date-filter">
-          <select>
-            <option>Last 30 Days</option>
-            <option>Last 90 Days</option>
-            <option>All Time</option>
-          </select>
-        </div>
-      </div>
+  const renderAnalysisContent = () => {
+    const { summary, attempts, performanceTrend, sectionAnalysis, userRank, totalParticipants } = analyticsData;
+    const percentile = totalParticipants > 0 && userRank ? ((1 - (userRank / totalParticipants)) * 100).toFixed(1) : 0;
 
-      <div className="analysis-grid">
-        <div className="performance-chart">
-          <h3>Performance Trend</h3>
-          <Line
-            data={{
-              labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-              datasets: [
-                {
-                  label: 'Score',
-                  data: [65, 70, 68, 75],
-                  borderColor: '#667eea',
-                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                },
-                {
-                  label: 'Accuracy',
-                  data: [78, 82, 80, 85],
-                  borderColor: '#10b981',
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                }
-              ]
-            }}
-            options={{
-              responsive: true,
-              plugins: { legend: { position: 'top' } }
-            }}
-          />
+    if (analyticsLoading) {
+      return (
+        <div className="analysis-content">
+          <div className="loading-state" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+            <div className="loading-spinner"></div>
+            <p style={{ marginLeft: '10px' }}>Loading your analytics...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="analysis-content">
+        <div className="section-header">
+          <h2>Analysis & Reports</h2>
+          <button className="refresh-btn" onClick={loadAnalyticsData} style={{ padding: '8px 16px', borderRadius: '6px', background: '#667eea', color: 'white', border: 'none', cursor: 'pointer' }}>
+            Refresh
+          </button>
         </div>
 
-        <div className="subject-wise-analysis">
-          <h3>Subject-wise Performance</h3>
-          <Bar
-            data={{
-              labels: ['Quant', 'Verbal', 'DI', 'LR'],
-              datasets: [{
-                label: 'Accuracy %',
-                data: [78, 82, 75, 80],
-                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c']
-              }]
-            }}
-            options={{
-              responsive: true,
-              plugins: { legend: { display: false } }
-            }}
-          />
+        {/* Summary Cards */}
+        <div className="stats-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
+          <div className="stat-card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>📝</div>
+            <h3 style={{ fontSize: '28px', margin: '0', color: '#1a1a2e' }}>{summary?.totalAttempts || 0}</h3>
+            <p style={{ color: '#888', margin: '4px 0 0' }}>Tests Taken</p>
+          </div>
+          <div className="stat-card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
+            <h3 style={{ fontSize: '28px', margin: '0', color: '#1a1a2e' }}>{summary?.averageScore || 0}</h3>
+            <p style={{ color: '#888', margin: '4px 0 0' }}>Average Score</p>
+          </div>
+          <div className="stat-card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏆</div>
+            <h3 style={{ fontSize: '28px', margin: '0', color: '#1a1a2e' }}>{summary?.bestScore || 0}</h3>
+            <p style={{ color: '#888', margin: '4px 0 0' }}>Best Score</p>
+          </div>
+          <div className="stat-card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏱️</div>
+            <h3 style={{ fontSize: '28px', margin: '0', color: '#1a1a2e' }}>{summary?.averageTimeMinutes || 0} min</h3>
+            <p style={{ color: '#888', margin: '4px 0 0' }}>Avg. Time</p>
+          </div>
         </div>
 
-        <div className="rank-progress">
-          <h3>Rank Progress</h3>
-          <div className="rank-stats">
-            <div className="rank-item">
-              <span className="rank-label">Current Rank</span>
-              <span className="rank-value">1,245</span>
-            </div>
-            <div className="rank-item">
-              <span className="rank-label">Best Rank</span>
-              <span className="rank-value">987</span>
-            </div>
-            <div className="rank-item">
-              <span className="rank-label">Improvement</span>
-              <span className="rank-value improvement">+258</span>
+        <div className="analysis-grid">
+          {/* Performance Trend Chart */}
+          <div className="performance-chart">
+            <h3>Performance Trend</h3>
+            {performanceTrend.length > 0 ? (
+              <Line
+                data={{
+                  labels: performanceTrend.map(p => p.testName?.substring(0, 12) || 'Test'),
+                  datasets: [{
+                    label: 'Score',
+                    data: performanceTrend.map(p => p.score),
+                    fill: true,
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderColor: '#667eea',
+                    tension: 0.4,
+                    pointBackgroundColor: '#667eea',
+                    pointRadius: 5
+                  }]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, max: 200 } }
+                }}
+              />
+            ) : (
+              <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                No test data available yet
+              </div>
+            )}
+          </div>
+
+          {/* Section-wise Performance */}
+          <div className="subject-wise-analysis">
+            <h3>Section-wise Performance</h3>
+            {sectionAnalysis.length > 0 ? (
+              <Bar
+                data={{
+                  labels: sectionAnalysis.map(s => s.section),
+                  datasets: [{
+                    label: 'Your Score',
+                    data: sectionAnalysis.map(s => parseFloat(s.averageScore) || 0),
+                    backgroundColor: ['#667eea', '#764ba2', '#f5576c']
+                  }]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } }
+                }}
+              />
+            ) : (
+              <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                No section data available yet
+              </div>
+            )}
+          </div>
+
+          {/* Rank Progress */}
+          <div className="rank-progress">
+            <h3>Your Ranking</h3>
+            <div className="rank-stats">
+              <div className="rank-item">
+                <span className="rank-label">Current Rank</span>
+                <span className="rank-value">#{userRank || '-'}</span>
+              </div>
+              <div className="rank-item">
+                <span className="rank-label">Total Participants</span>
+                <span className="rank-value">{totalParticipants || 0}</span>
+              </div>
+              <div className="rank-item">
+                <span className="rank-label">Percentile</span>
+                <span className="rank-value improvement">{percentile}%</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Section-wise Comparison with Top 10 */}
+        {sectionAnalysis.length > 0 && (
+          <div style={{ marginTop: '30px', background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <h3 style={{ marginBottom: '20px' }}>Compare with Top 10 Performers</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+              {sectionAnalysis.map(section => (
+                <div key={section.section} style={{ background: '#f8f9fa', borderRadius: '10px', padding: '15px' }}>
+                  <h4 style={{ margin: '0 0 15px', color: '#333' }}>{section.section}</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea' }}>{section.averageScore}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>Your Score</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>{section.top10AverageScore || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>Top 10 Avg</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: parseFloat(section.scoreDifference) >= 0 ? '#10b981' : '#ef4444' }}>
+                        {parseFloat(section.scoreDifference) >= 0 ? '+' : ''}{section.scoreDifference}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>Difference</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                      <span>Your Accuracy: {section.averageAccuracy}%</span>
+                    </div>
+                    <div style={{ background: '#e0e0e0', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, section.averageAccuracy)}%`, height: '100%', background: '#667eea', borderRadius: '4px' }}></div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '8px', marginBottom: '4px' }}>
+                      <span>Top 10 Accuracy: {section.top10AverageAccuracy || 0}%</span>
+                    </div>
+                    <div style={{ background: '#e0e0e0', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, section.top10AverageAccuracy || 0)}%`, height: '100%', background: '#10b981', borderRadius: '4px' }}></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Test Attempts Table */}
+        <div style={{ marginTop: '30px', background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ marginBottom: '20px' }}>Your Test Attempts</h3>
+          {attempts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+              <p>You haven't taken any mock tests yet.</p>
+              <button onClick={() => setActiveSection('mockTests')} style={{ marginTop: '15px', padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                Start a Mock Test
+              </button>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8f9fa' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e0e0e0' }}>Test Name</th>
+                    <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Score</th>
+                    <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Time</th>
+                    <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Rank</th>
+                    <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Date</th>
+                    <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attempts.map((attempt, index) => (
+                    <tr key={attempt.attemptId || index} style={{ borderBottom: '1px solid #e0e0e0' }}>
+                      <td style={{ padding: '12px' }}>{attempt.testName}</td>
+                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#667eea' }}>{attempt.score}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>{attempt.timeTakenMinutes} min</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>#{attempt.rank || '-'}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>{new Date(attempt.completedAt).toLocaleDateString('en-IN')}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <button 
+                          onClick={() => loadLeaderboard(attempt.testId, attempt.testName)}
+                          style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}
+                        >
+                          View Leaderboard
+                        </button>
+                        <button 
+                          onClick={() => navigate(`/student/mock-test/review/${attempt.attemptId}`)}
+                          style={{ padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Leaderboard Modal */}
+        {selectedTestForLeaderboard && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'white', borderRadius: '12px', padding: '30px', maxWidth: '700px', width: '90%', maxHeight: '80vh', overflow: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0 }}>Leaderboard: {selectedTestForLeaderboard.name}</h3>
+                <button onClick={() => { setSelectedTestForLeaderboard(null); setLeaderboardData(null); }} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>×</button>
+              </div>
+              
+              {leaderboardLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>Loading leaderboard...</div>
+              ) : leaderboardData ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea' }}>#{leaderboardData.currentUserRank || '-'}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>Your Rank</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>{leaderboardData.currentUserScore || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>Your Score</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#764ba2' }}>{leaderboardData.totalParticipants || 0}</div>
+                      <div style={{ fontSize: '12px', color: '#888' }}>Total Participants</div>
+                    </div>
+                  </div>
+                  
+                  <h4 style={{ marginBottom: '15px' }}>Top 10 Students</h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#f8f9fa' }}>
+                        <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Rank</th>
+                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #e0e0e0' }}>Student</th>
+                        <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Score</th>
+                        <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #e0e0e0' }}>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(leaderboardData.topTen || []).map((student) => (
+                        <tr key={student.rank} style={{ background: student.isCurrentUser ? '#e8f4ff' : 'transparent', borderBottom: '1px solid #e0e0e0' }}>
+                          <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>
+                            {student.rank === 1 ? '🥇' : student.rank === 2 ? '🥈' : student.rank === 3 ? '🥉' : `#${student.rank}`}
+                          </td>
+                          <td style={{ padding: '10px' }}>
+                            {student.studentName}
+                            {student.isCurrentUser && <span style={{ marginLeft: '8px', fontSize: '12px', background: '#667eea', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>You</span>}
+                          </td>
+                          <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#667eea' }}>{student.score}</td>
+                          <td style={{ padding: '10px', textAlign: 'center' }}>{student.timeTakenMinutes} min</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>No leaderboard data available</div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderDoubtsContent = () => <DiscussionForum />;
 

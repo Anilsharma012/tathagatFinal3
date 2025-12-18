@@ -1,0 +1,311 @@
+.student-performance-admin {
+  padding: 30px;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  color: #1a1a2e;
+  margin: 0 0 8px;
+}
+
+.page-header p {
+  color: #666;
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  padding: 12px 24px;
+  border: none;
+  background: #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tabs button.active {
+  background: #667eea;
+  color: white;
+}
+
+.tabs button:hover:not(.active) {
+  background: #d0d0d0;
+}
+
+.search-bar {
+  margin-bottom: 20px;
+}
+
+.search-bar input {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.students-list-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.students-list,
+.performance-details {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.students-list h3,
+.performance-details h3 {
+  margin: 0 0 15px;
+  color: #333;
+}
+
+.students-table {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.students-table table,
+.leaderboard-table table,
+.attempts-list table,
+.all-attempts-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.students-table th,
+.students-table td,
+.leaderboard-table th,
+.leaderboard-table td,
+.attempts-list th,
+.attempts-list td,
+.all-attempts-table th,
+.all-attempts-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.students-table th,
+.leaderboard-table th,
+.attempts-list th,
+.all-attempts-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+}
+
+.students-table tr.selected {
+  background: #e8f4ff;
+}
+
+.students-table tr:hover {
+  background: #f5f5f5;
+}
+
+.view-btn {
+  padding: 6px 12px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.view-btn:hover {
+  background: #5a6fd6;
+}
+
+.loading,
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.student-info {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.student-info h4 {
+  margin: 0 0 5px;
+  color: #333;
+}
+
+.student-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.summary-card .card-value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.summary-card .card-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.section-analysis h5,
+.attempts-list h5 {
+  margin: 20px 0 15px;
+  color: #333;
+}
+
+.section-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.section-card {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.section-card h6 {
+  margin: 0 0 10px;
+  color: #333;
+}
+
+.section-stats {
+  display: flex;
+  justify-content: space-between;
+}
+
+.section-stats .stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.section-stats .stat-label {
+  font-size: 11px;
+  color: #888;
+}
+
+.test-selector {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.test-selector label {
+  font-weight: 500;
+  color: #333;
+}
+
+.test-selector select {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 300px;
+}
+
+.leaderboard-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.test-summary {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.test-summary h3 {
+  margin: 0 0 15px;
+  color: #333;
+}
+
+.summary-row {
+  display: flex;
+  gap: 30px;
+}
+
+.summary-row span {
+  color: #666;
+}
+
+.summary-row strong {
+  color: #667eea;
+}
+
+.leaderboard-table h4,
+.all-attempts-table h4 {
+  margin: 0 0 15px;
+  color: #333;
+}
+
+.leaderboard-table tr.top-three {
+  background: #fff9e6;
+}
+
+.leaderboard-table td.score {
+  font-weight: bold;
+  color: #667eea;
+}
+
+.all-attempts-table {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+@media (max-width: 1200px) {
+  .students-list-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .section-cards {
+    grid-template-columns: 1fr;
+  }
+}

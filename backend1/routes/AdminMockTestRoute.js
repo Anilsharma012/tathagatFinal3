@@ -15,7 +15,9 @@ const {
   bulkUploadQuestions,
   toggleSeriesPublication,
   toggleTestPublication,
-  getTestAnalytics
+  getTestAnalytics,
+  getStudentPerformance,
+  getTestLeaderboardAdmin
 } = require('../controllers/AdminMockTestController');
 const { adminAuth } = require('../middleware/authMiddleware');
 
@@ -37,5 +39,9 @@ router.get('/questions', adminAuth, getQuestions);
 router.put('/question/:id', adminAuth, updateQuestion);
 router.delete('/question/:id', adminAuth, deleteQuestion);
 router.post('/questions/bulk', adminAuth, bulkUploadQuestions);
+
+// Admin student performance analytics routes
+router.get('/student-performance/:studentId', adminAuth, getStudentPerformance);
+router.get('/test-leaderboard/:testId', adminAuth, getTestLeaderboardAdmin);
 
 module.exports = router;
