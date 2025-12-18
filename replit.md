@@ -28,7 +28,7 @@ The platform utilizes a decoupled frontend and backend architecture.
 - **Live Batch Classes:** Comprehensive system for managing live batches and sessions, including scheduling, notifications (in-app and email), and personalized student schedules.
 - **IIM Predictor:** Evaluates student profiles against `IIMCollege` cutoffs, calculating bucket percentiles and applying category/gender bonuses. Includes admin oversight for submissions.
 - **Homepage Announcements:** Promotional popup system with image uploads, customizable text/links, and date scheduling.
-- **Blog Management:** Full-featured blog platform with admin CRUD, public display, category filtering, auto-slug generation, rich text, image uploads, and view tracking.
+- **Blog Management:** Full-featured blog platform with admin CRUD, public display, category filtering, auto-slug generation, rich text, image uploads, view tracking, and comprehensive SEO optimization (meta tags, OpenGraph, Twitter Cards, JSON-LD structured data).
 - **Demo Video Management:** Admin-controlled system for managing demo videos on course-details pages, supporting YouTube URLs and categorizations.
 - **Response Sheet Submissions:** Automatically extracts and saves student details from IIM response sheets for administrative viewing and export.
 - **Downloads Management:** Dynamic system for managing previous years' papers and topic-wise questions, with PDF upload, status management, and public API access.
@@ -60,3 +60,4 @@ The platform utilizes a decoupled frontend and backend architecture.
 - **Rich Text Editor:** React-Quill
 - **HTML Sanitization:** DOMPurify
 - **PDF Generation:** Puppeteer (used with Handlebars templating)
+- **SEO Meta Tags:** React-Helmet for dynamic head management
