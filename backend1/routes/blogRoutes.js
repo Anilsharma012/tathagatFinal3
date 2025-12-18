@@ -35,7 +35,7 @@ const upload = multer({
 
 router.post("/create", adminAuth, upload.single("featureImage"), async (req, res) => {
   try {
-    const { title, category, content, excerpt, isTopBlog, authorName } = req.body;
+    const { title, category, content, excerpt, isTopBlog, authorName, seoTitle, seoDescription, seoKeywords } = req.body;
     
     if (!title || !category || !content) {
       return res.status(400).json({ success: false, message: "Title, category, and content are required" });
@@ -50,6 +50,10 @@ router.post("/create", adminAuth, upload.single("featureImage"), async (req, res
       return res.status(400).json({ success: false, message: "Feature image is required" });
     }
 
+    const keywordsArray = seoKeywords 
+      ? seoKeywords.split(",").map(k => k.trim()).filter(k => k)
+      : [];
+
     const newBlog = new Blog({
       title,
       category,
@@ -58,7 +62,11 @@ router.post("/create", adminAuth, upload.single("featureImage"), async (req, res
       featureImage: featureImagePath,
       isTopBlog: isTopBlog === "true" || isTopBlog === true,
       authorName: authorName || "TathaGat Faculty",
-      author: req.user?.id
+      author: req.user?.id,
+      seoTitle: seoTitle || title,
+      seoDescription: seoDescription || excerpt || "",
+      seoKeywords: keywordsArray,
+      ogImage: featureImagePath
     });
 
     await newBlog.save();
@@ -203,7 +211,7 @@ router.get("/:id", async (req, res) => {
 
 router.put("/update/:id", adminAuth, upload.single("featureImage"), async (req, res) => {
   try {
-    const { title, category, content, excerpt, isTopBlog, isPublished, authorName } = req.body;
+    const { title, category, content, excerpt, isTopBlog, isPublished, authorName, seoTitle, seoDescription, seoKeywords } = req.body;
     const blog = await Blog.findById(req.params.id);
 
     if (!blog) {
@@ -218,8 +226,17 @@ router.put("/update/:id", adminAuth, upload.single("featureImage"), async (req, 
     if (isTopBlog !== undefined) blog.isTopBlog = isTopBlog === "true" || isTopBlog === true;
     if (isPublished !== undefined) blog.isPublished = isPublished === "true" || isPublished === true;
     
+    if (seoTitle !== undefined) blog.seoTitle = seoTitle;
+    if (seoDescription !== undefined) blog.seoDescription = seoDescription;
+    if (seoKeywords !== undefined) {
+      blog.seoKeywords = seoKeywords 
+        ? seoKeywords.split(",").map(k => k.trim()).filter(k => k)
+        : [];
+    }
+    
     if (req.file) {
       blog.featureImage = `/uploads/blogs/${req.file.filename}`;
+      blog.ogImage = `/uploads/blogs/${req.file.filename}`;
     }
     
     blog.updatedAt = Date.now();

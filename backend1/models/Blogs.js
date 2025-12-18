@@ -48,6 +48,27 @@ const blogSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  seoTitle: {
+    type: String,
+    maxlength: 70,
+    trim: true
+  },
+  seoDescription: {
+    type: String,
+    maxlength: 160,
+    trim: true
+  },
+  seoKeywords: {
+    type: [String],
+    default: []
+  },
+  canonicalUrl: {
+    type: String,
+    trim: true
+  },
+  ogImage: {
+    type: String
+  },
   createdAt: {
     type: Date,
     default: Date.now

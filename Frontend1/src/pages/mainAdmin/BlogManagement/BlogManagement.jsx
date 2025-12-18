@@ -23,7 +23,10 @@ const BlogManagement = () => {
     excerpt: "",
     authorName: "TathaGat Faculty",
     isTopBlog: false,
-    isPublished: true
+    isPublished: true,
+    seoTitle: "",
+    seoDescription: "",
+    seoKeywords: ""
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -75,7 +78,10 @@ const BlogManagement = () => {
       excerpt: "",
       authorName: "TathaGat Faculty",
       isTopBlog: false,
-      isPublished: true
+      isPublished: true,
+      seoTitle: "",
+      seoDescription: "",
+      seoKeywords: ""
     });
     setImageFile(null);
     setImagePreview("");
@@ -97,7 +103,10 @@ const BlogManagement = () => {
       excerpt: blog.excerpt || "",
       authorName: blog.authorName || "TathaGat Faculty",
       isTopBlog: blog.isTopBlog || false,
-      isPublished: blog.isPublished !== false
+      isPublished: blog.isPublished !== false,
+      seoTitle: blog.seoTitle || "",
+      seoDescription: blog.seoDescription || "",
+      seoKeywords: Array.isArray(blog.seoKeywords) ? blog.seoKeywords.join(", ") : (blog.seoKeywords || "")
     });
     setImagePreview(blog.featureImage ? `${blog.featureImage}` : "");
     setImageFile(null);
@@ -127,6 +136,9 @@ const BlogManagement = () => {
       data.append("authorName", formData.authorName);
       data.append("isTopBlog", formData.isTopBlog);
       data.append("isPublished", formData.isPublished);
+      data.append("seoTitle", formData.seoTitle);
+      data.append("seoDescription", formData.seoDescription);
+      data.append("seoKeywords", formData.seoKeywords);
       
       if (imageFile) {
         data.append("featureImage", imageFile);
@@ -420,6 +432,49 @@ const BlogManagement = () => {
                   placeholder="Write your blog content here..."
                   className="content-editor"
                 />
+              </div>
+
+              <div className="seo-section">
+                <h3 className="seo-header">SEO Settings</h3>
+                <p className="seo-description">Optimize your blog for search engines</p>
+                
+                <div className="form-group">
+                  <label>SEO Title (max 70 characters)</label>
+                  <input
+                    type="text"
+                    name="seoTitle"
+                    value={formData.seoTitle}
+                    onChange={handleInputChange}
+                    placeholder="SEO optimized title for search engines"
+                    maxLength={70}
+                  />
+                  <span className="char-count">{formData.seoTitle.length}/70</span>
+                </div>
+
+                <div className="form-group">
+                  <label>SEO Description (max 160 characters)</label>
+                  <textarea
+                    name="seoDescription"
+                    value={formData.seoDescription}
+                    onChange={handleInputChange}
+                    placeholder="Meta description for search engine results"
+                    maxLength={160}
+                    rows={3}
+                  />
+                  <span className="char-count">{formData.seoDescription.length}/160</span>
+                </div>
+
+                <div className="form-group">
+                  <label>SEO Keywords (comma separated)</label>
+                  <input
+                    type="text"
+                    name="seoKeywords"
+                    value={formData.seoKeywords}
+                    onChange={handleInputChange}
+                    placeholder="CAT exam, MBA preparation, IIM admission"
+                  />
+                  <span className="seo-hint">Enter keywords separated by commas</span>
+                </div>
               </div>
 
               <div className="form-actions">

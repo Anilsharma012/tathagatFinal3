@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
 import { FaCalendarAlt, FaArrowLeft, FaUser, FaEye } from "react-icons/fa";
 import http from "../../utils/http";
 import LazyImage from "../../components/LazyImage/LazyImage";
@@ -46,6 +47,25 @@ const BlogView = () => {
     }
   }, [slug]);
 
+  const getSeoData = () => {
+    if (!blog) return {};
+    const siteUrl = window.location.origin;
+    const blogUrl = `${siteUrl}/blog/${blog.slug}`;
+    const imageUrl = blog.ogImage || blog.featureImage;
+    const fullImageUrl = imageUrl?.startsWith('http') ? imageUrl : `${siteUrl}${imageUrl}`;
+    
+    return {
+      title: blog.seoTitle || blog.title || 'TathaGat Blog',
+      description: blog.seoDescription || blog.excerpt || 'Read the latest articles on CAT, MBA, and competitive exam preparation.',
+      keywords: Array.isArray(blog.seoKeywords) ? blog.seoKeywords.join(', ') : (blog.seoKeywords || 'CAT, MBA, IIM, exam preparation'),
+      canonicalUrl: blog.canonicalUrl || blogUrl,
+      ogImage: fullImageUrl,
+      author: blog.authorName || 'TathaGat Faculty',
+      publishedTime: blog.createdAt,
+      modifiedTime: blog.updatedAt
+    };
+  };
+
   if (loading) {
     return (
       <div className="blog-view-loading">
@@ -75,8 +95,62 @@ const BlogView = () => {
     });
   };
 
+  const seo = getSeoData();
+
   return (
     <div className="blog-view-page">
+      <Helmet>
+        <title>{seo.title} | TathaGat</title>
+        <meta name="description" content={seo.description} />
+        <meta name="keywords" content={seo.keywords} />
+        <meta name="author" content={seo.author} />
+        <link rel="canonical" href={seo.canonicalUrl} />
+        
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={seo.title} />
+        <meta property="og:description" content={seo.description} />
+        <meta property="og:image" content={seo.ogImage} />
+        <meta property="og:url" content={seo.canonicalUrl} />
+        <meta property="og:site_name" content="TathaGat" />
+        <meta property="article:published_time" content={seo.publishedTime} />
+        <meta property="article:modified_time" content={seo.modifiedTime} />
+        <meta property="article:author" content={seo.author} />
+        
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seo.title} />
+        <meta name="twitter:description" content={seo.description} />
+        <meta name="twitter:image" content={seo.ogImage} />
+        
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            "headline": seo.title,
+            "description": seo.description,
+            "image": seo.ogImage,
+            "author": {
+              "@type": "Person",
+              "name": seo.author
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "TathaGat",
+              "logo": {
+                "@type": "ImageObject",
+                "url": `${window.location.origin}/logo.png`
+              }
+            },
+            "datePublished": seo.publishedTime,
+            "dateModified": seo.modifiedTime,
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": seo.canonicalUrl
+            },
+            "keywords": seo.keywords
+          })}
+        </script>
+      </Helmet>
+      
       <section className="blog-view-hero">
         <LazyImage src={blog.featureImage} alt={blog.title} className="hero-image" />
         <div className="hero-overlay">
