@@ -30,7 +30,8 @@ import {
   FiTrendingUp,
   FiCheckCircle,
   FiEye,
-  FiFileText
+  FiFileText,
+  FiLogOut
 } from 'react-icons/fi';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import logo from "../../images/tgLOGO.png";
@@ -333,6 +334,15 @@ const StudentDashboard = () => {
     } finally {
       setProfileImageUploading(false);
     }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth');
+    localStorage.removeItem('user');
+    navigate('/');
   };
 
   // Function to load courses (can be called for retry)
@@ -2265,6 +2275,12 @@ const loadMyCourses = async () => {
             </div>
           </div>
         </div>
+
+        <div className="logout-card">
+          <button className="logout-profile-btn" onClick={handleLogout}>
+            <FiLogOut /> Logout
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2418,8 +2434,8 @@ const loadMyCourses = async () => {
                     <FiBell /> Notifications
                   </button>
                   <hr />
-                  <button className="logout-btn">
-                    Logout
+                  <button className="logout-btn" onClick={handleLogout}>
+                    <FiLogOut /> Logout
                   </button>
                 </div>
               )}
