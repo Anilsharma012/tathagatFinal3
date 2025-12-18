@@ -1,0 +1,227 @@
+Admin Panel: Manage Questions (Create + Organize)
+
+Build an admin screen where admin can:
+
+A. Sections
+
+Create/manage Sections: VARC, DILR, QA
+
+Each question belongs to exactly one section.
+
+B. Passage/Paragraph Based Question Set (1 paragraph → many questions)
+Admin can choose “Passage/Paragraph” mode and paste/select a paragraph.
+
+Admin must be able to add multiple questions under the same paragraph (unlimited questions).
+
+So the structure is:
+
+Passage (Paragraph)
+
+Question 1
+
+Question 2
+
+Question 3
+
+…
+
+Passage content must support:
+
+Rich text (bold, underline, bullet points)
+
+Images (e.g., graphs/figures like DILR graph)
+
+Scrollable passage area in frontend
+
+C. Question Types + Input Modes
+For every question, admin must choose Answer Input Type:
+
+MCQ (Options)
+
+Admin can add 2–6 options (usually 4)
+
+Single correct option (CAT style)
+
+Options can be text (and optionally image support)
+
+Frontend shows radio options like CAT UI
+
+TITA / Numeric / Text Answer (No options)
+
+Admin selects: “Answer via Input box”
+
+Frontend shows an input field + on-screen keypad (like screenshot)
+
+D. Tools Toggle per Question
+Admin must have toggles:
+
+✅ Show Calculator/Keypad (for TITA)
+
+✅ Show Options (for MCQ)
+
+(Optional toggles like Draw/Zoom can be added, but minimum: calculator/keypad as required)
+
+Rule:
+
+If admin selects MCQ, show options UI in frontend.
+
+If admin selects TITA, show input + keypad in frontend.
+
+Don’t show both unless admin explicitly enables both (default: only one).
+
+2) Student Test Player UI (Exact Screenshot Layout)
+
+Build the test UI exactly CAT mock style:
+
+A. Top Header
+
+Tabs: VARC | DILR | QA
+
+Show “Time Left: mm:ss”
+
+Buttons: Instructions and Question Paper
+
+Show marks info near question area:
+
+“Marks for correct answer: X | Negative Marks: Y”
+
+B. Main Body Layout
+When question is under a Passage:
+
+Left side: Passage/Paragraph area (scrollable)
+
+Right side: Question + Answer UI (options or keypad)
+This must match the screenshot: passage left, question right.
+
+When question is not passage-based:
+
+Question can take full width (or left area blank) but keep right panel + palette.
+
+C. Virtual Keypad / Calculator (Working)
+When question is TITA:
+
+Show input field on top
+
+Show keypad exactly like screenshot:
+
+Digits: 0–9
+
+Backspace
+
+Clear All
+
+Dot “.”
+
+Minus “-”
+
+Left/Right arrow (cursor move)
+
+Keypad must be fully working:
+
+Clicking keys types into input
+
+Backspace removes
+
+Clear All resets
+
+Cursor arrows move caret
+
+On “Save & Next”, the typed answer must be saved (persist).
+
+D. Right Sidebar Question Palette
+Build CAT-style palette with statuses:
+
+Answered (green)
+
+Not Answered (red)
+
+Not Visited (grey)
+
+Marked for Review (purple)
+
+Answered & Marked for Review (special indicator)
+
+Also include:
+
+Section label (e.g., DILR)
+
+“Choose a Question” grid buttons 1..N
+
+E. Bottom Action Buttons
+Add buttons exactly like CAT UI:
+
+Mark for Review & Next
+
+Clear Response
+
+Previous
+
+Save & Next
+
+Submit
+
+Actions update question status correctly.
+
+3) Attempt Saving + Persistence (Very Important)
+
+Implement attempt storage so that:
+
+When student selects an option or types in keypad, it’s saved.
+
+When student revisits a question, previous response reappears.
+
+Status logic:
+
+Not visited → first time open
+
+Not answered → visited but no answer
+
+Answered → answer saved
+
+Marked for review → marked, even if answered
+
+Save calls should happen on:
+
+Save & Next
+
+Mark for Review & Next
+
+Optional autosave every few seconds (bonus)
+
+Store:
+
+selectedOptionId OR typedAnswer
+
+visited flag
+
+markedForReview flag
+
+timeSpent per question (optional)
+
+4) Data Model (Suggested)
+
+Test
+
+Section
+
+Passage (optional)
+
+Question (belongs to section; may belong to passage)
+
+Option (for MCQ)
+
+TestAttempt (per user per test)
+
+AttemptAnswer (per question)
+
+5) Acceptance Criteria
+
+Admin can paste one paragraph and add unlimited questions under it.
+
+Each question can be configured as MCQ (options) OR TITA (keypad).
+
+Frontend shows passage left + question right for passage questions.
+
+Keypad/calculator is fully interactive and answer is saved and restored.
+
+UI matches CAT mock screenshots: tabs, timer, palette, statuses, and bottom buttons.
