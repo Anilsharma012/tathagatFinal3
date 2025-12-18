@@ -164,6 +164,7 @@ const CoursePurchase = () => {
               razorpay_payment_id: "dev_payment_" + Date.now(),
               razorpay_signature: "dev_signature",
               courseId: activeCourseId,
+              devMode: true,
             }),
           });
 
