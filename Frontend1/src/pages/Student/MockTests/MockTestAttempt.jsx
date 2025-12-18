@@ -1152,22 +1152,30 @@ const MockTestAttempt = () => {
             <span>Negative Marks: 1</span>
           </div>
 
-          <div className="question-content-area" style={{ fontSize: `${14 * zoomLevel}px` }}>
-            <div className="question-number">Question No. {currentQuestion + 1}</div>
+          <div className={`question-content-area ${currentQuestionData?.passage ? 'has-passage' : ''}`} style={{ fontSize: `${14 * zoomLevel}px` }}>
+            {currentQuestionData?.passage && (
+              <div className="passage-panel">
+                <div className="passage-header">Passage</div>
+                <div className="passage-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentQuestionData.passage) }} />
+              </div>
+            )}
             
-            <div className="question-text">
-              {currentQuestionData?.questionText ? (
-                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentQuestionData.questionText) }} />
-              ) : (
-                <p>Loading question...</p>
-              )}
-            </div>
+            <div className="question-section">
+              <div className="question-number">Question No. {currentQuestion + 1}</div>
+              
+              <div className="question-text">
+                {currentQuestionData?.questionText ? (
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentQuestionData.questionText) }} />
+                ) : (
+                  <p>Loading question...</p>
+                )}
+              </div>
 
-            {currentQuestionData?.images?.map((image, index) => (
-              <img key={index} src={image} alt={`Question ${index + 1}`} className="question-image" />
-            ))}
+              {currentQuestionData?.images?.map((image, index) => (
+                <img key={index} src={image} alt={`Question ${index + 1}`} className="question-image" />
+              ))}
 
-            <div className="question-options">
+              <div className="question-options">
               {currentQuestionData?.options ? (
                 (() => {
                   if (typeof currentQuestionData.options === 'object' && !Array.isArray(currentQuestionData.options)) {
@@ -1252,6 +1260,7 @@ const MockTestAttempt = () => {
               ) : (
                 <p>Loading options...</p>
               )}
+              </div>
             </div>
           </div>
 
