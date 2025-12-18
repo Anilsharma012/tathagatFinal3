@@ -260,19 +260,24 @@ const StudentDashboard = () => {
 
       const data = await response.json();
       
-      if (data.success || response.ok) {
+      if (data.status || data.success || response.ok) {
+        // Backend returns user in data.data, not data.user
+        const userData = data.data || data.user || {};
+        
         // Update localStorage
         const storedUser = JSON.parse(localStorage.getItem('user')) || {};
-        const updatedUser = { ...storedUser, ...data.user };
+        const updatedUser = { ...storedUser, ...userData };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
-        // Update state
-        setUserDetails(prev => ({
-          ...prev,
-          name: data.user.name || prev.name,
-          email: data.user.email || prev.email,
-          profileImage: data.user.profilePic || prev.profileImage
-        }));
+        // Update state with null checking
+        if (userData && Object.keys(userData).length > 0) {
+          setUserDetails(prev => ({
+            ...prev,
+            name: userData.name || prev.name,
+            email: userData.email || prev.email,
+            profileImage: userData.profilePic || prev.profileImage
+          }));
+        }
 
         alert('Profile updated successfully!');
       } else {
@@ -312,21 +317,24 @@ const StudentDashboard = () => {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (data.status || data.success) {
+        // Backend returns profilePic in data.profilePic
+        const imageUrl = data.profilePic || data.url || (data.data && data.data.profilePic);
+        
         // Update localStorage
         const storedUser = JSON.parse(localStorage.getItem('user')) || {};
-        storedUser.profilePic = data.url;
+        storedUser.profilePic = imageUrl;
         localStorage.setItem('user', JSON.stringify(storedUser));
 
         // Update state
         setUserDetails(prev => ({
           ...prev,
-          profileImage: data.url
+          profileImage: imageUrl
         }));
 
         alert('Profile picture updated!');
       } else {
-        alert(data.message || 'Failed to upload image');
+        alert(data.msg || data.message || 'Failed to upload image');
       }
     } catch (error) {
       console.error('Profile image upload error:', error);
