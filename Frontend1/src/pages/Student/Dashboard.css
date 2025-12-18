@@ -6,6 +6,16 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Prevent auto-scroll when content changes */
+.analysis-content {
+  overflow-anchor: none;
+  min-height: 600px;
+}
+
+.lms-main {
+  overflow-anchor: none;
+}
+
 /* Sidebar Styles */
 .lms-sidebar {
   width: 280px;
