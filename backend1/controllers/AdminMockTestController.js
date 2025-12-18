@@ -700,14 +700,12 @@ const createQuestion = async (req, res) => {
       });
     }
 
-    // Auto-assign sequence number if not provided
-    let finalSequenceNumber = sequenceNumber;
-    if (!finalSequenceNumber) {
-      const maxQuestion = await MockTestQuestion.findOne({ testPaperId })
-        .sort({ sequenceNumber: -1 })
-        .select('sequenceNumber');
-      finalSequenceNumber = maxQuestion ? maxQuestion.sequenceNumber + 1 : 1;
-    }
+    // Always auto-assign the next sequence number to avoid duplicates
+    const maxQuestion = await MockTestQuestion.findOne({ testPaperId })
+      .sort({ sequenceNumber: -1 })
+      .select('sequenceNumber');
+    const finalSequenceNumber = maxQuestion ? maxQuestion.sequenceNumber + 1 : 1;
+    console.log(`📊 Auto-assigned sequence number: ${finalSequenceNumber} for test ${testPaperId}`);
 
     const question = new MockTestQuestion({
       testPaperId,
