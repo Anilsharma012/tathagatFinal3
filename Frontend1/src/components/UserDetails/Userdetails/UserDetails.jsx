@@ -89,8 +89,11 @@ const handleUploadProfilePic = async () => {
       }
     );
 
-    const imageUrl = res.data.url;
+    // Backend returns profilePic in data.profilePic, not data.url
+    const imageUrl = res.data.profilePic || res.data.url || (res.data.data && res.data.data.profilePic);
+    console.log("🖼️ Uploaded Image URL:", imageUrl);
     setProfilePic(imageUrl);
+    console.log("✅ profilePic value set ho gayi:", imageUrl);
 
     alert("✅ Image uploaded successfully");
   } catch (error) {
@@ -107,17 +110,15 @@ const handleUploadProfilePic = async () => {
     try {
       const token = localStorage.getItem("authToken");
   
+      // Only send non-empty values to avoid duplicate key errors
+      const updateData = { name, city, gender, dob };
+      if (email && email.trim() !== '') updateData.email = email;
+      if (phoneNumber && phoneNumber.trim() !== '') updateData.phoneNumber = phoneNumber;
+      if (profilePic && profilePic.trim() !== '') updateData.profilePic = profilePic;
+  
       const response = await axios.post(
         "/api/user/update-details",  // Backend route update
-        {
-          name,
-          email,
-          phoneNumber,
-          city,
-          gender,
-          dob,
-          profilePic,
-        },
+        updateData,
         {
           headers: {
             Authorization: `Bearer ${token}`,  // Token for authorization
@@ -202,10 +203,11 @@ const handleUploadProfilePic = async () => {
         }
       );
 
-   const imageUrl = res.data.url;
-console.log("🖼️ Uploaded Image URL:", imageUrl);  // ✅ Already hai
+   // Backend returns profilePic in data.profilePic, not data.url
+   const imageUrl = res.data.profilePic || res.data.url || (res.data.data && res.data.data.profilePic);
+console.log("🖼️ Uploaded Image URL:", imageUrl);
 
-setProfilePic(imageUrl); // ✅ Yeh line ke turant baad yeh laga:
+setProfilePic(imageUrl);
 console.log("✅ profilePic value set ho gayi:", imageUrl);
 
       // ✅ Update localStorage immediately
