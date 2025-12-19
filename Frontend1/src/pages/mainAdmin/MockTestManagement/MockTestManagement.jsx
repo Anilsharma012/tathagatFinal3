@@ -66,7 +66,8 @@ const MockTestManagement = () => {
 
   const fetchTests = async (courseId) => {
     try {
-      const data = await fetchWithErrorHandling(`/api/admin/mock-tests/tests?courseId=${courseId}`);
+      const courseParam = courseId ? `courseId=${courseId}` : 'courseId=free';
+      const data = await fetchWithErrorHandling(`/api/admin/mock-tests/tests?${courseParam}`);
       if (data && data.tests) {
         setTests(data.tests);
       }
