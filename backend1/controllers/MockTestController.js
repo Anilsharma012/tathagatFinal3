@@ -1882,25 +1882,19 @@ const getMockTestTree = async (req, res) => {
     };
 
     tests.forEach((test) => {
+      const hasNoCourse = !test.courseId || test.courseId === null;
+      const hasNoSeries = !test.seriesId || test.seriesId === null;
+      const isFreeTest = test.isFree && hasNoCourse && hasNoSeries;
+      
       const common = {
         id: test._id,
         title: test.title,
         description: test.description,
         durationMinutes: test.duration,
         totalQuestions: test.totalQuestions,
-        totalMarks: test.totalMarks
+        totalMarks: test.totalMarks,
+        isFree: isFreeTest
       };
-
-      const hasNoCourse = !test.courseId || test.courseId === null;
-      const hasNoSeries = !test.seriesId || test.seriesId === null;
-      if (test.isFree && hasNoCourse && hasNoSeries) {
-        tree.freeTests.push({
-          ...common,
-          name: test.title,
-          testType: test.testType || 'full'
-        });
-        return;
-      }
 
       const type = test.testType || 'full';
 

@@ -129,10 +129,14 @@ const MockTestPage = () => {
     return (
       <div className="tests-grid">
         {tests.map((test) => (
-          <div key={test.id} className="test-card">
+          <div key={test.id} className={`test-card ${test.isFree ? 'free-test-card' : ''}`}>
             <div className="test-card-header">
               <h4>{test.name || test.title}</h4>
-              <span className={`test-badge ${testType}`}>{testType}</span>
+              {test.isFree ? (
+                <span className="test-badge free">FREE</span>
+              ) : (
+                <span className={`test-badge ${testType}`}>{testType}</span>
+              )}
             </div>
             {test.description && (
               <p className="test-description">{test.description}</p>
@@ -169,10 +173,14 @@ const MockTestPage = () => {
             <h3 className="year-title">Session {year}</h3>
             <div className="tests-grid">
               {testTree.sessionalTests[year].map((test) => (
-                <div key={test.id} className="test-card">
+                <div key={test.id} className={`test-card ${test.isFree ? 'free-test-card' : ''}`}>
                   <div className="test-card-header">
                     <h4>{test.name || test.title}</h4>
-                    <span className="test-badge sessional">Sessional</span>
+                    {test.isFree ? (
+                      <span className="test-badge free">FREE</span>
+                    ) : (
+                      <span className="test-badge sessional">Sessional</span>
+                    )}
                   </div>
                   {test.description && (
                     <p className="test-description">{test.description}</p>
@@ -197,41 +205,6 @@ const MockTestPage = () => {
     );
   };
 
-  const renderFreeTests = () => {
-    if (!testTree || !testTree.freeTests || testTree.freeTests.length === 0) {
-      return <div className="empty-state">No free tests available</div>;
-    }
-
-    return (
-      <div className="free-tests-container">
-        <div className="tests-grid">
-          {testTree.freeTests.map((test) => (
-            <div key={test.id} className="test-card free-test-card">
-              <div className="test-card-header">
-                <h4>{test.name || test.title}</h4>
-                <span className="test-badge free">FREE</span>
-              </div>
-              {test.description && (
-                <p className="test-description">{test.description}</p>
-              )}
-              <div className="test-meta">
-                <span>⏱️ {test.durationMinutes} min</span>
-                <span>📝 {test.totalQuestions} questions</span>
-                <span>🎯 {test.totalMarks} marks</span>
-              </div>
-              <button
-                className="start-test-btn"
-                onClick={() => handleStartTest(test.id)}
-              >
-                Start Test
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   const renderContent = () => {
     if (loading) {
       return <div className="loading-state">Loading mock tests...</div>;
@@ -252,8 +225,6 @@ const MockTestPage = () => {
         return renderTestList(testTree.moduleTests, 'module');
       case 'sessional':
         return renderSessionalTests();
-      case 'free':
-        return renderFreeTests();
       default:
         return null;
     }
@@ -297,12 +268,6 @@ const MockTestPage = () => {
             onClick={() => setActiveTab('sessional')}
           >
             Sessional Tests
-          </button>
-          <button
-            className={`tab free-tab ${activeTab === 'free' ? 'active' : ''}`}
-            onClick={() => setActiveTab('free')}
-          >
-            Free Tests
           </button>
         </div>
 
