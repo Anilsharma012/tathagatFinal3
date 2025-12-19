@@ -1520,22 +1520,82 @@ const MockTestAttempt = () => {
 
       {showInstructions && (
         <div className="modal-overlay" onClick={() => setShowInstructions(false)}>
-          <div className="instructions-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="instructions-modal instructions-modal-full" onClick={(e) => e.stopPropagation()}>
             <div className="instructions-header">
               <h4>Test Instructions</h4>
               <button onClick={() => setShowInstructions(false)}>×</button>
             </div>
-            <div className="instructions-content">
-              <h5>General Instructions:</h5>
-              <ol>
-                <li>The total duration of the test is 120 minutes (40 minutes per section).</li>
-                <li>The test contains 3 sections: VARC, DILR, and QA.</li>
-                <li>Each section is timed separately. You cannot go back to a previous section.</li>
-                <li>For MCQs: +3 marks for correct answer, -1 for incorrect.</li>
-                <li>For Non-MCQs: +3 marks for correct answer, 0 for incorrect.</li>
-                <li>Use the calculator and scratch pad tools as needed.</li>
-                <li>Your progress is saved automatically every few seconds.</li>
-              </ol>
+            <div className="instructions-content instructions-content-full">
+              <div className="instruction-section">
+                <h5>General Instructions:</h5>
+                <ol>
+                  <li>Total duration of examination is <strong>120 minutes</strong>.</li>
+                  <li>The clock will be set at the server. The countdown timer at the top right corner of screen will display the remaining time available for you to complete the examination. When the timer reaches zero, the examination will end by itself. You need not terminate the examination or submit your answers.</li>
+                  <li>The Question Palette displayed on the right side of screen will show the status of each question using one of the following symbols:
+                    <div className="legend-grid">
+                      <div className="legend-item"><span className="legend-box not-visited"></span> You have not visited the question yet.</div>
+                      <div className="legend-item"><span className="legend-box not-answered"></span> You have not answered the question.</div>
+                      <div className="legend-item"><span className="legend-box answered"></span> You have answered the question.</div>
+                      <div className="legend-item"><span className="legend-box marked-review"></span> You have NOT answered the question, but have marked the question for review.</div>
+                      <div className="legend-item"><span className="legend-box answered-marked"></span> You have answered the question, but marked it for review.</div>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="instruction-section">
+                <h5>Navigating to a Question:</h5>
+                <ol>
+                  <li>To answer a question, do the following:
+                    <ul>
+                      <li>Click on the question number in the Question Palette at the right of your screen to go to that numbered question directly. Note that using this option does NOT save your answer to the current question.</li>
+                      <li>Click on <strong>Save & Next</strong> to save your answer for the current question and then go to the next question.</li>
+                      <li>Click on <strong>Mark for Review & Next</strong> to save your answer for the current question and also mark it for review, and then go to the next question.</li>
+                    </ul>
+                  </li>
+                  <li>You can shuffle between sections and questions anytime during the examination as per the rules of the test.</li>
+                </ol>
+              </div>
+
+              <div className="instruction-section">
+                <h5>Answering a Question:</h5>
+                <ol>
+                  <li>For Multiple Choice Questions (MCQ):
+                    <ul>
+                      <li>To select your answer, click on the button of one of the options.</li>
+                      <li>To deselect your chosen answer, click on the button of the chosen option again or click on the <strong>Clear Response</strong> button.</li>
+                      <li>To change your chosen answer, click on the button of another option.</li>
+                    </ul>
+                  </li>
+                  <li>For Numerical Answer Type Questions:
+                    <ul>
+                      <li>To enter a number as your answer, use the virtual numerical keypad.</li>
+                      <li>A fraction (e.g., -0.3 or -.3) can be entered as an answer with or without "0" before the decimal point.</li>
+                      <li>To clear your answer, click on the <strong>Clear All</strong> button.</li>
+                      <li>To change your answer, use Backspace or Clear All and re-enter a new answer.</li>
+                    </ul>
+                  </li>
+                  <li>To mark a question for review, click on the <strong>Mark for Review & Next</strong> button.</li>
+                </ol>
+              </div>
+
+              <div className="instruction-section">
+                <h5>Marking Scheme:</h5>
+                <ul className="marking-list">
+                  <li><strong>MCQ Questions:</strong> +3 marks for correct answer, -1 for incorrect answer</li>
+                  <li><strong>Non-MCQ Questions (TITA/Numeric):</strong> +3 marks for correct answer, No negative marking</li>
+                  <li>Questions that are not attempted will result in zero marks.</li>
+                </ul>
+              </div>
+
+              <div className="instruction-section">
+                <h5>Section-wise Time Limit:</h5>
+                <ul className="marking-list">
+                  <li>Each section has a time limit of <strong>40 minutes</strong>.</li>
+                  <li>Once a section's time expires, you will be automatically moved to the next section.</li>
+                  <li>You <strong>cannot</strong> go back to a previous section once its time is over.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
