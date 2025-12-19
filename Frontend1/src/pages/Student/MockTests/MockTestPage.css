@@ -355,6 +355,25 @@
   color: #3730a3;
 }
 
+.test-badge.free {
+  background: #10b981;
+  color: white;
+  font-weight: 700;
+}
+
+.free-test-card {
+  border: 2px solid #10b981;
+}
+
+.free-tab.active {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+.free-tests-container {
+  padding: 20px 0;
+}
+
 .test-description {
   font-size: 14px;
   color: #6b7280;

@@ -56,9 +56,6 @@ const MockTestManagement = () => {
       const data = await fetchWithErrorHandling('/api/courses');
       if (data && data.courses) {
         setCourses(data.courses);
-        if (data.courses.length > 0) {
-          setSelectedCourse(data.courses[0]._id);
-        }
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -126,11 +123,6 @@ const MockTestManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!selectedCourse && !editingTest) {
-      alert('Please select a course first');
-      return;
-    }
 
     const requiredSections = ['VARC', 'DILR', 'QA'];
     for (const sectionName of requiredSections) {
@@ -148,6 +140,8 @@ const MockTestManagement = () => {
     try {
       setLoading(true);
       
+      const isFreeTest = !selectedCourse && !editingTest?.courseId;
+      
       const testData = {
         ...formData,
         testType: activeTab,
@@ -155,7 +149,8 @@ const MockTestManagement = () => {
         positiveMarks: 3,
         negativeMarks: -1,
         difficulty: 'Medium',
-        courseId: editingTest ? editingTest.courseId : selectedCourse
+        courseId: editingTest ? editingTest.courseId : selectedCourse,
+        isFree: isFreeTest
       };
 
       let data;
@@ -405,7 +400,7 @@ const MockTestManagement = () => {
         <label>Select Course:</label>
         <select
           value={selectedCourse || ''}
-          onChange={(e) => setSelectedCourse(e.target.value)}
+          onChange={(e) => setSelectedCourse(e.target.value || null)}
         >
           <option value="">-- Select Course --</option>
           {courses.map((c) => (
@@ -414,6 +409,9 @@ const MockTestManagement = () => {
             </option>
           ))}
         </select>
+        {!selectedCourse && (
+          <span className="free-test-hint">No course selected = Free Mock Test (visible to all students)</span>
+        )}
       </div>
 
       <div className="tabs-container">
