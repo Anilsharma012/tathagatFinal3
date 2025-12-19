@@ -198,21 +198,7 @@ const MockTestTerms = () => {
     <div className="cat-terms-page">
       <div className="cat-header">
         <div className="cat-header-top">
-          <div className="cat-logos">
-            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Anna_University_Logo.svg/1200px-Anna_University_Logo.svg.png" alt="IIM" className="iim-logo" />
-            <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
-            <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
-            <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
-          </div>
-          <div className="cat-title-center">
-            <span className="cat-2025">CAT 2025</span>
-          </div>
-          <div className="cat-logos">
-            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/IIM_Kozhikode_Logo.svg/1200px-IIM_Kozhikode_Logo.svg.png" alt="IIM" className="iim-logo" />
-            <img src="https://upload.wikimedia.org/wikipedia/en/a/a3/IIM_Calcutta_Logo.svg" alt="IIM" className="iim-logo" />
-            <img src="https://upload.wikimedia.org/wikipedia/en/5/5f/IIM_Bangalore_Logo.svg" alt="IIM" className="iim-logo" />
-            <img src="https://upload.wikimedia.org/wikipedia/en/b/bd/IIM_Lucknow_Logo.png" alt="IIM" className="iim-logo" />
-          </div>
+          <img src="/cat-iim-banner.png" alt="CAT 2025 - IIM Logos" className="cat-iim-banner" />
         </div>
         <div className="cat-header-bar">
           <span>Other Important Instructions</span>
