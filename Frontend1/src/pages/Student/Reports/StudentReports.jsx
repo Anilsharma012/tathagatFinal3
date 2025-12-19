@@ -185,10 +185,11 @@ const StudentReports = () => {
       <div className="charts-row">
         <div className="chart-card">
           <h3>Performance Trend</h3>
-          <div style={{height: '180px', position: 'relative'}}>
+          <div className="chart-container">
             {performanceTrend.length > 0 ? (
               <Line 
-                data={trendChartData} 
+                data={trendChartData}
+                height={150}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
@@ -205,10 +206,11 @@ const StudentReports = () => {
         </div>
         <div className="chart-card">
           <h3>Section-wise Performance</h3>
-          <div style={{height: '180px', position: 'relative'}}>
+          <div className="chart-container">
             {sectionAnalysis.length > 0 ? (
               <Doughnut 
                 data={sectionChartData}
+                height={150}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
@@ -224,10 +226,11 @@ const StudentReports = () => {
         </div>
         <div className="chart-card">
           <h3>Section Accuracy</h3>
-          <div style={{height: '180px', position: 'relative'}}>
+          <div className="chart-container">
             {sectionAnalysis.length > 0 ? (
               <Bar 
                 data={accuracyChartData}
+                height={150}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
