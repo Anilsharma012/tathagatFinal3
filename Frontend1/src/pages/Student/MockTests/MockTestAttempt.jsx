@@ -1176,7 +1176,30 @@ const MockTestAttempt = () => {
               ))}
 
               <div className="question-options">
-              {currentQuestionData?.options ? (
+              {/* TITA/NUMERIC Question Input */}
+              {(currentQuestionData?.questionType === 'TITA' || currentQuestionData?.questionType === 'NUMERIC') ? (
+                <div className="tita-input-section">
+                  <div className="tita-label">
+                    {currentQuestionData?.questionType === 'NUMERIC' ? 'Enter your numeric answer:' : 'Type your answer:'}
+                  </div>
+                  <div className="tita-input-container">
+                    <input
+                      type={currentQuestionData?.questionType === 'NUMERIC' ? 'number' : 'text'}
+                      step="any"
+                      className="tita-input"
+                      value={responses[currentQuestionData?._id] || ''}
+                      onChange={(e) => handleAnswerSelect(e.target.value)}
+                      placeholder={currentQuestionData?.questionType === 'NUMERIC' ? 'Enter number...' : 'Type answer here...'}
+                      disabled={isCurrentSectionLocked}
+                    />
+                  </div>
+                  <div className="tita-hint">
+                    {currentQuestionData?.questionType === 'NUMERIC' 
+                      ? 'Enter only the numeric value (decimals allowed)'
+                      : 'Type your answer exactly as required'}
+                  </div>
+                </div>
+              ) : currentQuestionData?.options ? (
                 (() => {
                   if (typeof currentQuestionData.options === 'object' && !Array.isArray(currentQuestionData.options)) {
                     return ['A', 'B', 'C', 'D'].map((optionKey) => {

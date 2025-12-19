@@ -638,10 +638,9 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
               </div>
             </div>
 
-            {/* Passage (optional) */}
-            {formData.section === 'VARC' && (
-              <div className="form-group">
-                <label>Passage (Optional - for RC questions)</label>
+            {/* Passage (optional - for RC/Data Set questions) */}
+            <div className="form-group">
+              <label>Passage / Data Set (Optional - for RC or DILR questions)</label>
                 <ReactQuill
                   theme="snow"
                   value={formData.passage}
@@ -650,11 +649,10 @@ const QuestionBuilder = ({ testPaperId, onClose, onQuestionSaved }) => {
                   formats={quillFormats}
                   style={{ height: '300px', marginBottom: '50px' }}
                 />
-                <small style={{color: "#666", fontSize: "12px"}}>
-                  You can add images, formatting, and paragraphs in the passage
-                </small>
-              </div>
-            )}
+              <small style={{color: "#666", fontSize: "12px"}}>
+                You can add images, tables, formatting, and paragraphs. For DILR, add data sets or scenarios here.
+              </small>
+            </div>
 
             {/* Question Text */}
             <div className="form-group">

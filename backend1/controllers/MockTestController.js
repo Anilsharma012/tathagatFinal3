@@ -1411,15 +1411,32 @@ const submitTest = async (req, res) => {
         const question = allQuestions.find(q => q._id.toString() === questionId);
         
         if (question) {
-          // Check if answer is correct
+          // Check if answer is correct based on question type
           let isCorrect = false;
-          if (question.questionType === 'MCQ') {
-            isCorrect = response.selectedAnswer === question.correctAnswer;
-          } else if (question.questionType === 'MSQ') {
-            isCorrect = JSON.stringify(response.selectedAnswer?.sort?.() || []) === 
-                       JSON.stringify(question.correctAnswer?.sort?.() || []);
-          } else if (question.questionType === 'NAT') {
-            isCorrect = parseFloat(response.selectedAnswer) === parseFloat(question.correctAnswer);
+          const qType = question.questionType;
+          
+          if (qType === 'SINGLE_CORRECT_MCQ' || qType === 'MCQ') {
+            // For single correct MCQ, compare selected option with correctOptionIds
+            const correctIds = question.correctOptionIds || [question.correctAnswer];
+            isCorrect = correctIds.includes(response.selectedAnswer);
+          } else if (qType === 'MULTI_CORRECT_MCQ' || qType === 'MSQ') {
+            // For multiple correct MCQ
+            const userAnswers = Array.isArray(response.selectedAnswer) ? response.selectedAnswer : [response.selectedAnswer];
+            const correctIds = question.correctOptionIds || [];
+            isCorrect = JSON.stringify(userAnswers.sort()) === JSON.stringify(correctIds.sort());
+          } else if (qType === 'TITA') {
+            // For TITA, compare text answers (case-insensitive)
+            const userAnswer = String(response.selectedAnswer || '').toLowerCase().trim();
+            const correctAnswer = String(question.textAnswer || '').toLowerCase().trim();
+            isCorrect = userAnswer === correctAnswer;
+          } else if (qType === 'NUMERIC' || qType === 'NAT') {
+            // For numeric answers, compare numbers with tolerance
+            const userAnswer = parseFloat(response.selectedAnswer);
+            const correctAnswer = parseFloat(question.numericAnswer);
+            if (!isNaN(userAnswer) && !isNaN(correctAnswer)) {
+              // Allow small tolerance for floating point comparison
+              isCorrect = Math.abs(userAnswer - correctAnswer) < 0.01;
+            }
           }
 
           if (isCorrect) {
