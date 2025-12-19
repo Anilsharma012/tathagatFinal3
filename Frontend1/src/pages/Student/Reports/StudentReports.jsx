@@ -185,56 +185,62 @@ const StudentReports = () => {
       <div className="charts-row">
         <div className="chart-card">
           <h3>Performance Trend</h3>
-          {performanceTrend.length > 0 ? (
-            <Line 
-              data={trendChartData} 
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  y: { beginAtZero: true, max: 200 }
-                }
-              }}
-            />
-          ) : (
-            <div className="empty-chart">No data available yet</div>
-          )}
+          <div style={{height: '180px', position: 'relative'}}>
+            {performanceTrend.length > 0 ? (
+              <Line 
+                data={trendChartData} 
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    y: { beginAtZero: true, max: 200 }
+                  }
+                }}
+              />
+            ) : (
+              <div className="empty-chart">No data available yet</div>
+            )}
+          </div>
         </div>
         <div className="chart-card">
           <h3>Section-wise Performance</h3>
-          {sectionAnalysis.length > 0 ? (
-            <Doughnut 
-              data={sectionChartData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'bottom' }
-                }
-              }}
-            />
-          ) : (
-            <div className="empty-chart">No data available yet</div>
-          )}
+          <div style={{height: '180px', position: 'relative'}}>
+            {sectionAnalysis.length > 0 ? (
+              <Doughnut 
+                data={sectionChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                  }
+                }}
+              />
+            ) : (
+              <div className="empty-chart">No data available yet</div>
+            )}
+          </div>
         </div>
         <div className="chart-card">
           <h3>Section Accuracy</h3>
-          {sectionAnalysis.length > 0 ? (
-            <Bar 
-              data={accuracyChartData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  y: { beginAtZero: true, max: 100 }
-                }
-              }}
-            />
-          ) : (
-            <div className="empty-chart">No data available yet</div>
-          )}
+          <div style={{height: '180px', position: 'relative'}}>
+            {sectionAnalysis.length > 0 ? (
+              <Bar 
+                data={accuracyChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    y: { beginAtZero: true, max: 100 }
+                  }
+                }}
+              />
+            ) : (
+              <div className="empty-chart">No data available yet</div>
+            )}
+          </div>
         </div>
       </div>
 
