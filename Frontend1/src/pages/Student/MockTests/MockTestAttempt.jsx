@@ -1933,6 +1933,12 @@ const MockTestAttempt = () => {
               ))}
             </div>
           </div>
+          
+          <div className="sidebar-submit-section">
+            <button className="sidebar-submit-btn" onClick={handleSubmitClick}>
+              Submit
+            </button>
+          </div>
         </div>
       </div>
 
