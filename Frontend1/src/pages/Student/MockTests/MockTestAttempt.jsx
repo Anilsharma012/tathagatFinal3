@@ -62,6 +62,9 @@ const MockTestAttempt = () => {
   const [showExamSummary, setShowExamSummary] = useState(false);
   const [allSectionsStats, setAllSectionsStats] = useState([]);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [showNumericKeypad, setShowNumericKeypad] = useState(false);
+  const [numericInputCursorPos, setNumericInputCursorPos] = useState(0);
+  const numericInputRef = useRef(null);
   
   const timerRef = useRef(null);
   const syncIntervalRef = useRef(null);
@@ -519,6 +522,41 @@ const MockTestAttempt = () => {
       });
       saveResponse(questionId, null);
     }
+  };
+
+  const handleKeypadInput = (key) => {
+    const questionId = getCurrentQuestion()?._id;
+    if (!questionId) return;
+    
+    const currentValue = responses[questionId] || '';
+    let newValue = currentValue;
+    
+    if (key === 'Backspace') {
+      newValue = currentValue.slice(0, -1);
+    } else if (key === 'Clear') {
+      newValue = '';
+    } else if (key === 'Left') {
+      if (numericInputRef.current) {
+        const pos = numericInputRef.current.selectionStart;
+        numericInputRef.current.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1));
+        numericInputRef.current.focus();
+      }
+      return;
+    } else if (key === 'Right') {
+      if (numericInputRef.current) {
+        const pos = numericInputRef.current.selectionStart;
+        const len = currentValue.length;
+        numericInputRef.current.setSelectionRange(Math.min(len, pos + 1), Math.min(len, pos + 1));
+        numericInputRef.current.focus();
+      }
+      return;
+    } else {
+      if (key === '-' && currentValue.includes('-')) return;
+      if (key === '.' && currentValue.includes('.')) return;
+      newValue = currentValue + key;
+    }
+    
+    handleAnswerSelect(newValue);
   };
 
   const handleNextQuestion = () => {
@@ -1182,21 +1220,69 @@ const MockTestAttempt = () => {
                   <div className="tita-label">
                     {currentQuestionData?.questionType === 'NUMERIC' ? 'Enter your numeric answer:' : 'Type your answer:'}
                   </div>
-                  <div className="tita-input-container">
-                    <input
-                      type={currentQuestionData?.questionType === 'NUMERIC' ? 'number' : 'text'}
-                      step="any"
-                      className="tita-input"
-                      value={responses[currentQuestionData?._id] || ''}
-                      onChange={(e) => handleAnswerSelect(e.target.value)}
-                      placeholder={currentQuestionData?.questionType === 'NUMERIC' ? 'Enter number...' : 'Type answer here...'}
-                      disabled={isCurrentSectionLocked}
-                    />
-                  </div>
-                  <div className="tita-hint">
-                    {currentQuestionData?.questionType === 'NUMERIC' 
-                      ? 'Enter only the numeric value (decimals allowed)'
-                      : 'Type your answer exactly as required'}
+                  <div className="tita-input-wrapper">
+                    <div className="tita-toolbar">
+                      <button 
+                        type="button" 
+                        className={`tita-toolbar-btn ${showNumericKeypad ? 'active' : ''}`}
+                        onClick={() => setShowNumericKeypad(!showNumericKeypad)}
+                        title="Toggle Keypad"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M4 5h3v3H4V5zm5 0h3v3H9V5zm5 0h3v3h-3V5zM4 10h3v3H4v-3zm5 0h3v3H9v-3zm5 0h3v3h-3v-3zM4 15h3v3H4v-3zm5 0h3v3H9v-3zm5 0h3v3h-3v-3z"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="tita-input-container">
+                      <input
+                        ref={numericInputRef}
+                        type="text"
+                        className="tita-input"
+                        value={responses[currentQuestionData?._id] || ''}
+                        onChange={(e) => handleAnswerSelect(e.target.value)}
+                        placeholder={currentQuestionData?.questionType === 'NUMERIC' ? 'Enter number...' : 'Type answer here...'}
+                        disabled={isCurrentSectionLocked}
+                      />
+                    </div>
+                    <div className="tita-hint">
+                      {currentQuestionData?.questionType === 'NUMERIC' 
+                        ? 'Enter only the numeric value (decimals allowed)'
+                        : 'Type your answer exactly as required'}
+                    </div>
+                    {showNumericKeypad && (
+                      <div className="numeric-keypad">
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn keypad-fn" onClick={() => handleKeypadInput('Backspace')}>Backspace</button>
+                        </div>
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('7')}>7</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('8')}>8</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('9')}>9</button>
+                        </div>
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('4')}>4</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('5')}>5</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('6')}>6</button>
+                        </div>
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('1')}>1</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('2')}>2</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('3')}>3</button>
+                        </div>
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('0')}>0</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('.')}>.</button>
+                          <button type="button" className="keypad-btn" onClick={() => handleKeypadInput('-')}>-</button>
+                        </div>
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn keypad-arrow" onClick={() => handleKeypadInput('Left')}>←</button>
+                          <button type="button" className="keypad-btn keypad-arrow" onClick={() => handleKeypadInput('Right')}>→</button>
+                        </div>
+                        <div className="keypad-row">
+                          <button type="button" className="keypad-btn keypad-fn" onClick={() => handleKeypadInput('Clear')}>Clear All</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : currentQuestionData?.options ? (
