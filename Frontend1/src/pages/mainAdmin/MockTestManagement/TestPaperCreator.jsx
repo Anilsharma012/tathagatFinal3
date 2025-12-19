@@ -48,16 +48,14 @@ const TestPaperCreator = ({
   });
 
   useEffect(() => {
-    if (selectedCourse) {
-      loadTests();
-    }
+    loadTests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCourse, testType]);
 
   const loadTests = async () => {
     try {
       setLoading(true);
-      let filter = `courseId=${selectedCourse}&testType=${testType}`;
+      let filter = selectedCourse ? `courseId=${selectedCourse}&testType=${testType}` : `courseId=free&testType=${testType}`;
       
       // Add hierarchy filters for Previous Year Papers
       if (testType === 'previousYear') {
