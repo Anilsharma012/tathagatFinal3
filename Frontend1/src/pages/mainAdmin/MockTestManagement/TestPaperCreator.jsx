@@ -97,21 +97,20 @@ const TestPaperCreator = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!selectedCourse) {
-      alert('Please select a course first');
-      return;
-    }
 
     try {
       setLoading(true);
 
       const testData = {
         ...formData,
-        courseId: selectedCourse,
         testType: testType,
-        totalMarks: formData.sections.reduce((sum, sec) => sum + sec.totalMarks, 0)
+        totalMarks: formData.sections.reduce((sum, sec) => sum + sec.totalMarks, 0),
+        isFree: !selectedCourse
       };
+      
+      if (selectedCourse) {
+        testData.courseId = selectedCourse;
+      }
 
       // Add hierarchy mapping for Previous Year Papers
       if (testType === 'previousYear') {
