@@ -906,11 +906,11 @@
 }
 
 .floating-tools {
-  position: fixed;
-  bottom: 70px;
+  position: absolute;
+  top: 8px;
   left: 8px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 6px;
   z-index: 100;
 }
