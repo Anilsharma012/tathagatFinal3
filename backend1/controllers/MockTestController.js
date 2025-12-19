@@ -463,6 +463,25 @@ const startTestAttempt = async (req, res) => {
       );
     }
 
+    // Also check if user has access via course enrollment
+    if (!isEnrolled && test.courseId && userId) {
+      try {
+        const User = require('../models/UserSchema');
+        const user = await User.findById(userId).select('enrolledCourses');
+        if (user && user.enrolledCourses) {
+          const courseIdStr = test.courseId.toString();
+          isEnrolled = user.enrolledCourses.some(
+            enrollment => enrollment.courseId && enrollment.courseId.toString() === courseIdStr
+          );
+          if (isEnrolled) {
+            console.log(`✅ User has access via course enrollment: ${courseIdStr}`);
+          }
+        }
+      } catch (courseCheckError) {
+        console.error('Error checking course enrollment:', courseCheckError.message);
+      }
+    }
+
     if (!test.isFree && !isEnrolled) {
       return res.status(403).json({
         success: false,
