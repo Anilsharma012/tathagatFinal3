@@ -1214,29 +1214,9 @@ const MockTestAttempt = () => {
               ))}
 
               <div className="question-options">
-              {/* TITA/NUMERIC Question Input */}
+              {/* TITA/NUMERIC Question Input - CAT-style Keypad Only */}
               {(currentQuestionData?.questionType === 'TITA' || currentQuestionData?.questionType === 'NUMERIC') ? (
                 <div className="tita-input-section">
-                  <div className="tita-label">
-                    {currentQuestionData?.questionType === 'NUMERIC' ? 'Enter your numeric answer:' : 'Type your answer:'}
-                  </div>
-                  <div className="tita-input-container">
-                    <input
-                      ref={numericInputRef}
-                      type="text"
-                      className="tita-input"
-                      value={responses[currentQuestionData?._id] || ''}
-                      onChange={(e) => handleAnswerSelect(e.target.value)}
-                      placeholder={currentQuestionData?.questionType === 'NUMERIC' ? 'Enter number...' : 'Type answer here...'}
-                      disabled={isCurrentSectionLocked}
-                    />
-                  </div>
-                  <div className="tita-hint">
-                    {currentQuestionData?.questionType === 'NUMERIC' 
-                      ? 'Enter only the numeric value (decimals allowed)'
-                      : 'Type your answer exactly as required'}
-                  </div>
-                  
                   {/* CAT-style Numeric Keypad */}
                   <div className="numeric-keypad">
                     <div className="keypad-display">
