@@ -4,58 +4,77 @@ const userSchema = new mongoose.Schema({
     email: {
         type: String,
         unique: true,
-        sparse: true, // ✅ So multiple nulls allowed
+        sparse: true,
         trim: true
-      },
-      phoneNumber: {
+    },
+    phoneNumber: {
         type: String,
         unique: true,
-        sparse: true, // ✅ Same for phone
+        sparse: true,
         match: [/^\d{10}$/, "Invalid phone number"],
-      },
-
-      
-
-
-      
-      
+    },
     isEmailVerified: {
         type: Boolean,
-        default: false, // ✅ Pehle false rahega, OTP verify hone pe true hoga
+        default: false,
     },
     isPhoneVerified: {
         type: Boolean,
-        default: false, // ✅ Pehle false rahega, phone OTP verify hone pe true hoga
+        default: false,
     },
     role: {
         type: String,
         enum: ["admin", "student", "subadmin"],
-        default: "student", // ✅ Default role student hoga
+        default: "student",
     },
     name: {
         type: String,
-        default: null, // ✅ Initially null, user enters later
+        default: null,
     },
     dob: {
         type: String,
-        default: null, // ✅ Initially null, user enters later
+        default: null,
     },
     gender: {
         type: String,
         enum: ["Male", "Female", "Other"],
-        default: null, // ✅ Initially null
+        default: null,
     },
     city: {
         type: String,
-        default: null, // ✅ Initially null
+        default: null,
+    },
+    state: {
+        type: String,
+        default: null,
     },
     profilePic: {
         type: String,
-        default: null, // ✅ User uploads later
+        default: null,
     },
     selectedCategory: {
         type: String,
-        default: null, // ✅ MBA, GMAT, Govt Exams, etc.
+        default: null,
+    },
+    targetYear: {
+        type: String,
+        default: null,
+    },
+    isOnboardingComplete: {
+        type: Boolean,
+        default: false,
+    },
+    notificationPreferences: {
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: true },
+        analytics: { type: Boolean, default: true }
+    },
+    streak: {
+        type: Number,
+        default: 0,
+    },
+    points: {
+        type: Number,
+        default: 0,
     },
     enrolledCourses: [
   {

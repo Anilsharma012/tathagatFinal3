@@ -18,6 +18,9 @@ import Header from "./components/Header/Header";
 import Footer from "./components/Footer/Footer";
 
 import Login from "./components/Login/Login";
+import AuthLogin from "./pages/Auth/AuthLogin";
+import StudentOnboarding from "./pages/Student/Onboarding/StudentOnboarding";
+import StudentProfile from "./pages/Student/Profile/StudentProfile";
 
 import UserDetails from "./components/UserDetails/Userdetails/UserDetails";
 import ExamCategory from "./components/UserDetails/ExamCategory/ExamCategory";
@@ -672,6 +675,10 @@ const AppContent = () => {
           }
         />
 
+        {/* Auth routes */}
+        <Route path="/auth/login" element={<AuthLogin />} />
+        <Route path="/student/onboarding" element={<StudentOnboarding />} />
+
         {/* Other routes */}
         <Route path="/user-details" element={<UserDetails />} />
         <Route path="/exam-category" element={<ExamCategory />} />
@@ -726,6 +733,7 @@ const AppContent = () => {
           <Route path="ocr-upload" element={<StudentOCRUpload />} />
           <Route path="omr-upload" element={<StudentOMRUpload />} />
           <Route path="reports" element={<StudentReports />} />
+          <Route path="profile" element={<StudentProfile />} />
           <Route path="course/:courseId" element={<CourseViewer />} />
           <Route path="course-content/:courseId" element={<StudentCourseContentManager />} />
           <Route path="continue-learning" element={<ContinueLearning />} />

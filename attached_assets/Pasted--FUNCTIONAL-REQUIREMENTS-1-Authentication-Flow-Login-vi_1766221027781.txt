@@ -1,0 +1,76 @@
+
+FUNCTIONAL REQUIREMENTS:
+1. Authentication Flow
+   - Login via Phone Number (OTP based)
+   - Login via Email
+   - After first successful login, guide the user through a structured onboarding flow
+
+2. Onboarding Flow (Multi-Step)
+   Step 1: Basic Details
+   - Full Name
+   - Phone Number (auto-filled from login, non-editable)
+   - Email (if available)
+   - Gender
+   - Date of Birth
+
+   Step 2: Exam Preferences
+   - Exam Category (MBA / After 12 / GMAT / Govt Exams)
+   - Exam Type (CAT / XAT / SNAP / MAT etc.)
+   - Target Year
+
+   Step 3: Location
+   - City
+   - State
+
+3. Data Handling (VERY IMPORTANT)
+   - All onboarding data must be saved in the user profile schema
+   - After onboarding completion:
+     → Redirect user to Dashboard
+     → Profile page must auto-populate all previously entered data
+   - Profile page must allow:
+     - Edit details
+     - Update preferences
+     - Change profile photo
+
+4. Profile Page Requirements
+   Sections:
+   - Profile Card (Photo, Name, Email, Phone, Streak, Points)
+   - Personal Information (Editable form)
+   - Exam Preferences
+   - Notification Preferences (Email, SMS, Analytics toggles)
+
+   UX Rules:
+   - No empty fields if user already entered data earlier
+   - Consistent data across login, onboarding, profile, and dashboard
+   - Changes saved instantly with success feedback
+
+UI / UX DESIGN REQUIREMENTS:
+- Look premium, clean, and professional (Top Indian EdTech standard)
+- Use:
+  - Dark Blue + Coral/Orange accent palette
+  - Rounded cards
+  - Soft shadows
+  - Clear typography
+- Proper spacing, alignment, and hierarchy
+- No clutter, no cheap gradients
+- Desktop-first but responsive
+
+DESIGN STYLE REFERENCES:
+- TathaGat
+- TIME Institute
+- Unacademy (clean sections, not flashy)
+- Apple-level clarity (simple, confident UI)
+
+DELIVERABLES:
+1. Login Screen UI
+2. OTP Verification UI
+3. Onboarding Screens (Step-wise)
+4. Student Profile Page UI
+5. Clear explanation of:
+   - Data flow
+   - State management logic
+   - Backend API expectations (user schema, update profile, get profile)
+
+IMPORTANT:
+Assume this is a real production system for thousands of students.
+Design and logic should be scalable, consistent, and future-proof.
