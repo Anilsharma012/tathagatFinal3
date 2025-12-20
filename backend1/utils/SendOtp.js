@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
-const axios=require("axios")
+const axios = require("axios");
 
 // Create transporter with better error handling
 const createTransporter = async () => {
@@ -10,7 +10,7 @@ const createTransporter = async () => {
             // Create a test account for development
             const testAccount = await nodemailer.createTestAccount();
 
-            console.log('📧 Using Ethereal Email for development testing');
+            console.log('Using Ethereal Email for development testing');
             console.log('Test account:', testAccount.user);
 
             return nodemailer.createTransport({
@@ -23,13 +23,13 @@ const createTransporter = async () => {
                 },
             });
         } catch (error) {
-            console.warn('⚠️ Could not create test email account, falling back to Gmail');
+            console.warn('Could not create test email account, falling back to Gmail');
         }
     }
 
     // Production Gmail configuration
     if (!process.env.EMAIL || !process.env.EMAIL_PASSWORD) {
-        console.warn('⚠️ Gmail credentials not configured');
+        console.warn('Gmail credentials not configured');
         return null;
     }
 
@@ -59,7 +59,7 @@ exports.sendOtpEmailUtil = async (email, otpCode) => {
         const mailOptions = {
             from: process.env.EMAIL || 'noreply@tathagat.com',
             to: email,
-            subject: '🔐 TathaGat - Your OTP Code',
+            subject: 'TathaGat - Your OTP Code',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <h2 style="color: #4f46e5; text-align: center;">TathaGat OTP Verification</h2>
@@ -82,35 +82,43 @@ exports.sendOtpEmailUtil = async (email, otpCode) => {
         if (process.env.NODE_ENV === 'development' && info.messageId) {
             const previewUrl = nodemailer.getTestMessageUrl(info);
             if (previewUrl) {
-                console.log('📧 Preview email: ' + previewUrl);
+                console.log('Preview email: ' + previewUrl);
             }
         }
 
-        console.log(`✅ Email sent successfully to ${email} (Message ID: ${info.messageId})`);
+        console.log(`Email sent successfully to ${email} (Message ID: ${info.messageId})`);
 
     } catch (error) {
-        console.error('❌ Error sending OTP email:', error.message);
-        throw error; // Re-throw so controller can handle it
+        console.error('Error sending OTP email:', error.message);
+        throw error;
     }
 };
 
-
 exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
     try {
-      const payload = {
-        api_key: process.env.KARIX_API_KEY, // Karix API Key from .env
-        to: phoneNumber,
-        sender: process.env.KARIX_SENDER_ID, // Karix Sender ID
-        message: `Your OTP is ${otpCode}`
-      };
-  
-      const response = await axios.post("https://alerts.karix.co/api/v1/message", payload, {
-        headers: { "Content-Type": "application/json" }
-      });
-      
-  
-      console.log("✅ OTP Sent Successfully!", response.data);
+        // Format phone number with country code (91 for India)
+        const formattedPhone = phoneNumber.startsWith('91') ? phoneNumber : `91${phoneNumber}`;
+
+        const payload = {
+            api_key: process.env.KARIX_API_KEY,
+            to: formattedPhone,
+            sender: process.env.KARIX_SENDER_ID || 'TATHGT',
+            message: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`
+        };
+
+        console.log(`Sending OTP to ${formattedPhone}...`);
+
+        const response = await axios.post("https://alerts.karix.co/api/v1/message", payload, {
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (response.data) {
+            console.log(`Karix SMS response:`, JSON.stringify(response.data));
+        }
+
+        return response.data;
     } catch (error) {
-      console.error("❌ Error sending OTP:", error.response ? error.response.data : error);
+        console.error("Error sending OTP via Karix:", error.response ? error.response.data : error.message);
+        throw new Error("Failed to send OTP. Please try again.");
     }
-  };
+};
