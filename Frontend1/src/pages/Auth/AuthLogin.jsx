@@ -117,7 +117,7 @@ const AuthLogin = () => {
       if (loginMethod === "phone") {
         response = await axios.post("/api/auth/phone/mobileVerify-otp", { 
           phoneNumber: phone, 
-          otp: otpCode 
+          otpCode 
         });
       } else {
         response = await axios.post("/api/auth/email/verify", { 
@@ -188,7 +188,7 @@ const AuthLogin = () => {
             <p className="auth-subtitle">
               {step === "input" 
                 ? "Sign in to continue your preparation journey" 
-                : `Enter the 6-digit code sent to ${loginMethod === "phone" ? phone : email}`
+                : `Enter the 6-digit code sent to ${loginMethod === "phone" ? `+91 ${phone.slice(0,5)}XXXXX` : email}`
               }
             </p>
 
