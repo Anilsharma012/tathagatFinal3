@@ -52,6 +52,8 @@ exports.sendPhoneOtp = async (req, res) => {
 exports.verifyPhoneOtp = async (req, res) => {
   try {
     const { phoneNumber, otpCode } = req.body;
+    console.log(`[OTP Verify] Request - Phone: ${phoneNumber}, OTP entered: ${otpCode}`);
+    
     if (!phoneNumber || !otpCode) {
       return res.status(400).json({ message: "Phone number and OTP are required" });
     }
@@ -62,12 +64,15 @@ exports.verifyPhoneOtp = async (req, res) => {
 
     // Find user by phone number
     let user = await User.findOne({ phoneNumber });
+    console.log(`[OTP Verify] User found: ${user ? user._id : 'NOT FOUND'}`);
+    
     if (!user) {
       return res.status(404).json({ message: "User not found. Please request a new OTP." });
     }
 
     // Find the most recent OTP for this user
     const otpRecord = await OTP.findOne({ userId: user._id }).sort({ createdAt: -1 });
+    console.log(`[OTP Verify] OTP in DB: ${otpRecord ? otpRecord.otpCode : 'NONE'}, User entered: ${otpCode}`);
     
     if (!otpRecord) {
       return res.status(400).json({ message: "No OTP found. Please request a new OTP." });
@@ -75,12 +80,15 @@ exports.verifyPhoneOtp = async (req, res) => {
 
     // Check if OTP has expired (5 minutes)
     const otpAge = Date.now() - new Date(otpRecord.createdAt).getTime();
+    console.log(`[OTP Verify] OTP age: ${otpAge/1000}s, Expired: ${otpAge > 5 * 60 * 1000}`);
+    
     if (otpAge > 5 * 60 * 1000) {
       await OTP.deleteOne({ _id: otpRecord._id });
       return res.status(400).json({ message: "OTP has expired. Please request a new OTP." });
     }
 
     // Verify OTP
+    console.log(`[OTP Verify] Comparing: stored='${otpRecord.otpCode}' vs entered='${otpCode}' - Match: ${otpRecord.otpCode === otpCode}`);
     if (otpRecord.otpCode !== otpCode) {
       return res.status(400).json({ message: "Invalid OTP. Please check and try again." });
     }
