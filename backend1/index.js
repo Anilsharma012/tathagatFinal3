@@ -1,4 +1,9 @@
 /* eslint-disable no-console */
+
+// Fix DNS resolution for IPv4 (required for Karix API in Replit environment)
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+
 const fs = require("fs");
 const path = require("path");
 const express = require("express");

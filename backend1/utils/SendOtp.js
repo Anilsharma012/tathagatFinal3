@@ -99,76 +99,64 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
         // Format phone number (remove +91 or 91 prefix if present)
         let cleanPhone = phoneNumber.replace(/^\+?91/, '');
         cleanPhone = cleanPhone.replace(/\D/g, ''); // Remove non-digits
+        const formattedWithPlus = `+91${cleanPhone}`;
         
-        console.log(`Sending OTP ${otpCode} to ${cleanPhone}...`);
+        console.log(`[Karix SMS] Sending OTP to ${formattedWithPlus}...`);
 
-        // Try Fast2SMS first (India's reliable SMS provider)
-        const fast2smsKey = process.env.FAST2SMS_API_KEY;
+        // Use ONLY Karix API
+        const karixApiKey = process.env.KARIX_API_KEY;
+        const karixSenderId = process.env.KARIX_SENDER_ID || "TATHGT";
         
-        if (fast2smsKey) {
-            try {
-                const response = await axios.post('https://www.fast2sms.com/dev/bulkV2', {
-                    variables_values: otpCode,
-                    route: 'otp',
-                    numbers: cleanPhone
-                }, {
-                    headers: {
-                        'authorization': fast2smsKey,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 10000
-                });
-
-                if (response.data && response.data.return) {
-                    console.log(`Fast2SMS response:`, JSON.stringify(response.data));
-                    return { status: 'success', provider: 'fast2sms', data: response.data };
-                }
-            } catch (fast2smsError) {
-                console.error("Fast2SMS error:", fast2smsError.response?.data || fast2smsError.message);
-            }
+        if (!karixApiKey) {
+            console.error("[Karix SMS] ERROR: KARIX_API_KEY not configured in environment");
+            throw new Error("Karix API key not configured");
         }
 
-        // Try Karix as fallback
-        const karixKey = process.env.KARIX_API_KEY;
-        
-        if (karixKey) {
-            try {
-                const formattedWithPlus = `+91${cleanPhone}`;
-                const payload = {
-                    channel: "sms",
-                    source: process.env.KARIX_SENDER_ID || "TATHGT",
-                    destination: [formattedWithPlus],
-                    content: {
-                        text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`
-                    }
-                };
+        console.log(`[Karix SMS] Using Sender ID: ${karixSenderId}`);
+        console.log(`[Karix SMS] API Key configured: ${karixApiKey.substring(0, 10)}...`);
 
-                const response = await axios.post("https://api.karix.io/message/", payload, {
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "api-version": "2.0",
-                        "Authorization": `Bearer ${karixKey}`
-                    },
-                    timeout: 10000
-                });
-
-                if (response.data) {
-                    console.log(`Karix SMS response:`, JSON.stringify(response.data));
-                    return { status: 'success', provider: 'karix', data: response.data };
-                }
-            } catch (karixError) {
-                console.error("Karix error:", karixError.response?.data || karixError.message);
+        // Karix API v2 payload
+        const payload = {
+            channel: "sms",
+            source: karixSenderId,
+            destination: [formattedWithPlus],
+            content: {
+                text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`
             }
-        }
+        };
 
-        // If both SMS providers fail, log OTP for development/testing
-        console.log(`[SMS FALLBACK] No SMS provider available. OTP for phone ${cleanPhone}: ${otpCode}`);
-        console.log(`[SMS FALLBACK] For testing, use OTP: ${otpCode}`);
+        console.log(`[Karix SMS] Request payload:`, JSON.stringify(payload, null, 2));
+
+        const response = await axios.post("https://api.karix.io/message/", payload, {
+            headers: { 
+                "Content-Type": "application/json",
+                "api-version": "2.0",
+                "Authorization": `Bearer ${karixApiKey}`
+            },
+            timeout: 15000
+        });
+
+        console.log(`[Karix SMS] Response status: ${response.status}`);
+        console.log(`[Karix SMS] Response data:`, JSON.stringify(response.data));
         
-        return { status: 'fallback', message: 'SMS not sent - check logs for OTP' };
+        return { status: 'success', provider: 'karix', data: response.data };
+
     } catch (error) {
-        console.error("Error in sendOtpPhoneUtil:", error.message);
-        console.log(`[SMS ERROR FALLBACK] OTP for testing: ${otpCode}`);
-        return { status: 'error', message: error.message };
+        const errorDetails = error.response?.data || error.message;
+        console.error("[Karix SMS] ERROR:", errorDetails);
+        
+        if (error.code === 'ENOTFOUND') {
+            console.error("[Karix SMS] DNS resolution failed. Check network connectivity.");
+        }
+        
+        if (error.response?.status === 401) {
+            console.error("[Karix SMS] Authentication failed. Check KARIX_API_KEY.");
+        }
+        
+        if (error.response?.status === 403) {
+            console.error("[Karix SMS] Forbidden. Check API permissions or sender ID.");
+        }
+
+        throw new Error(`SMS sending failed: ${error.message}`);
     }
 };
