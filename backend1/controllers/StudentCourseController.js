@@ -51,20 +51,11 @@ const checkCourseAccess = async (userId, courseId, skipDateCheck = false) => {
   try {
     console.log(`🔍 checkCourseAccess: userId=${userId}, courseId=${courseId}`);
     
-    // Check if course exists first
+    // Check if course exists (don't check published yet - enrolled users can access unpublished courses)
     const course = await Course.findById(courseId);
-    if (!course || !course.published) {
-      console.log('❌ Course not found or not published');
+    if (!course) {
+      console.log('❌ Course not found');
       return { hasAccess: false, message: "Course not available" };
-    }
-
-    // Check date-based access (unless explicitly skipped for course info display)
-    if (!skipDateCheck) {
-      const dateAccess = checkCourseDateAccess(course);
-      if (!dateAccess.hasAccess) {
-        console.log(`📅 Date-based access denied: ${dateAccess.message}`);
-        return { ...dateAccess, course };
-      }
     }
 
     // In development mode with dev admin ID, grant access to all courses
@@ -84,7 +75,6 @@ const checkCourseAccess = async (userId, courseId, skipDateCheck = false) => {
     
     if (!user) {
       console.log('❌ User not found:', userId);
-      // In dev mode, grant access even if user not found to prevent blocking
       if (process.env.NODE_ENV === 'development') {
         console.log('🔧 Dev mode: Granting access despite user not found');
         return { hasAccess: true, course };
@@ -100,9 +90,35 @@ const checkCourseAccess = async (userId, courseId, skipDateCheck = false) => {
       (c) => c.courseId && c.courseId.toString() === courseId && c.status === "unlocked"
     );
 
+    // If user is enrolled with unlocked status, grant access even if course is not published
     if (enrollment) {
-      console.log('✅ User has unlocked access to this course');
+      console.log('✅ User has unlocked access to this course (enrolled)');
+      
+      // Still check date-based access for enrolled users
+      if (!skipDateCheck) {
+        const dateAccess = checkCourseDateAccess(course);
+        if (!dateAccess.hasAccess) {
+          console.log(`📅 Date-based access denied: ${dateAccess.message}`);
+          return { ...dateAccess, course };
+        }
+      }
+      
       return { hasAccess: true, course };
+    }
+
+    // For non-enrolled users, course must be published
+    if (!course.published) {
+      console.log('❌ Course not published and user not enrolled');
+      return { hasAccess: false, message: "Course not available" };
+    }
+
+    // Check date-based access for non-enrolled users
+    if (!skipDateCheck) {
+      const dateAccess = checkCourseDateAccess(course);
+      if (!dateAccess.hasAccess) {
+        console.log(`📅 Date-based access denied: ${dateAccess.message}`);
+        return { ...dateAccess, course };
+      }
     }
 
     // In dev mode, be more lenient
@@ -112,13 +128,12 @@ const checkCourseAccess = async (userId, courseId, skipDateCheck = false) => {
     }
 
     console.log('❌ Course not unlocked for user');
-    return { hasAccess: false, message: "Course not unlocked or not enrolled" };
+    return { hasAccess: false, message: "You need to purchase this course to access its content." };
   } catch (error) {
     console.error("Error checking course access:", error);
-    // In dev mode, grant access even on error
     if (process.env.NODE_ENV === 'development') {
       const course = await Course.findById(courseId);
-      if (course && course.published) {
+      if (course) {
         console.log('🔧 Dev mode: Granting access despite error');
         return { hasAccess: true, course };
       }
