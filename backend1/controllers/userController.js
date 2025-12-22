@@ -155,15 +155,49 @@ exports.verifyToken = async (req, res) => {
       });
     }
 
-    const secret = process.env.JWT_SECRET || "dev_jwt_secret_change_me";
+    const secret = process.env.JWT_SECRET || "default_secret_key";
     const decoded = jwt.verify(token, secret);
+
+    // Fetch full user from database
+    const user = await User.findById(decoded.id).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        msg: "User not found",
+      });
+    }
+
+    // Determine redirect based on onboarding status
+    let redirectTo = "/student/dashboard";
+    if (!user.isOnboardingComplete) {
+      redirectTo = "/student/onboarding";
+    } else if (!user.name || !user.email) {
+      redirectTo = "/user-details";
+    }
 
     return res.json({
       status: true,
       msg: "Token valid",
-      data: decoded,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        isPhoneVerified: user.isPhoneVerified,
+        isOnboardingComplete: user.isOnboardingComplete,
+        targetYear: user.targetYear,
+        selectedExam: user.selectedExam,
+        selectedCategory: user.selectedCategory,
+        state: user.state,
+        city: user.city,
+        gender: user.gender,
+        dob: user.dob
+      },
+      redirectTo
     });
   } catch (err) {
+    console.error("Token verify error:", err);
     return res.status(401).json({
       status: false,
       msg: "Token invalid",
