@@ -96,52 +96,79 @@ exports.sendOtpEmailUtil = async (email, otpCode) => {
 
 exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
     try {
-        // Format phone number with country code (91 for India)
-        const formattedPhone = phoneNumber.startsWith('91') ? phoneNumber : `91${phoneNumber}`;
-        const formattedWithPlus = `+${formattedPhone}`;
-
-        console.log(`Sending OTP to ${formattedWithPlus}...`);
-
-        // Try Karix API v2 (new endpoint)
-        const apiKey = process.env.KARIX_API_KEY;
+        // Format phone number (remove +91 or 91 prefix if present)
+        let cleanPhone = phoneNumber.replace(/^\+?91/, '');
+        cleanPhone = cleanPhone.replace(/\D/g, ''); // Remove non-digits
         
-        if (!apiKey) {
-            console.error("KARIX_API_KEY not configured");
-            throw new Error("SMS service not configured");
-        }
+        console.log(`Sending OTP ${otpCode} to ${cleanPhone}...`);
 
-        // Karix API v2 format
-        const payload = {
-            channel: "sms",
-            source: process.env.KARIX_SENDER_ID || "TATHGT",
-            destination: [formattedWithPlus],
-            content: {
-                text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`
+        // Try Fast2SMS first (India's reliable SMS provider)
+        const fast2smsKey = process.env.FAST2SMS_API_KEY;
+        
+        if (fast2smsKey) {
+            try {
+                const response = await axios.post('https://www.fast2sms.com/dev/bulkV2', {
+                    variables_values: otpCode,
+                    route: 'otp',
+                    numbers: cleanPhone
+                }, {
+                    headers: {
+                        'authorization': fast2smsKey,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                });
+
+                if (response.data && response.data.return) {
+                    console.log(`Fast2SMS response:`, JSON.stringify(response.data));
+                    return { status: 'success', provider: 'fast2sms', data: response.data };
+                }
+            } catch (fast2smsError) {
+                console.error("Fast2SMS error:", fast2smsError.response?.data || fast2smsError.message);
             }
-        };
-
-        const response = await axios.post("https://api.karix.io/message/", payload, {
-            headers: { 
-                "Content-Type": "application/json",
-                "api-version": "2.0",
-                "Authorization": `Bearer ${apiKey}`
-            },
-            timeout: 10000
-        });
-
-        if (response.data) {
-            console.log(`Karix SMS response:`, JSON.stringify(response.data));
         }
 
-        return response.data;
+        // Try Karix as fallback
+        const karixKey = process.env.KARIX_API_KEY;
+        
+        if (karixKey) {
+            try {
+                const formattedWithPlus = `+91${cleanPhone}`;
+                const payload = {
+                    channel: "sms",
+                    source: process.env.KARIX_SENDER_ID || "TATHGT",
+                    destination: [formattedWithPlus],
+                    content: {
+                        text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`
+                    }
+                };
+
+                const response = await axios.post("https://api.karix.io/message/", payload, {
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "api-version": "2.0",
+                        "Authorization": `Bearer ${karixKey}`
+                    },
+                    timeout: 10000
+                });
+
+                if (response.data) {
+                    console.log(`Karix SMS response:`, JSON.stringify(response.data));
+                    return { status: 'success', provider: 'karix', data: response.data };
+                }
+            } catch (karixError) {
+                console.error("Karix error:", karixError.response?.data || karixError.message);
+            }
+        }
+
+        // If both SMS providers fail, log OTP for development/testing
+        console.log(`[SMS FALLBACK] No SMS provider available. OTP for phone ${cleanPhone}: ${otpCode}`);
+        console.log(`[SMS FALLBACK] For testing, use OTP: ${otpCode}`);
+        
+        return { status: 'fallback', message: 'SMS not sent - check logs for OTP' };
     } catch (error) {
-        console.error("Error sending OTP via Karix:", error.response ? error.response.data : error.message);
-        
-        // If Karix fails, log the OTP for testing (remove in production)
-        console.log(`[FALLBACK] OTP for testing: ${otpCode}`);
-        
-        // Don't throw error - let the flow continue for testing
-        // In production, you would throw here
-        return { status: 'fallback', message: 'OTP logged for testing' };
+        console.error("Error in sendOtpPhoneUtil:", error.message);
+        console.log(`[SMS ERROR FALLBACK] OTP for testing: ${otpCode}`);
+        return { status: 'error', message: error.message };
     }
 };
