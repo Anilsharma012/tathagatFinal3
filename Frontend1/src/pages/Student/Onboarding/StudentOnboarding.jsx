@@ -165,6 +165,14 @@ const StudentOnboarding = () => {
         }
       );
 
+      // Handle account merge - new token provided
+      if (response.data.merged && response.data.token) {
+        localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.data));
+        navigate(response.data.redirectTo || "/student/dashboard");
+        return;
+      }
+
       const updatedUser = {
         ...JSON.parse(localStorage.getItem("user") || "{}"),
         ...formData,
@@ -174,7 +182,7 @@ const StudentOnboarding = () => {
       
       navigate("/student/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to save details. Please try again.");
+      setError(err.response?.data?.msg || err.response?.data?.message || "Failed to save details. Please try again.");
     } finally {
       setLoading(false);
     }

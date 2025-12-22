@@ -262,13 +262,56 @@ exports.updateDetails = async (req, res) => {
       if (req.body[k] !== undefined) updates[k] = req.body[k];
     }
 
-    // Prevent accidental duplicates
+    // Get current user to check login method
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ status: false, msg: "User not found" });
+    }
+
+    // Handle email conflict - merge accounts if user logged in via phone
     if (updates.email) {
-      const exists = await User.findOne({
+      const existingEmailUser = await User.findOne({
         email: updates.email,
         _id: { $ne: userId },
       });
-      if (exists) {
+      
+      if (existingEmailUser) {
+        // If current user logged in via phone and email account exists, merge them
+        if (currentUser.isPhoneVerified && currentUser.phoneNumber) {
+          console.log(`[Account Merge] Merging phone account ${userId} into email account ${existingEmailUser._id}`);
+          
+          // Update existing email account with phone details
+          existingEmailUser.phoneNumber = currentUser.phoneNumber;
+          existingEmailUser.isPhoneVerified = true;
+          
+          // Copy any missing fields from phone account to email account
+          if (!existingEmailUser.city && currentUser.city) existingEmailUser.city = currentUser.city;
+          if (!existingEmailUser.state && currentUser.state) existingEmailUser.state = currentUser.state;
+          if (!existingEmailUser.name && currentUser.name) existingEmailUser.name = currentUser.name;
+          if (!existingEmailUser.gender && currentUser.gender) existingEmailUser.gender = currentUser.gender;
+          if (!existingEmailUser.dob && currentUser.dob) existingEmailUser.dob = currentUser.dob;
+          if (!existingEmailUser.targetYear && currentUser.targetYear) existingEmailUser.targetYear = currentUser.targetYear;
+          if (!existingEmailUser.selectedExam && currentUser.selectedExam) existingEmailUser.selectedExam = currentUser.selectedExam;
+          
+          existingEmailUser.isOnboardingComplete = true;
+          await existingEmailUser.save();
+          
+          // Delete the temporary phone-only account
+          await User.findByIdAndDelete(userId);
+          
+          // Generate new token for merged account
+          const newToken = signToken(existingEmailUser);
+          
+          return res.json({
+            status: true,
+            msg: "Accounts merged successfully",
+            merged: true,
+            token: newToken,
+            data: existingEmailUser,
+            redirectTo: "/student/dashboard"
+          });
+        }
+        
         return res.status(409).json({
           status: false,
           msg: "Email already in use",
