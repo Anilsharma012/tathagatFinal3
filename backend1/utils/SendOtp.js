@@ -99,9 +99,9 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
         // Format phone number (remove +91 or 91 prefix if present)
         let cleanPhone = phoneNumber.replace(/^\+?91/, '');
         cleanPhone = cleanPhone.replace(/\D/g, ''); // Remove non-digits
-        const formattedWithPlus = `+91${cleanPhone}`;
+        const formattedPhone = `91${cleanPhone}`; // Karix needs 91XXXXXXXXXX format
         
-        console.log(`[Karix SMS] Sending OTP to ${formattedWithPlus}...`);
+        console.log(`[Karix SMS] Sending OTP to ${formattedPhone}...`);
 
         // Use ONLY Karix API
         const karixApiKey = process.env.KARIX_API_KEY;
@@ -115,23 +115,27 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
         console.log(`[Karix SMS] Using Sender ID: ${karixSenderId}`);
         console.log(`[Karix SMS] API Key configured: ${karixApiKey.substring(0, 10)}...`);
 
-        // Karix API v2 payload
+        // Karix API v2 payload (NEW ENDPOINT: manage.karix.solutions)
         const payload = {
-            channel: "sms",
-            source: karixSenderId,
-            destination: [formattedWithPlus],
-            content: {
-                text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`
-            }
+            ver: "1.0",
+            key: karixApiKey,
+            messages: [
+                {
+                    dest: [formattedPhone],
+                    text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`,
+                    send: karixSenderId,
+                    type: "Plain",
+                    dlr_req: "1"
+                }
+            ]
         };
 
         console.log(`[Karix SMS] Request payload:`, JSON.stringify(payload, null, 2));
 
-        const response = await axios.post("https://api.karix.io/message/", payload, {
+        // Using the NEW Karix API endpoint
+        const response = await axios.post("https://manage.karix.solutions/api/v2/message", payload, {
             headers: { 
-                "Content-Type": "application/json",
-                "api-version": "2.0",
-                "Authorization": `Bearer ${karixApiKey}`
+                "Content-Type": "application/json"
             },
             timeout: 15000
         });
@@ -139,7 +143,13 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
         console.log(`[Karix SMS] Response status: ${response.status}`);
         console.log(`[Karix SMS] Response data:`, JSON.stringify(response.data));
         
-        return { status: 'success', provider: 'karix', data: response.data };
+        // Check for success
+        if (response.data && (response.data.status?.code === "200" || response.data.ackid)) {
+            return { status: 'success', provider: 'karix', data: response.data };
+        } else {
+            console.error("[Karix SMS] Unexpected response:", response.data);
+            throw new Error(`Karix API returned: ${JSON.stringify(response.data)}`);
+        }
 
     } catch (error) {
         const errorDetails = error.response?.data || error.message;
