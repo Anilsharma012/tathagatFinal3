@@ -115,7 +115,7 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
         console.log(`[Karix SMS] Using Sender ID: ${karixSenderId}`);
         console.log(`[Karix SMS] API Key configured: ${karixApiKey.substring(0, 10)}...`);
 
-        // Karix API v2 payload (NEW ENDPOINT: manage.karix.solutions)
+        // Karix API JSON payload
         const payload = {
             ver: "1.0",
             key: karixApiKey,
@@ -132,8 +132,8 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
 
         console.log(`[Karix SMS] Request payload:`, JSON.stringify(payload, null, 2));
 
-        // Using the NEW Karix API endpoint
-        const response = await axios.post("https://manage.karix.solutions/api/v2/message", payload, {
+        // Karix JSON API endpoint (japi.instaalerts.zone)
+        const response = await axios.post("https://japi.instaalerts.zone/httpapi/JsonReceiver", payload, {
             headers: { 
                 "Content-Type": "application/json"
             },
