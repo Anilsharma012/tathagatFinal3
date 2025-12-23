@@ -19,6 +19,8 @@ router.get("/get-students", adminAuth, adminController.getStudents);
 router.put("/update-student/:id", adminAuth, adminController.updateStudent);
 router.delete("/delete-student/:id", adminAuth, adminController.deleteStudent);
 router.get("/me", adminAuth, adminController.getProfile);
+router.put("/profile", adminAuth, adminController.updateProfile);
+router.post("/upload-profile", adminAuth, upload.single('profilePic'), adminController.uploadProfilePic);
 router.get("/paid-users", adminAuth, adminController.getPaidUsers);
 
 // Admin student progress routes

@@ -151,6 +151,58 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone, email } = req.body;
+    const admin = await Admin.findById(req.user.id);
+    
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    if (name !== undefined) admin.name = name;
+    if (phone !== undefined) admin.phone = phone;
+    if (email !== undefined && email !== admin.email) {
+      const existing = await Admin.findOne({ email, _id: { $ne: admin._id } });
+      if (existing) {
+        return res.status(400).json({ success: false, message: "Email already in use" });
+      }
+      admin.email = email;
+    }
+
+    await admin.save();
+    
+    const updatedAdmin = await Admin.findById(req.user.id).select("-password");
+    res.json({ success: true, message: "Profile updated successfully", admin: updatedAdmin });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+};
+
+exports.uploadProfilePic = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const admin = await Admin.findById(req.user.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    admin.profilePic = `/uploads/${req.file.filename}`;
+    await admin.save();
+
+    res.json({ 
+      success: true, 
+      message: "Profile picture updated", 
+      profilePic: admin.profilePic 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+};
+
 exports.getPaidUsers = async (req, res) => {
   try {
     const users = await User.find({

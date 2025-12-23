@@ -81,7 +81,7 @@ router.post("/", adminAuth, (req, res, next) => {
 
 // 📤 Image upload route - for billing settings logo etc.
 router.post("/image", adminAuth, (req, res, next) => {
-  upload.single("file")(req, res, (err) => {
+  upload.single("image")(req, res, (err) => {
     // Handle multer errors (file type, size, etc.)
     if (err instanceof multer.MulterError) {
       console.log("❌ Multer error:", err.message);

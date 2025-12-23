@@ -10,6 +10,22 @@ const AdminSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  name: {
+    type: String,
+    default: 'Admin'
+  },
+  phone: {
+    type: String,
+    default: ''
+  },
+  profilePic: {
+    type: String,
+    default: ''
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

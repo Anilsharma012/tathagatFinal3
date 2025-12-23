@@ -16,14 +16,16 @@ const generateReceiptHTML = (receiptData) => {
     amount,
     taxAmount,
     totalAmount,
-    currency
+    currency,
+    companyLogo
   } = receiptData;
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amt) => {
+    const numericAmt = Number(amt) || 0;
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency || 'INR'
-    }).format(amount / 100); // Convert paise to rupees
+    }).format(numericAmt);
   };
 
   const formatDate = (date) => {
@@ -187,11 +189,12 @@ const generateReceiptHTML = (receiptData) => {
     <body>
         <div class="receipt-container">
             <div class="header">
-                <div class="company-name">${company.name}</div>
+                ${companyLogo ? `<img src="${companyLogo}" alt="Company Logo" style="max-width: 150px; max-height: 80px; margin-bottom: 10px;" />` : ''}
+                <div class="company-name">${company?.name || 'Tathagat Education'}</div>
                 <div class="company-details">
-                    ${company.address}<br>
-                    Phone: ${company.phone} | Email: ${company.email}<br>
-                    ${company.gstin ? `GSTIN: ${company.gstin}` : ''}
+                    ${company?.address || ''}<br>
+                    Phone: ${company?.phone || ''} | Email: ${company?.email || ''}<br>
+                    ${company?.gstin ? `GSTIN: ${company.gstin}` : ''}
                 </div>
             </div>
 
@@ -247,7 +250,7 @@ const generateReceiptHTML = (receiptData) => {
                     ` : ''}
                     <div class="detail-row">
                         <span class="detail-label">Course Price:</span>
-                        <span class="detail-value">${formatCurrency(course.price * 100)}</span>
+                        <span class="detail-value">${formatCurrency(course?.price || 0)}</span>
                     </div>
                 </div>
             </div>

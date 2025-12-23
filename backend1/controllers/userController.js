@@ -1025,14 +1025,20 @@ exports.downloadReceipt = async (req, res) => {
     const { receiptId } = req.params;
     const format = req.query.format || 'json';
 
+    console.log(`[downloadReceipt] receiptId=${receiptId}, userId=${userId}, format=${format}`);
+
     if (!userId) {
+      console.log('[downloadReceipt] No userId found');
       return res.status(401).json({ status: false, msg: "Unauthorized" });
     }
 
     const receipt = await Receipt.findOne({ _id: receiptId, userId });
     if (!receipt) {
+      console.log(`[downloadReceipt] Receipt not found for id=${receiptId}, userId=${userId}`);
       return res.status(404).json({ status: false, msg: "Receipt not found" });
     }
+
+    console.log('[downloadReceipt] Receipt found:', receipt.receiptNumber);
 
     if (format === 'html') {
       const { generateReceiptHTML } = require('../utils/receiptGenerator');
@@ -1041,6 +1047,7 @@ exports.downloadReceipt = async (req, res) => {
       let billingSettings = await BillingSettings.findOne({ isActive: true }).lean();
       
       let receiptData = receipt.getReceiptData();
+      console.log('[downloadReceipt] Receipt data:', JSON.stringify(receiptData, null, 2));
       
       if (billingSettings) {
         const addressParts = [
@@ -1058,11 +1065,18 @@ exports.downloadReceipt = async (req, res) => {
           email: billingSettings.email || receiptData.company?.email || '',
           gstin: billingSettings.gstNumber || receiptData.company?.gstin || ''
         };
+        
+        receiptData.companyLogo = billingSettings.companyLogo || '';
       }
       
       const html = generateReceiptHTML(receiptData);
+      console.log('[downloadReceipt] HTML generated successfully, length:', html.length);
       
-      await receipt.markAsDownloaded();
+      try {
+        await receipt.markAsDownloaded();
+      } catch (markErr) {
+        console.warn('[downloadReceipt] Failed to mark as downloaded:', markErr.message);
+      }
       
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Content-Disposition', `inline; filename="receipt-${receipt.receiptNumber}.html"`);
