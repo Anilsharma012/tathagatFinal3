@@ -78,22 +78,32 @@ exports.getDashboardMetrics = async (req, res) => {
 
     let totalCourseItems = 0;
     let completedItems = 0;
+    let totalVideos = 0;
+    let totalMockTests = 0;
 
     for (const courseId of enrolledCourseIds) {
       try {
         const course = await Course.findById(courseId).lean();
         if (course) {
           const videoCount = await VideoContent.countDocuments({ courseId });
-          totalCourseItems += videoCount;
+          totalVideos += videoCount;
+          
+          // Count mock tests available in the course (assume 5 per course as baseline)
+          totalMockTests += 5;
         }
       } catch (e) {
         console.warn('Error counting course items:', e.message);
       }
     }
 
+    // Total items = videos + mock tests available
+    totalCourseItems = totalVideos + totalMockTests;
+    
+    // Completed items = tests taken (video progress tracking not yet implemented)
     completedItems = testsTaken;
-    totalCourseItems += testsTaken * 2;
 
+    // Calculate completion rate based on completed tests vs total expected items
+    // Note: Video progress tracking would improve this metric
     const completionRate = totalCourseItems > 0 
       ? Math.round((completedItems / totalCourseItems) * 100) 
       : 0;
@@ -151,7 +161,12 @@ exports.getCourseProgress = async (req, res) => {
           status: { $in: ['completed', 'submitted'] }
         });
 
-        const totalItems = videoCount + 5;
+        // Calculate total items: videos + estimated mock tests per course
+        // Using a reasonable baseline of 5 mock tests per course
+        const estimatedMockTests = 5;
+        const totalItems = videoCount + estimatedMockTests;
+        
+        // Completed items = tests completed (video progress tracking not yet implemented)
         const completedItems = testAttempts;
         const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 

@@ -186,6 +186,7 @@ router.post("/fetch-questions", async (req, res) => {
         
         questionElements.each((index, element) => {
             const fullText = $(element).text();
+            const elementHtml = $(element).html() || '';
             
             // Extract question text - look for Q.X pattern or first meaningful text
             let questionText = "";
@@ -215,6 +216,12 @@ router.post("/fetch-questions", async (req, res) => {
             const correctAnswerMatch = fullText.match(/Correct\s*Answer\s*:?\s*(\d+)/i);
             if (correctAnswerMatch) {
                 correctAnswer = correctAnswerMatch[1].trim();
+            }
+            
+            // ✅ Also look for "Right Option" pattern
+            const rightOptionMatch = fullText.match(/Right\s*Option\s*:?\s*(\d+)/i);
+            if (rightOptionMatch && !correctAnswer) {
+                correctAnswer = rightOptionMatch[1].trim();
             }
             
             // ✅ CAT 2025 TITA Format: "Given Answer" and "Possible Answer"
@@ -260,7 +267,7 @@ router.post("/fetch-questions", async (req, res) => {
                             chosenOption = numMatch[1];
                             status = "Answered";
                         }
-                    } else if (labelCell.includes("correct answer") && !correctAnswer) {
+                    } else if ((labelCell.includes("correct answer") || labelCell.includes("right option")) && !correctAnswer) {
                         const numMatch = valueCell.match(/(\d+)/);
                         if (numMatch) {
                             correctAnswer = numMatch[1];
@@ -278,6 +285,63 @@ router.post("/fetch-questions", async (req, res) => {
                     }
                 }
             });
+            
+            // ✅ CAT 2025 special parsing: Look for checkmark images to determine correctness
+            // Check for visual indicators of correct/incorrect - more comprehensive patterns
+            const hasCorrectIndicator = elementHtml.includes('right.gif') || 
+                                        elementHtml.includes('correct.gif') || 
+                                        elementHtml.includes('tick') ||
+                                        elementHtml.includes('check') ||
+                                        elementHtml.includes('✓') ||
+                                        elementHtml.includes('✔') ||
+                                        elementHtml.includes('&#10003') ||
+                                        elementHtml.includes('&#10004') ||
+                                        elementHtml.includes('#0f0') || // Green color
+                                        elementHtml.includes('#00ff00') ||
+                                        elementHtml.includes('#008000') ||
+                                        elementHtml.includes('rgb(0, 128, 0)') ||
+                                        elementHtml.includes('rgb(0,128,0)') ||
+                                        elementHtml.includes('green') ||
+                                        elementHtml.includes('success') ||
+                                        elementHtml.includes('rightAns') ||
+                                        elementHtml.includes('right-ans') ||
+                                        fullText.toLowerCase().includes('correct');
+            
+            const hasWrongIndicator = elementHtml.includes('wrong.gif') || 
+                                       elementHtml.includes('cross.gif') ||
+                                       elementHtml.includes('wrongAns') ||
+                                       elementHtml.includes('wrong-ans') ||
+                                       elementHtml.includes('#f00') || // Red color
+                                       elementHtml.includes('#ff0000') ||
+                                       elementHtml.includes('rgb(255, 0, 0)') ||
+                                       elementHtml.includes('rgb(255,0,0)') ||
+                                       elementHtml.includes('red') ||
+                                       elementHtml.includes('error') ||
+                                       elementHtml.includes('✗') ||
+                                       elementHtml.includes('✘') ||
+                                       elementHtml.includes('&#10007') ||
+                                       elementHtml.includes('&#10008');
+            
+            // ✅ Log first few questions' HTML structure for debugging
+            if (index < 3) {
+                console.log("🔍 Q" + (index + 1) + " HTML snippet:", elementHtml.substring(0, 500));
+            }
+            
+            // ✅ If chosenOption exists but no correctAnswer, try to determine correctness from visual indicators
+            if (chosenOption && !correctAnswer) {
+                if (hasCorrectIndicator && !hasWrongIndicator) {
+                    isCorrect = true;
+                    correctAnswer = chosenOption; // Set correct answer to chosen for consistency
+                    console.log("✅ Q" + (index + 1) + " detected as CORRECT via visual indicator");
+                } else if (hasWrongIndicator) {
+                    isCorrect = false;
+                    console.log("❌ Q" + (index + 1) + " detected as WRONG via visual indicator");
+                } else {
+                    // Default to wrong if we can't detect either way
+                    isCorrect = false;
+                    console.log("⚠️ Q" + (index + 1) + " no indicator found, defaulting to wrong");
+                }
+            }
             
             // ✅ Determine if answer is correct
             if (chosenOption && correctAnswer) {
