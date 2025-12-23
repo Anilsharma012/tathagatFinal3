@@ -31,7 +31,8 @@ import {
   FiCheckCircle,
   FiEye,
   FiFileText,
-  FiLogOut
+  FiLogOut,
+  FiPhone
 } from 'react-icons/fi';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import logo from "../../images/tgLOGO.png";
@@ -2784,13 +2785,18 @@ const loadMyCourses = async () => {
               </button>
 
               {profileDropdownOpen && (
-                <div className="dropdown-menu">
-                  <button onClick={() => setActiveSection('profile')}>
-                    <FiUser /> Profile
-                  </button>
-                  <button>
-                    <FiBell /> Notifications
-                  </button>
+                <div className="dropdown-menu profile-info-dropdown">
+                  <div className="profile-info-header">
+                    <div className="profile-info-avatar">
+                      <FiUser />
+                    </div>
+                    <div className="profile-info-details">
+                      <h4>{userDetails.name}</h4>
+                      {userDetails.phoneNumber && (
+                        <p><FiPhone /> {userDetails.phoneNumber}</p>
+                      )}
+                    </div>
+                  </div>
                   <hr />
                   <button className="logout-btn" onClick={handleLogout}>
                     <FiLogOut /> Logout
