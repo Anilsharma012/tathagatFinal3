@@ -43,6 +43,45 @@ const upload = multer({
 // 📤 Upload route - protected with admin authentication
 router.post("/", adminAuth, (req, res, next) => {
   upload.single("file")(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      console.log("❌ Multer error:", err.message);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "File is too large. Maximum size is 5MB" 
+        });
+      }
+      return res.status(400).json({ 
+        success: false, 
+        message: err.message 
+      });
+    } else if (err) {
+      console.log("❌ Upload error:", err.message);
+      return res.status(400).json({ 
+        success: false, 
+        message: err.message 
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    
+    console.log("📤 File uploaded by:", req.user?.email || req.user?.id);
+    console.log("📁 File name:", req.file.filename);
+    console.log("🔗 File URL:", fileUrl);
+    
+    return res.status(200).json({ success: true, url: fileUrl });
+  });
+});
+
+// 📤 Image upload route - for billing settings logo etc.
+router.post("/image", adminAuth, (req, res, next) => {
+  upload.single("file")(req, res, (err) => {
     // Handle multer errors (file type, size, etc.)
     if (err instanceof multer.MulterError) {
       console.log("❌ Multer error:", err.message);
