@@ -2496,33 +2496,45 @@ const loadMyCourses = async () => {
   );
 
   const renderProfileContent = () => (
-    <div className="profile-content">
-      <div className="section-header">
-        <h2>Profile Settings</h2>
+    <div className="profile-content-pro">
+      <div className="profile-header-pro">
+        <div className="profile-header-left">
+          <h1>My Profile</h1>
+          <p>Manage your account settings and preferences</p>
+        </div>
         <button 
-          className="primary-btn" 
+          className="save-profile-btn" 
           onClick={handleProfileUpdate}
           disabled={profileSaving}
         >
+          <FiCheckCircle />
           {profileSaving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
-      <div className="profile-grid">
-        <div className="profile-card">
-          <div className="profile-avatar">
-            {userDetails.profileImage ? (
-              <img 
-                src={userDetails.profileImage} 
-                alt="Profile" 
-                className="avatar-image"
-                style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover' }}
-              />
-            ) : (
-              <div className="avatar-placeholder">
-                <FiUser />
-              </div>
-            )}
+      <div className="profile-main-grid">
+        <div className="profile-sidebar-card">
+          <div className="profile-avatar-section">
+            <div className="avatar-container">
+              {userDetails.profileImage ? (
+                <img 
+                  src={userDetails.profileImage} 
+                  alt="Profile" 
+                  className="profile-avatar-img"
+                />
+              ) : (
+                <div className="profile-avatar-placeholder">
+                  <FiUser />
+                </div>
+              )}
+              <button 
+                className="avatar-edit-btn"
+                onClick={() => profileImageInputRef.current?.click()}
+                disabled={profileImageUploading}
+              >
+                <FiEdit3 />
+              </button>
+            </div>
             <input 
               type="file" 
               ref={profileImageInputRef}
@@ -2530,115 +2542,148 @@ const loadMyCourses = async () => {
               accept="image/*"
               style={{ display: 'none' }}
             />
-            <button 
-              className="change-avatar-btn"
-              onClick={() => profileImageInputRef.current?.click()}
-              disabled={profileImageUploading}
-            >
-              {profileImageUploading ? 'Uploading...' : 'Change Photo'}
-            </button>
+            <h2 className="profile-name-pro">{userDetails.name || 'Student'}</h2>
+            <p className="profile-email-pro">{userDetails.email || 'student@example.com'}</p>
+            {userDetails.phoneNumber && (
+              <p className="profile-phone-pro"><FiPhone /> {userDetails.phoneNumber}</p>
+            )}
           </div>
-          <div className="profile-info">
-            <h3>{userDetails.name}</h3>
-            <p>{userDetails.email}</p>
-            <div className="profile-stats">
-              <div className="stat">
-                <span className="stat-number">{userDetails.streak}</span>
-                <span className="stat-label">Day Streak</span>
+
+          <div className="profile-stats-pro">
+            <div className="stat-item-pro">
+              <div className="stat-icon-pro streak">
+                <FiTrendingUp />
               </div>
-              <div className="stat">
-                <span className="stat-number">{userDetails.totalPoints}</span>
-                <span className="stat-label">Total Points</span>
+              <div className="stat-details">
+                <span className="stat-value-pro">{userDetails.streak || 0}</span>
+                <span className="stat-label-pro">Day Streak</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="profile-form">
-          <h3>Personal Information</h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Full Name</label>
-              <input 
-                type="text" 
-                value={profileForm.name}
-                onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label>Email Address</label>
-              <input 
-                type="email" 
-                value={profileForm.email}
-                onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label>Phone Number</label>
-              <input 
-                type="tel" 
-                placeholder="+91 9876543210"
-                value={profileForm.phoneNumber}
-                onChange={(e) => setProfileForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label>Target Exam</label>
-              <select
-                value={profileForm.targetExam}
-                onChange={(e) => setProfileForm(prev => ({ ...prev, targetExam: e.target.value }))}
-              >
-                <option value="CAT 2024">CAT 2024</option>
-                <option value="CAT 2025">CAT 2025</option>
-                <option value="XAT 2024">XAT 2024</option>
-                <option value="XAT 2025">XAT 2025</option>
-                <option value="NMAT 2024">NMAT 2024</option>
-                <option value="SNAP 2024">SNAP 2024</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Current Location</label>
-              <input 
-                type="text" 
-                placeholder="City, State"
-                value={profileForm.city}
-                onChange={(e) => setProfileForm(prev => ({ ...prev, city: e.target.value }))}
-              />
+            <div className="stat-item-pro">
+              <div className="stat-icon-pro points">
+                <FiTarget />
+              </div>
+              <div className="stat-details">
+                <span className="stat-value-pro">{userDetails.totalPoints || 0}</span>
+                <span className="stat-label-pro">Total Points</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="preferences-card">
-          <h3>Preferences</h3>
-          <div className="preferences-list">
-            <div className="preference-item">
-              <span>Email Notifications</span>
-              <label className="toggle">
-                <input type="checkbox" defaultChecked />
-                <span className="slider"></span>
-              </label>
-            </div>
-            <div className="preference-item">
-              <span>SMS Reminders</span>
-              <label className="toggle">
-                <input type="checkbox" defaultChecked />
-                <span className="slider"></span>
-              </label>
-            </div>
-            <div className="preference-item">
-              <span>Performance Analytics</span>
-              <label className="toggle">
-                <input type="checkbox" defaultChecked />
-                <span className="slider"></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="logout-card">
-          <button className="logout-profile-btn" onClick={handleLogout}>
-            <FiLogOut /> Logout
+          <button className="logout-btn-pro" onClick={handleLogout}>
+            <FiLogOut /> Sign Out
           </button>
+        </div>
+
+        <div className="profile-details-section">
+          <div className="profile-form-card">
+            <div className="form-card-header">
+              <FiUser className="form-card-icon" />
+              <h3>Personal Information</h3>
+            </div>
+            <div className="form-grid-pro">
+              <div className="form-group-pro">
+                <label>Full Name</label>
+                <input 
+                  type="text" 
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              <div className="form-group-pro">
+                <label>Email Address</label>
+                <input 
+                  type="email" 
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div className="form-group-pro">
+                <label>Phone Number</label>
+                <input 
+                  type="tel" 
+                  placeholder="+91 9876543210"
+                  value={profileForm.phoneNumber}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </div>
+              <div className="form-group-pro">
+                <label>Current Location</label>
+                <input 
+                  type="text" 
+                  placeholder="City, State"
+                  value={profileForm.city}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, city: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="profile-form-card">
+            <div className="form-card-header">
+              <FiTarget className="form-card-icon" />
+              <h3>Exam Preferences</h3>
+            </div>
+            <div className="form-grid-pro">
+              <div className="form-group-pro full-width">
+                <label>Target Exam</label>
+                <select
+                  value={profileForm.targetExam}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, targetExam: e.target.value }))}
+                >
+                  <option value="">Select your target exam</option>
+                  <option value="CAT 2025">CAT 2025</option>
+                  <option value="CAT 2026">CAT 2026</option>
+                  <option value="XAT 2025">XAT 2025</option>
+                  <option value="XAT 2026">XAT 2026</option>
+                  <option value="NMAT 2025">NMAT 2025</option>
+                  <option value="SNAP 2025">SNAP 2025</option>
+                  <option value="IIFT 2025">IIFT 2025</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="profile-form-card">
+            <div className="form-card-header">
+              <FiBell className="form-card-icon" />
+              <h3>Notification Settings</h3>
+            </div>
+            <div className="notification-settings-pro">
+              <div className="notification-item-pro">
+                <div className="notification-info">
+                  <h4>Email Notifications</h4>
+                  <p>Receive updates about courses and announcements</p>
+                </div>
+                <label className="switch-pro">
+                  <input type="checkbox" defaultChecked />
+                  <span className="slider-pro"></span>
+                </label>
+              </div>
+              <div className="notification-item-pro">
+                <div className="notification-info">
+                  <h4>SMS Reminders</h4>
+                  <p>Get reminders for live classes and tests</p>
+                </div>
+                <label className="switch-pro">
+                  <input type="checkbox" defaultChecked />
+                  <span className="slider-pro"></span>
+                </label>
+              </div>
+              <div className="notification-item-pro">
+                <div className="notification-info">
+                  <h4>Performance Reports</h4>
+                  <p>Weekly performance summary emails</p>
+                </div>
+                <label className="switch-pro">
+                  <input type="checkbox" defaultChecked />
+                  <span className="slider-pro"></span>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
