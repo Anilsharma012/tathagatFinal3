@@ -928,7 +928,85 @@ exports.getReceipts = async (req, res) => {
       return res.status(401).json({ status: false, msg: "Unauthorized" });
     }
 
-    const receipts = await Receipt.find({ userId }).sort({ createdAt: -1 });
+    let receipts = await Receipt.find({ userId }).sort({ createdAt: -1 });
+
+    // If no receipts found, generate receipts from existing payments
+    if (receipts.length === 0) {
+      const payments = await Payment.find({ userId, status: 'paid' }).populate('courseId').sort({ createdAt: -1 });
+      
+      if (payments.length > 0) {
+        const user = await User.findById(userId).select('name email phoneNumber');
+        const BillingSettings = require('../models/BillingSettings');
+        let billingSettings = await BillingSettings.findOne({ isActive: true }).lean();
+        
+        for (const payment of payments) {
+          // Check if receipt already exists for this payment
+          const existingReceipt = await Receipt.findOne({ paymentId: payment._id });
+          if (existingReceipt) continue;
+          
+          const course = payment.courseId || {};
+          const receiptNumber = payment.receiptNumber || Receipt.generateReceiptNumber();
+          
+          let companyDetails = {
+            name: 'Tathagat Education',
+            address: '',
+            phone: '',
+            email: '',
+            gstin: '',
+          };
+
+          if (billingSettings) {
+            const addressParts = [
+              billingSettings.address?.street,
+              billingSettings.address?.city,
+              billingSettings.address?.state,
+              billingSettings.address?.pincode,
+              billingSettings.address?.country
+            ].filter(Boolean);
+
+            companyDetails = {
+              name: billingSettings.companyName || 'Tathagat Education',
+              address: addressParts.join(', '),
+              phone: billingSettings.phone || '',
+              email: billingSettings.email || '',
+              gstin: billingSettings.gstNumber || '',
+            };
+          }
+
+          try {
+            await Receipt.create({
+              paymentId: payment._id,
+              userId,
+              courseId: payment.courseId?._id || payment.courseId,
+              receiptNumber,
+              amount: payment.amount || 0,
+              totalAmount: payment.amount || 0,
+              taxAmount: 0,
+              currency: payment.currency || "INR",
+              customerDetails: {
+                name: user?.name || 'Student',
+                email: user?.email || 'no-email@example.com',
+                phone: user?.phoneNumber || '',
+              },
+              courseDetails: {
+                name: course.name || 'Course',
+                description: course.description || '',
+                price: payment.amount || 0,
+              },
+              companyDetails,
+              receiptType: 'course_purchase',
+              status: 'generated',
+              generatedAt: payment.createdAt || new Date(),
+            });
+          } catch (createErr) {
+            console.warn('Receipt creation warning:', createErr.message);
+          }
+        }
+
+        // Fetch again after creating
+        receipts = await Receipt.find({ userId }).sort({ createdAt: -1 });
+      }
+    }
 
     return res.json({
       status: true,
