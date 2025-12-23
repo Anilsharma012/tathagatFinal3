@@ -66,5 +66,11 @@ router.get(
   authMiddleware,
   userController.downloadReceipt
 );
+// Alternative route for frontend compatibility
+router.get(
+  "/receipt/:receiptId/download",
+  authMiddleware,
+  userController.downloadReceipt
+);
 
 module.exports = router;

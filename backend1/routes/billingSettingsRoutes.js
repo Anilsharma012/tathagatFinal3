@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
+const { adminAuth } = require('../middleware/authMiddleware');
 const BillingSettings = require('../models/BillingSettings');
 
-router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/', adminAuth, async (req, res) => {
   try {
     let settings = await BillingSettings.findOne({ isActive: true });
     if (!settings) {
@@ -16,7 +16,7 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
-router.put('/', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/', adminAuth, async (req, res) => {
   try {
     const {
       companyName,

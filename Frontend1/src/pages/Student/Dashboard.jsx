@@ -122,6 +122,11 @@ const StudentDashboard = () => {
   const [receipts, setReceipts] = useState([]);
   const [receiptsLoading, setReceiptsLoading] = useState(false);
   const purchasesLoadedRef = useRef(false);
+  
+  // Receipt view modal state
+  const [viewReceiptModal, setViewReceiptModal] = useState(false);
+  const [viewReceiptHtml, setViewReceiptHtml] = useState('');
+  const [viewReceiptLoading, setViewReceiptLoading] = useState(false);
 
   // Offline payment upload state
   const [offlineForm, setOfflineForm] = useState({ courseId: '', amount: '', note: '' });
@@ -915,6 +920,42 @@ const loadMyCourses = async () => {
     }
   };
 
+  // Function to view receipt inline in modal
+  const viewReceipt = async (receiptId) => {
+    const authToken = localStorage.getItem('authToken');
+
+    if (!authToken) {
+      alert('Please login to view receipt');
+      return;
+    }
+
+    setViewReceiptLoading(true);
+    setViewReceiptModal(true);
+    setViewReceiptHtml('');
+
+    try {
+      const response = await fetch(`/api/user/receipt/${receiptId}/download?format=html`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load receipt');
+      }
+
+      const html = await response.text();
+      setViewReceiptHtml(html);
+    } catch (error) {
+      console.error('Error viewing receipt:', error);
+      alert('Failed to load receipt. Please try again.');
+      setViewReceiptModal(false);
+    } finally {
+      setViewReceiptLoading(false);
+    }
+  };
+
   // Function to download PDF tax invoice
   const downloadTaxInvoice = async (paymentId) => {
     const authToken = localStorage.getItem('authToken');
@@ -1564,11 +1605,11 @@ const loadMyCourses = async () => {
                             <FiDownload /> PDF
                           </button>
                           <button
-                            className="download-btn small"
-                            onClick={() => downloadReceipt(receipt._id, 'html')}
-                            title="Download as HTML"
+                            className="download-btn small view-btn"
+                            onClick={() => viewReceipt(receipt._id)}
+                            title="View Receipt"
                           >
-                            HTML
+                            <FiEye /> View
                           </button>
                           <button
                             className="download-btn small"
@@ -2874,6 +2915,37 @@ const loadMyCourses = async () => {
               <button className="close-btn" onClick={closeMaterialViewer}>
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt View Modal */}
+      {viewReceiptModal && (
+        <div className="receipt-view-overlay" role="dialog" aria-modal="true" onClick={() => setViewReceiptModal(false)}>
+          <div className="receipt-view-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="receipt-view-header">
+              <h3>Receipt</h3>
+              <button className="receipt-view-close" onClick={() => setViewReceiptModal(false)} aria-label="Close">
+                <FiX />
+              </button>
+            </div>
+            <div className="receipt-view-body">
+              {viewReceiptLoading ? (
+                <div className="receipt-view-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Loading receipt...</p>
+                </div>
+              ) : viewReceiptHtml ? (
+                <iframe
+                  srcDoc={viewReceiptHtml}
+                  title="Receipt Preview"
+                  className="receipt-iframe"
+                  sandbox="allow-same-origin"
+                />
+              ) : (
+                <div className="receipt-view-error">Failed to load receipt.</div>
+              )}
             </div>
           </div>
         </div>
