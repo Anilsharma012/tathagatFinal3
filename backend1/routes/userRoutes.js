@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const userController = require("../controllers/userController");
+const studentDashboardController = require("../controllers/StudentDashboardController");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 
@@ -71,6 +72,25 @@ router.get(
   "/receipt/:receiptId/download",
   authMiddleware,
   userController.downloadReceipt
+);
+
+// -------- Student Dashboard --------
+router.get(
+  "/student/dashboard/metrics",
+  authMiddleware,
+  studentDashboardController.getDashboardMetrics
+);
+
+router.get(
+  "/student/dashboard/course-progress",
+  authMiddleware,
+  studentDashboardController.getCourseProgress
+);
+
+router.get(
+  "/student/dashboard/upcoming-classes",
+  authMiddleware,
+  studentDashboardController.getUpcomingClasses
 );
 
 module.exports = router;

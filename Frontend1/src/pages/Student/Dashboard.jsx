@@ -96,6 +96,21 @@ const StudentDashboard = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
 
+  // Dashboard metrics state (real data)
+  const [dashboardMetrics, setDashboardMetrics] = useState({
+    testsTaken: 0,
+    completionRate: 0,
+    learningProgress: [],
+    coursesEnrolled: 0,
+    streak: 0
+  });
+  const [dashboardMetricsLoading, setDashboardMetricsLoading] = useState(false);
+  const [courseProgressData, setCourseProgressData] = useState({
+    courses: [],
+    summary: { completed: 0, inProgress: 0, notStarted: 0, chartData: [0, 0, 100] }
+  });
+  const [courseProgressLoading, setCourseProgressLoading] = useState(false);
+
   // Sanitize/clean HTML descriptions from editor (e.g., remove ql-cursor span, tags -> text)
   const cleanHtmlToText = (html) => {
     try {
@@ -499,10 +514,83 @@ const loadMyCourses = async () => {
 };
 
 
+  // Load real dashboard metrics
+  const loadDashboardMetrics = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    setDashboardMetricsLoading(true);
+    try {
+      const response = await fetch('/api/user/student/dashboard/metrics', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setDashboardMetrics(data.data);
+          setUserDetails(prev => ({
+            ...prev,
+            streak: data.data.streak || prev.streak
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load dashboard metrics:', error);
+    } finally {
+      setDashboardMetricsLoading(false);
+    }
+  };
+
+  // Load real course progress data
+  const loadCourseProgressData = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    setCourseProgressLoading(true);
+    try {
+      const response = await fetch('/api/user/student/dashboard/course-progress', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setCourseProgressData(data.data);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load course progress:', error);
+    } finally {
+      setCourseProgressLoading(false);
+    }
+  };
+
+  // Load real upcoming classes
+  const loadRealUpcomingClasses = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/user/student/dashboard/upcoming-classes', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setUpcomingClasses(data.data);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load upcoming classes:', error);
+    }
+  };
+
   // Fetch published courses on component mount
   useEffect(() => {
     loadCourses();
     loadMyCourses();
+    loadDashboardMetrics();
+    loadCourseProgressData();
+    loadRealUpcomingClasses();
   }, []);
 
   useEffect(() => {
@@ -1659,7 +1747,7 @@ const loadMyCourses = async () => {
             <FiCheckCircle />
           </div>
           <div className="stat-info">
-            <h3>85%</h3>
+            <h3>{dashboardMetrics.completionRate || 0}%</h3>
             <p>Completion Rate</p>
           </div>
         </div>
@@ -1668,7 +1756,7 @@ const loadMyCourses = async () => {
             <FiTarget />
           </div>
           <div className="stat-info">
-            <h3>12</h3>
+            <h3>{dashboardMetrics.testsTaken || 0}</h3>
             <p>Tests Taken</p>
           </div>
         </div>
@@ -1688,10 +1776,14 @@ const loadMyCourses = async () => {
           <h3>Learning Progress</h3>
           <Line
             data={{
-              labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+              labels: dashboardMetrics.learningProgress?.length > 0 
+                ? dashboardMetrics.learningProgress.map(d => d.day)
+                : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
               datasets: [{
-                label: 'Study Hours',
-                data: [3, 4, 2, 5, 3, 6, 4],
+                label: 'Activities',
+                data: dashboardMetrics.learningProgress?.length > 0
+                  ? dashboardMetrics.learningProgress.map(d => d.activities)
+                  : [0, 0, 0, 0, 0, 0, 0],
                 borderColor: '#667eea',
                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
                 tension: 0.4
@@ -1723,9 +1815,9 @@ const loadMyCourses = async () => {
                   </div>
                   <div className="class-details">
                     <h4>{it.title}</h4>
-                    <p>{it.courseId?.name || it.platform?.toUpperCase()}</p>
+                    <p>{it.courseName || it.courseId?.name || it.platform?.toUpperCase() || 'Live Class'}</p>
                   </div>
-                  {canJoinClass(it) ? (
+                  {it.canJoin !== false && it.joinLink ? (
                     <a className="join-btn" href={it.joinLink} target="_blank" rel="noreferrer">
                       <FiPlay /> Join
                     </a>
@@ -1746,7 +1838,7 @@ const loadMyCourses = async () => {
             data={{
               labels: ['Completed', 'In Progress', 'Not Started'],
               datasets: [{
-                data: [65, 25, 10],
+                data: courseProgressData.summary?.chartData || [0, 0, 100],
                 backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                 borderWidth: 0
               }]
