@@ -4,6 +4,9 @@ const router = express.Router();
 const adminController = require("../controllers/AdminController");
 const { adminAuth } = require("../middleware/authMiddleware"); // Token verify middleware (auth check)
 const upload = require("../middleware/uploadMiddleware");
+const { getAdminDashboardMetrics } = require("../controllers/AdminDashboardController");
+
+router.get("/dashboard-metrics", adminAuth, getAdminDashboardMetrics);
 
 // Temporary route to create admin - use only once then delete
 router.post("/create", adminController.createAdmin);

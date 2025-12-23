@@ -4,6 +4,9 @@ const auth = require('../middleware/authMiddleware');
 const ZoomMeeting = require('../models/ZoomMeeting');
 const Course = require('../models/course/Course');
 const ZoomService = require('../services/zoomService');
+const { getAdminDashboardMetrics } = require('../controllers/AdminDashboardController');
+
+router.get('/dashboard-metrics', auth, getAdminDashboardMetrics);
 
 // Get all courses
 // router.get('/courses', auth, async (req, res) => {
