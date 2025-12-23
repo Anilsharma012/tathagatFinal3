@@ -253,11 +253,13 @@ router.get("/auto-login", authMiddleware, async (req, res) => {
         email: user.email,
         name: user.name,
         phone: user.phone,
+        phoneNumber: user.phoneNumber,
         city: user.city,
         gender: user.gender,
         dob: user.dob,
         selectedCategory: user.selectedCategory,
-        selectedExam: user.selectedExam
+        selectedExam: user.selectedExam,
+        profilePic: user.profilePic
       },
       redirectTo
     });

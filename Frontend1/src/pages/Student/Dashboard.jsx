@@ -2823,7 +2823,11 @@ const loadMyCourses = async () => {
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
               >
                 <div className="profile-avatar">
-                  <FiUser />
+                  {userDetails.profileImage ? (
+                    <img src={userDetails.profileImage} alt="Profile" className="header-avatar-img" />
+                  ) : (
+                    <FiUser />
+                  )}
                 </div>
                 <span>{userDetails.name.split(' ')[0]}</span>
                 <FiChevronDown />
@@ -2833,7 +2837,11 @@ const loadMyCourses = async () => {
                 <div className="dropdown-menu profile-info-dropdown">
                   <div className="profile-info-header">
                     <div className="profile-info-avatar">
-                      <FiUser />
+                      {userDetails.profileImage ? (
+                        <img src={userDetails.profileImage} alt="Profile" className="dropdown-avatar-img" />
+                      ) : (
+                        <FiUser />
+                      )}
                     </div>
                     <div className="profile-info-details">
                       <h4>{userDetails.name}</h4>

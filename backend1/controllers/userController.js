@@ -130,6 +130,9 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        profilePic: user.profilePic,
+        city: user.city,
+        selectedExam: user.selectedExam,
       },
     });
   } catch (err) {
@@ -184,6 +187,7 @@ exports.verifyToken = async (req, res) => {
         name: user.name,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        profilePic: user.profilePic,
         isPhoneVerified: user.isPhoneVerified,
         isOnboardingComplete: user.isOnboardingComplete,
         targetYear: user.targetYear,
@@ -366,13 +370,13 @@ exports.uploadProfilePic = async (req, res) => {
       });
     }
 
-    // Your multer config decides final path.
-    // Keep it simple and store relative path/filename.
-    const filePath = req.file.path || req.file.filename;
+    // Store as URL path that can be used directly in frontend
+    const filename = req.file.filename;
+    const profilePicUrl = `/uploads/${filename}`;
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { $set: { profilePic: filePath } },
+      { $set: { profilePic: profilePicUrl } },
       { new: true }
     ).select("-password");
 
@@ -380,7 +384,7 @@ exports.uploadProfilePic = async (req, res) => {
       status: true,
       msg: "Profile pic updated",
       data: user,
-      profilePic: filePath,
+      profilePic: profilePicUrl,
     });
   } catch (err) {
     console.error("uploadProfilePic error:", err);
