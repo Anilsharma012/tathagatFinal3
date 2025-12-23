@@ -2285,6 +2285,24 @@ const MockTestAttempt = () => {
                 <div key={index} className="cat-qp-question-block">
                   <div className="cat-qp-question-header">
                     <span className="cat-qp-qnum">Q.{index + 1})</span>
+                    <span className="cat-qp-question-type">
+                      {q?.questionType === 'SINGLE_CORRECT_MCQ' ? 'Single Correct MCQ' :
+                       q?.questionType === 'MULTI_CORRECT_MCQ' ? 'Multi Correct MCQ' :
+                       q?.questionType === 'TITA' ? 'TITA' :
+                       q?.questionType === 'NUMERIC' ? 'Numeric' : 'MCQ'}
+                    </span>
+                  </div>
+                  <div className="cat-qp-marks-info">
+                    <span>
+                      Marks for correct answer:{" "}
+                      <strong className="green-text">{q?.marks?.positive || 3}</strong>
+                    </span>
+                    <span>
+                      {" "}
+                      ; Negative Marks: <strong className="red-text">{Math.abs(q?.marks?.negative) || 1}</strong>
+                    </span>
+                  </div>
+                  <div className="cat-qp-question-content">
                     <div
                       className="cat-qp-question-text"
                       dangerouslySetInnerHTML={{
@@ -2293,16 +2311,6 @@ const MockTestAttempt = () => {
                         ),
                       }}
                     />
-                  </div>
-                  <div className="cat-qp-marks-info">
-                    <span>
-                      Marks for correct answer:{" "}
-                      <strong className="green-text">3</strong>
-                    </span>
-                    <span>
-                      {" "}
-                      ; Negative Marks: <strong className="red-text">1</strong>
-                    </span>
                   </div>
                   {q?.options && (
                     <div className="cat-qp-options">
@@ -2336,7 +2344,7 @@ const MockTestAttempt = () => {
                                     __html: sanitizeHtml(
                                       typeof opt === "string"
                                         ? opt
-                                        : opt?.text || "",
+                                        : opt?.value || opt?.optionText || opt?.text || "",
                                     ),
                                   }}
                                 />

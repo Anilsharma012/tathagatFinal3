@@ -2076,6 +2076,16 @@
   flex-shrink: 0;
 }
 
+.cat-qp-question-type {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.cat-qp-question-content {
+  margin: 10px 0 10px 30px;
+}
+
 .cat-qp-question-text {
   color: #333;
   line-height: 1.6;
