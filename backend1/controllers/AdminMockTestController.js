@@ -1314,6 +1314,87 @@ const getTestLeaderboardAdmin = async (req, res) => {
   }
 };
 
+const copySectionQuestions = async (req, res) => {
+  try {
+    const { sourceTestId, sectionName, targetTestId } = req.body;
+
+    if (!sourceTestId || !sectionName || !targetTestId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Source test ID, section name, and target test ID are required'
+      });
+    }
+
+    const sourceTest = await MockTest.findById(sourceTestId);
+    if (!sourceTest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Source test not found'
+      });
+    }
+
+    const targetTest = await MockTest.findById(targetTestId);
+    if (!targetTest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Target test not found'
+      });
+    }
+
+    const sectionExists = targetTest.sections?.find(s => s.name === sectionName);
+    if (!sectionExists) {
+      return res.status(400).json({
+        success: false,
+        message: `Section "${sectionName}" does not exist in the target test`
+      });
+    }
+
+    const sourceQuestions = await MockTestQuestion.find({
+      testPaperId: sourceTestId,
+      section: sectionName
+    }).lean();
+
+    if (sourceQuestions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `No questions found in "${sectionName}" section of the source test`
+      });
+    }
+
+    const existingMaxOrder = await MockTestQuestion.find({ testPaperId: targetTestId })
+      .sort({ order: -1 })
+      .limit(1)
+      .lean();
+    let startOrder = existingMaxOrder.length > 0 ? (existingMaxOrder[0].order || 0) + 1 : 1;
+
+    const copiedQuestions = sourceQuestions.map((q, index) => {
+      const { _id, __v, createdAt, updatedAt, ...questionData } = q;
+      return {
+        ...questionData,
+        testPaperId: targetTestId,
+        section: sectionName,
+        order: startOrder + index
+      };
+    });
+
+    await MockTestQuestion.insertMany(copiedQuestions);
+
+    console.log(`✅ Copied ${copiedQuestions.length} questions from ${sectionName} section`);
+    res.status(200).json({
+      success: true,
+      message: `Successfully copied ${copiedQuestions.length} questions`,
+      copiedCount: copiedQuestions.length
+    });
+  } catch (error) {
+    console.error('❌ Error copying section questions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to copy section questions',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createSeries,
   getAllSeries,
@@ -1331,5 +1412,6 @@ module.exports = {
   toggleTestPublication,
   getTestAnalytics,
   getStudentPerformance,
-  getTestLeaderboardAdmin
+  getTestLeaderboardAdmin,
+  copySectionQuestions
 };

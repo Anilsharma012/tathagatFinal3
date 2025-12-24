@@ -18,6 +18,15 @@ const TestPaperCreator = ({
   const [loading, setLoading] = useState(false);
   const [showTestForm, setShowTestForm] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
+  
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copyingSection, setCopyingSection] = useState(null);
+  const [copyingTest, setCopyingTest] = useState(null);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [targetCourseId, setTargetCourseId] = useState('');
+  const [targetTests, setTargetTests] = useState([]);
+  const [targetTestId, setTargetTestId] = useState('');
+  const [copyLoading, setCopyLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -245,6 +254,86 @@ const TestPaperCreator = ({
     return labels[testType] || 'Test';
   };
 
+  const handleCopySectionClick = async (test, section) => {
+    setCopyingTest(test);
+    setCopyingSection(section);
+    setShowCopyModal(true);
+    setTargetCourseId('');
+    setTargetTestId('');
+    setTargetTests([]);
+    
+    try {
+      const data = await fetchWithErrorHandling('/api/course-purchase-content/admin/courses');
+      if (data && data.success) {
+        setAvailableCourses(data.courses || []);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  const handleTargetCourseChange = async (courseId) => {
+    setTargetCourseId(courseId);
+    setTargetTestId('');
+    setTargetTests([]);
+    
+    if (!courseId) return;
+    
+    try {
+      const filter = courseId === 'free' 
+        ? `courseId=free&testType=${testType}` 
+        : `courseId=${courseId}&testType=${testType}`;
+      const data = await fetchWithErrorHandling(`/api/admin/mock-tests/tests?${filter}`);
+      if (data && data.success) {
+        const filteredTests = (data.tests || []).filter(t => t._id !== copyingTest?._id);
+        setTargetTests(filteredTests);
+      }
+    } catch (error) {
+      console.error('Error fetching target tests:', error);
+    }
+  };
+
+  const handleCopySectionSubmit = async () => {
+    if (!targetTestId || !copyingSection || !copyingTest) {
+      alert('Please select a destination test');
+      return;
+    }
+
+    try {
+      setCopyLoading(true);
+      const data = await fetchWithErrorHandling('/api/admin/mock-tests/copy-section', {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceTestId: copyingTest._id,
+          sectionName: copyingSection.name,
+          targetTestId: targetTestId
+        })
+      });
+
+      if (data && data.success) {
+        alert(`Successfully copied ${data.copiedCount} questions from ${copyingSection.name} section!`);
+        setShowCopyModal(false);
+        setCopyingSection(null);
+        setCopyingTest(null);
+      } else {
+        alert(data?.message || 'Failed to copy section');
+      }
+    } catch (error) {
+      alert('Error copying section: ' + error.message);
+    } finally {
+      setCopyLoading(false);
+    }
+  };
+
+  const closeCopyModal = () => {
+    setShowCopyModal(false);
+    setCopyingSection(null);
+    setCopyingTest(null);
+    setTargetCourseId('');
+    setTargetTestId('');
+    setTargetTests([]);
+  };
+
   return (
     <div className="test-paper-creator">
       {showQuestionBuilder ? (
@@ -462,6 +551,28 @@ const TestPaperCreator = ({
                         <span style={{fontWeight: 'bold', color: '#4CAF50'}}>₹{test.price}</span>
                       )}
                     </div>
+                    
+                    {test.sections && test.sections.length > 0 && (
+                      <div className="test-sections-list">
+                        <div className="sections-header">Sections:</div>
+                        <div className="sections-chips">
+                          {test.sections.map((section, idx) => (
+                            <div key={idx} className="section-chip">
+                              <span>{section.name}</span>
+                              <button
+                                type="button"
+                                className="btn-copy-section"
+                                onClick={() => handleCopySectionClick(test, section)}
+                                title={`Copy ${section.name} section to another test`}
+                              >
+                                📋
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     {test.isFree && <div className="free-badge">FREE</div>}
                     <div className="test-card-actions">
                       <button
@@ -489,6 +600,68 @@ const TestPaperCreator = ({
             )}
           </div>
         </>
+      )}
+
+      {showCopyModal && (
+        <div className="copy-modal-overlay" onClick={closeCopyModal}>
+          <div className="copy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="copy-modal-header">
+              <h3>Copy Section</h3>
+              <button className="btn-close-modal" onClick={closeCopyModal}>×</button>
+            </div>
+            <div className="copy-modal-body">
+              <p className="copy-info">
+                Copying <strong>{copyingSection?.name}</strong> section from <strong>{copyingTest?.title}</strong>
+              </p>
+              
+              <div className="form-group">
+                <label>Select Destination Course</label>
+                <select
+                  value={targetCourseId}
+                  onChange={(e) => handleTargetCourseChange(e.target.value)}
+                >
+                  <option value="">-- Select Course --</option>
+                  <option value="free">Free Mock Tests</option>
+                  {availableCourses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {targetCourseId && (
+                <div className="form-group">
+                  <label>Select Destination Test</label>
+                  <select
+                    value={targetTestId}
+                    onChange={(e) => setTargetTestId(e.target.value)}
+                  >
+                    <option value="">-- Select Test --</option>
+                    {targetTests.map((test) => (
+                      <option key={test._id} value={test._id}>
+                        {test.title}
+                      </option>
+                    ))}
+                  </select>
+                  {targetTests.length === 0 && (
+                    <p className="no-tests-msg">No tests available in this course</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="copy-modal-footer">
+              <button className="btn-cancel" onClick={closeCopyModal}>Cancel</button>
+              <button 
+                className="btn-copy" 
+                onClick={handleCopySectionSubmit}
+                disabled={!targetTestId || copyLoading}
+              >
+                {copyLoading ? 'Copying...' : 'Copy Section'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
