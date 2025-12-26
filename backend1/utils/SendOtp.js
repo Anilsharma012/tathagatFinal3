@@ -132,10 +132,15 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
                     udhi_inc: "0",
                     dlr_req: "1",
                     app_country: "1",
-                    cust_ref: "OTP_" + Date.now()
+                    cust_ref: "123"
                 }
             ]
         };
+
+        // Log the exact curl command for testing
+        console.log(`[Karix SMS] To test this manually, run this command:`);
+        console.log(`curl --location 'https://japi.instaalerts.zone/httpapi/JsonReceiver' --header 'Content-Type: application/json' --data '${JSON.stringify(payload)}'`);
+
 
         console.log(`[Karix SMS] Request payload:`, JSON.stringify(payload, null, 2));
 
