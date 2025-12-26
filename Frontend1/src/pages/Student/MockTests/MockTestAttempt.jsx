@@ -96,8 +96,62 @@ const MockTestAttempt = () => {
   const [scratchPadContent, setScratchPadContent] = useState("");
   const [drawingMode, setDrawingMode] = useState(false);
   const canvasRef = useRef(null);
+  const drawingDataRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  useEffect(() => {
+    if (showScratchPad && drawingMode && canvasRef.current && drawingDataRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = drawingDataRef.current;
+    }
+  }, [showScratchPad, drawingMode]);
+
+  const saveCanvasData = () => {
+    if (canvasRef.current) {
+      drawingDataRef.current = canvasRef.current.toDataURL();
+    }
+  };
+
+  const startDrawing = (e) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      saveCanvasData();
+    }
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawingDataRef.current = null;
+  };
   const [showSectionResult, setShowSectionResult] = useState(false);
   const [currentSectionResult, setCurrentSectionResult] = useState(null);
   const [completedSections, setCompletedSections] = useState([]);
@@ -1136,13 +1190,17 @@ const MockTestAttempt = () => {
   };
 
   const stopDrawing = () => {
-    setIsDrawing(false);
+    if (isDrawing) {
+      setIsDrawing(false);
+      saveCanvasData();
+    }
   };
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawingDataRef.current = null;
   };
 
   if (loading) {
