@@ -119,16 +119,32 @@ exports.sendOtpPhoneUtil = async (phoneNumber, otpCode) => {
         const payload = {
             ver: "1.0",
             key: karixApiKey,
+            encrpt: "0",
             messages: [
                 {
                     dest: [formattedPhone],
-                    text: `Your TathaGat login OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`,
+                    text: `Dear {#var#}, use ${otpCode} as your sign up otp for mytathagat.com. OTP is confidential and valid for 10 mins.`,
                     send: karixSenderId,
-                    type: "Plain",
-                    dlr_req: "1"
+                    dlt_entity_id: "1101538550000021740", // Provided by user
+                    dlt_template_id: "1107170349275465220", // Provided by user
+                    type: "PM",
+                    dcs: "0",
+                    udhi_inc: "0",
+                    dlr_req: "1",
+                    app_country: "1",
+                    cust_ref: "OTP_" + Date.now()
                 }
             ]
         };
+
+        // Note: For InstaAlerts DLT templates, the variables are usually replaced by the gateway
+        // but the API often expects the final message string with actual values.
+        // If the template is "Dear {#var#}, use {#var#} as your sign up otp...",
+        // you must ensure the message text matches exactly.
+        
+        // Fixing the text to match the user's template exactly:
+        const userName = "User"; // Dynamic username
+        payload.messages[0].text = `Dear ${userName}, use ${otpCode} as your sign up otp for mytathagat.com. OTP is confidential and valid for 10 mins.`;
 
         console.log(`[Karix SMS] Request payload:`, JSON.stringify(payload, null, 2));
 
