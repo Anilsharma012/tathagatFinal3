@@ -48,7 +48,13 @@ run = ["bash", "-c", "cd Frontend1 && npm run dev:full"]
 [userenv]
 
 [userenv.shared]
-PORT = "3001"
+PORT = "5000"
 REACT_APP_BACKEND_URL = "http://localhost:5000/api/v1"
 EMAIL = "ethan2233har@gmail.com"
 KARIX_SENDER_ID = "TATHGT"
+RAZORPAY_KEY_SECRET = "wlVOAREeWhLHJQrlDUr0iEn7"
+EMAIL_PASSWORD = "kgmkkpjvsozdcbhn"
+KARIX_API_KEY = "nNTT1B6KaHaxEqQc0omzPQ=="
+RAZORPAY_KEY_ID = "rzp_test_JLdFnx7r5NMiBS"
+MONGO_URI = "mongodb+srv://sachintakoria2204:Sachin%40123@cluster1.zutj6.mongodb.net/iquanta_db?retryWrites=true&w=majority"
+JWT_SECRET = "Sachin@123"
