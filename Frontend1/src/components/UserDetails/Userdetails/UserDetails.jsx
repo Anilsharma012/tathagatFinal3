@@ -40,6 +40,13 @@ const UserDetails = () => {
         });
   
         const user = response.data.user;
+
+        // ✅ If onboarding is already complete, redirect to dashboard
+        if (user.isOnboardingComplete) {
+          localStorage.setItem("user", JSON.stringify(user));
+          navigate("/student/dashboard");
+          return;
+        }
   
         // ✅ Save user data in local storage
         localStorage.setItem("user", JSON.stringify(user));

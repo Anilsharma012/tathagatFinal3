@@ -133,10 +133,15 @@ const AuthLogin = () => {
         setSuccess("Login successful!");
         
         setTimeout(() => {
-          if (response.data.user?.isOnboardingComplete) {
+          const user = response.data.user;
+          if (user?.isOnboardingComplete) {
+            navigate("/student/dashboard");
+          } else if (user?.name && user?.email) {
+            // If they have basic details but onboarding not marked complete,
+            // they might still need to finish specific steps or we just send them to dashboard
             navigate("/student/dashboard");
           } else {
-            navigate("/student/onboarding");
+            navigate("/user-details");
           }
         }, 500);
       }
