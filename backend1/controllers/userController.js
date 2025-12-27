@@ -259,6 +259,11 @@ exports.updateDetails = async (req, res) => {
       "city",
       "state",
       "profilePic",
+      "gender",
+      "dob",
+      "targetYear",
+      "selectedExam",
+      "selectedCategory"
     ];
 
     const updates = {};
@@ -338,7 +343,12 @@ exports.updateDetails = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { $set: updates },
+      { 
+        $set: {
+          ...updates,
+          isOnboardingComplete: true
+        } 
+      },
       { new: true }
     ).select("-password");
 

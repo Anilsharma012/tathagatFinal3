@@ -59,6 +59,7 @@ const StudentOnboarding = () => {
         
         const user = response.data.user;
         if (user.isOnboardingComplete) {
+          localStorage.setItem("user", JSON.stringify(user)); // Ensure storage is synced
           navigate("/student/dashboard");
           return;
         }
