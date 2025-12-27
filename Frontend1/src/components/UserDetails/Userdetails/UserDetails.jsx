@@ -109,13 +109,13 @@ const handleUploadProfilePic = async () => {
   
     try {
       const token = localStorage.getItem("authToken");
-  
+
       // Only send non-empty values to avoid duplicate key errors
       const updateData = { name, city, gender, dob };
       if (email && email.trim() !== '') updateData.email = email;
       if (phoneNumber && phoneNumber.trim() !== '') updateData.phoneNumber = phoneNumber;
       if (profilePic && profilePic.trim() !== '') updateData.profilePic = profilePic;
-  
+
       const response = await axios.post(
         "/api/user/update-details",  // Backend route update
         updateData,
@@ -125,21 +125,9 @@ const handleUploadProfilePic = async () => {
           },
         }
       );
-  
-      const updatedUser = {
-        ...JSON.parse(localStorage.getItem("user")),
-        name,
-        email,
-        phoneNumber,
-        city,
-        gender,
-        dob,
-        profilePic
-      };
-  
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-  
-      navigate("/exam-category");  // Redirect after update
+
+      localStorage.setItem("user", JSON.stringify(response.data.data));
+      navigate("/student/dashboard");  // Redirect after update
     } catch (error) {
       console.error("❌ Error updating user details:", error);
     }
